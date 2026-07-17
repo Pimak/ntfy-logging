@@ -26,6 +26,16 @@
         <url>https://github.com/pimak/logback-ntfy</url>
     </scm>
 
+    <developers>
+        <developer>
+            <id>pimak</id>
+            <name>pimak</name>
+            <!-- GitHub noreply address — keeps a personal email off public metadata (Central requires a contactable developer). -->
+            <email>37274338+Pimak@users.noreply.github.com</email>
+            <url>https://github.com/pimak</url>
+        </developer>
+    </developers>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <logback.version>1.5.38</logback.version>
@@ -187,4 +197,125 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            Release-only machinery. Never activated by plain `verify` (CI's default), so day-to-day
+            builds are untouched. Activate with `-P release` to assemble + sign the Central bundle.
+            Goal-binding order is deliberate (RESEARCH Pitfall 3):
+              package -> sources jar + javadoc jar (both must exist first)
+              verify  -> gpg:sign (signs the main + sources + javadoc jars once they are present)
+        -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <!-- 3.4.0 stable; 4.0.0-beta-* deliberately avoided (RESEARCH: no betas in the release path). -->
+                        <version>3.4.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <!-- package: the sources jar must exist before gpg:sign runs at verify. -->
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.12.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <!-- package: the javadoc jar must exist before gpg:sign runs at verify. -->
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- Build javadoc against the JDK 21 source level (compiler floor). JDK 25's doclint is
+                                 stricter; pinning the source level keeps the release javadoc reproducible. -->
+                            <source>21</source>
+                            <!-- Tuned by the local dry run (Task 2). all,-missing = enforce well-formed doc but
+                                 don't fail on absent tags. -->
+                            <doclint>all,-missing</doclint>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.8</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <!-- verify: sign only after main + sources + javadoc jars all exist. -->
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Passphrase is read from the MAVEN_GPG_PASSPHRASE env var, never an
+                                         inline passphrase config element (deprecated in 3.2.x and leaks to logs).
+                                         loopback pinentry allows unattended signing in CI. -->
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.11.0</version>
+                        <!-- extensions=true wires this plugin in as the deploy handler for the Central Portal. -->
+                        <extensions>true</extensions>
+                        <configuration>
+                            <!-- Server credentials (Central Portal user token) resolved from settings.xml <server id="central">. -->
+                            <publishingServerId>central</publishingServerId>
+                            <!-- D-01: a validation-passing bundle is published automatically on upload — no manual
+                                 dashboard click. The tag push is the operator's point of no return. -->
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+            D-12: the GitHub Packages mirror is a STRUCTURALLY SEPARATE leg — classic distributionManagement
+            + maven-deploy-plugin, never mixed into the Central Portal plugin's path. Activate with
+            `-P github-mirror` and run `deploy`. This leg is best-effort (D-11) and is not advertised as a
+            consumer install path (D-13).
+        -->
+        <profile>
+            <id>github-mirror</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/Pimak/logback-ntfy</url>
+                </repository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <!-- 3.1.4 stable; 4.0.0-beta-* deliberately avoided. -->
+                        <version>3.1.4</version>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
