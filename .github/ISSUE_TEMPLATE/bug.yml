@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a problem with logback-ntfy
+labels: [bug]
+body:
+  - type: input
+    id: logback-version
+    attributes:
+      label: Logback version
+      placeholder: "1.5.38"
+    validations:
+      required: true
+  - type: input
+    id: jdk-version
+    attributes:
+      label: JDK version
+      placeholder: "21"
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant XML configuration
+      description: >-
+        The `<appender>` block from your logback.xml/logback-spring.xml.
+        Redact any real tokens/URLs before pasting.
+      render: xml
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What you expected to happen vs. what actually happened
+    validations:
+      required: true
