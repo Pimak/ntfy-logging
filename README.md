@@ -12,13 +12,13 @@ early fatal errors are otherwise invisible.
 
 ## Install
 
-Maven coordinate: `io.github.pimak:logback-ntfy:0.1.0`
+Maven coordinate: `io.github.pimak:logback-ntfy:0.1.1`
 
 ```xml
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>logback-ntfy</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
