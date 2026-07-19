@@ -34,17 +34,27 @@ echo "==> Bumping reactor version to ${VERSION}"
 echo "==> Stamping CHANGELOG [${VERSION}] date"
 #    Stamp the CHANGELOG heading date (the real action for v0.1.0).
 sed -i "s/^## \[${VERSION}\] - Unreleased/## [${VERSION}] - ${TODAY}/" CHANGELOG.md
-#    README coordinate stamping, scoped to README.md ONLY, never docs/ or the CHANGELOG footer
-#    links. The multi-module README carries several install snippets, so both seds are global:
+
+#    Coordinate stamping across EVERY documentation file — the README plus each per-library
+#    guide under docs/ — so no install snippet is ever left pointing at the previous release.
+#    The README and each docs/*.md guide carry install snippets, so both seds are global:
 #      - every <version>…</version> line in the Maven dependency snippets, and
 #      - every `io.github.pimak:ntfy-<artifact>:<ver>` coordinate in prose (ntfy-core,
 #        ntfy-logback, ntfy-spring-boot-starter, ntfy-quarkus-runtime).
-sed -i "s#<version>[0-9][0-9.]*</version>#<version>${VERSION}</version>#g" README.md
-sed -i "s#\(io.github.pimak:ntfy-[a-z-]*:\)[0-9][0-9.]*#\1${VERSION}#g" README.md
+#    Scope is deliberately the <version> tag and the `groupId:artifact:` coordinate only, so
+#    illustrative version-like strings in prose or code samples (e.g. a `v1.2.3` example
+#    message, or the Logback `1.5.38` line in compatibility.md) are never rewritten.
+DOC_FILES=(README.md)
+while IFS= read -r -d '' doc; do DOC_FILES+=("${doc}"); done < <(find docs -maxdepth 1 -name '*.md' -print0 | sort -z)
+echo "==> Stamping version ${VERSION} across documentation: ${DOC_FILES[*]}"
+for doc in "${DOC_FILES[@]}"; do
+  sed -i "s#<version>[0-9][0-9.]*</version>#<version>${VERSION}</version>#g" "${doc}"
+  sed -i "s#\(io.github.pimak:ntfy-[a-z-]*:\)[0-9][0-9.]*#\1${VERSION}#g" "${doc}"
+done
 
 # 3) Single reviewed commit folding the bump + docs pass.
 echo "==> Committing release ${VERSION}"
-git add pom.xml CHANGELOG.md README.md
+git add pom.xml CHANGELOG.md README.md docs
 git commit -m "chore(release): ${VERSION}"
 
 # 4) Annotated tag.
