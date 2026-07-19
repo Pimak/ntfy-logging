@@ -48,6 +48,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String errorTags;
   private String digestTags;
   private String clickUrl;
+  private String actions;
   private Integer maxStackFrames;
   private Integer maxAlertsPerWindow;
   private Boolean enabled;
@@ -129,6 +130,14 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     this.clickUrl = clickUrl;
   }
 
+  /**
+   * Action buttons as a raw ntfy {@code Actions} header value (short format, e.g. {@code "view, View
+   * logs, https://grafana.example.com/d/abc"}).
+   */
+  public void setActions(String actions) {
+    this.actions = actions;
+  }
+
   /** A single comma-separated value of logger-name prefixes to exclude from alerting. */
   public void setExcludedLoggers(String excludedLoggers) {
     this.excludedLoggers = excludedLoggers;
@@ -208,6 +217,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (clickUrl != null) {
       builder.clickUrl(clickUrl);
+    }
+    if (actions != null) {
+      builder.actionsHeader(actions);
     }
     if (enabled != null) {
       builder.enabled(enabled);

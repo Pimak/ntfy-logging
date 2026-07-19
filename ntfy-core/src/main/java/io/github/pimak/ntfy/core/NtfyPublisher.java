@@ -81,15 +81,36 @@ public class NtfyPublisher {
   }
 
   /**
-   * Publishes {@code title}/{@code body} to {@code {url}/{topic}}, additionally forwarding {@code
-   * priority}, {@code tags} and {@code click} as ntfy's {@code Priority}, {@code Tags} and {@code
-   * Click} HTTP headers. {@code click} is the URL ntfy opens when the notification is tapped.
+   * Priority/tags/click overload with no {@code Actions} header. Delegates to {@link
+   * #publish(String, String, String, AuthMode, String, String, String, String, String)} with
+   * {@code actions} {@code null}.
    *
-   * <p>A blank/null {@code priority} sends no {@code Priority} header; a blank/null {@code tags}
-   * sends no {@code Tags} header; a blank/null {@code click} sends no {@code Click} header. Values
-   * containing non-printable-ASCII characters are omitted rather than forwarded: the CRLF-injection
-   * guard must not depend solely on the JDK client's header validation, and a single invalid
-   * configured value must not abort every publish at the header-build boundary.
+   * @return a {@link PublishResult} describing the outcome; never throws
+   */
+  public PublishResult publish(
+      String url,
+      String topic,
+      String title,
+      AuthMode auth,
+      String body,
+      String priority,
+      String tags,
+      String click) {
+    return publish(url, topic, title, auth, body, priority, tags, click, null);
+  }
+
+  /**
+   * Publishes {@code title}/{@code body} to {@code {url}/{topic}}, additionally forwarding {@code
+   * priority}, {@code tags}, {@code click} and {@code actions} as ntfy's {@code Priority}, {@code
+   * Tags}, {@code Click} and {@code Actions} HTTP headers. {@code click} is the URL ntfy opens when
+   * the notification is tapped; {@code actions} is a pre-serialized ntfy {@code Actions} header
+   * value (see {@code NtfyActionSerializer}).
+   *
+   * <p>A blank/null value for any of {@code priority}/{@code tags}/{@code click}/{@code actions}
+   * sends no corresponding header. Values containing non-printable-ASCII characters are omitted
+   * rather than forwarded: the CRLF-injection guard must not depend solely on the JDK client's
+   * header validation, and a single invalid configured value must not abort every publish at the
+   * header-build boundary.
    *
    * <p>The {@code Authorization} header (if any) comes entirely from the supplied {@link
    * AuthMode}: {@code auth.buildHeader()} returns the header value to send, or {@code
@@ -105,7 +126,8 @@ public class NtfyPublisher {
       String body,
       String priority,
       String tags,
-      String click) {
+      String click,
+      String actions) {
     if (!isValidTopic(topic)) {
       return PublishResult.failure(GENERIC_INVALID_REQUEST_MESSAGE);
     }
@@ -135,6 +157,10 @@ public class NtfyPublisher {
 
       if (!isBlank(click) && isAsciiPrintable(click)) {
         builder.header("Click", click);
+      }
+
+      if (!isBlank(actions) && isAsciiPrintable(actions)) {
+        builder.header("Actions", actions);
       }
 
       HttpResponse<String> response =

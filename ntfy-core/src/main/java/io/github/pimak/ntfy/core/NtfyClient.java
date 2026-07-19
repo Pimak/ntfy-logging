@@ -1,6 +1,7 @@
 package io.github.pimak.ntfy.core;
 
 import java.net.http.HttpClient;
+import java.util.List;
 
 /**
  * Generic, standalone ntfy notification client — the "send an arbitrary notification" surface,
@@ -37,35 +38,52 @@ public final class NtfyClient {
   public PublishResult notify(String title, String message) {
     return publisher.publish(
         config.getUrl(), config.getTopic(), title, authMode, message, null, null,
-        config.getClickUrl());
+        config.getClickUrl(), config.getActions());
   }
 
   /**
    * Publishes {@code title}/{@code message} to the configured topic, forwarding {@code priority}
    * and {@code tags} as ntfy's {@code Priority} and {@code Tags} headers (blank/null values send no
-   * corresponding header). The configured {@link NtfyConfig#getClickUrl() clickUrl} (if any) is
-   * sent as the {@code Click} header.
+   * corresponding header). The configured {@link NtfyConfig#getClickUrl() clickUrl} and {@link
+   * NtfyConfig#getActions() actions} (if any) are sent as the {@code Click}/{@code Actions} headers.
    *
    * @return the publish outcome; never throws
    */
   public PublishResult notify(String title, String message, String priority, String tags) {
     return publisher.publish(
         config.getUrl(), config.getTopic(), title, authMode, message, priority, tags,
-        config.getClickUrl());
+        config.getClickUrl(), config.getActions());
   }
 
   /**
    * Publishes {@code title}/{@code message} to the configured topic, forwarding {@code priority},
    * {@code tags} and {@code click} as ntfy's {@code Priority}, {@code Tags} and {@code Click}
    * headers (blank/null values send no corresponding header). {@code click} overrides the configured
-   * {@link NtfyConfig#getClickUrl() clickUrl} for this call.
+   * {@link NtfyConfig#getClickUrl() clickUrl} for this call; the configured {@link
+   * NtfyConfig#getActions() actions} (if any) are still sent as the {@code Actions} header.
    *
    * @return the publish outcome; never throws
    */
   public PublishResult notify(
       String title, String message, String priority, String tags, String click) {
     return publisher.publish(
-        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags, click);
+        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags, click,
+        config.getActions());
+  }
+
+  /**
+   * Publishes {@code title}/{@code message} to the configured topic with the given action buttons,
+   * serialized to ntfy's {@code Actions} header (ntfy caps a notification at three actions; extras
+   * and {@code null} elements are dropped). {@code actions} overrides the configured {@link
+   * NtfyConfig#getActions() actions} for this call; the configured {@link NtfyConfig#getClickUrl()
+   * clickUrl} (if any) is still sent as the {@code Click} header.
+   *
+   * @return the publish outcome; never throws
+   */
+  public PublishResult notify(String title, String message, List<NtfyAction> actions) {
+    return publisher.publish(
+        config.getUrl(), config.getTopic(), title, authMode, message, null, null,
+        config.getClickUrl(), NtfyActionSerializer.serialize(actions));
   }
 
   /** Releases the underlying {@link HttpClient} (Java 21+ deterministic shutdown). */

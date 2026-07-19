@@ -84,6 +84,12 @@ public interface NtfyRuntimeConfig {
   /** URL opened when a notification is tapped (ntfy {@code Click} header). Omitted when unset. */
   Optional<String> clickUrl();
 
+  /**
+   * Action buttons as a raw ntfy {@code Actions} header value (short format, e.g. {@code "view, View
+   * logs, https://grafana.example.com/d/abc"}). Omitted when unset.
+   */
+  Optional<String> actions();
+
   /** Comma-separated logger-name prefixes excluded from alerting. */
   Optional<String> excludedLoggers();
 

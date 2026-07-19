@@ -29,6 +29,7 @@ public class NtfyProperties {
   private String errorTags = "rotating_light";
   private String digestTags = "fire";
   private String clickUrl;
+  private String actions;
   private String excludedLoggers;
   private boolean enabled = true;
 
@@ -166,6 +167,14 @@ public class NtfyProperties {
 
   public void setClickUrl(String clickUrl) {
     this.clickUrl = clickUrl;
+  }
+
+  public String getActions() {
+    return actions;
+  }
+
+  public void setActions(String actions) {
+    this.actions = actions;
   }
 
   public String getExcludedLoggers() {
