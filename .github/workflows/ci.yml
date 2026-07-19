@@ -42,10 +42,12 @@ jobs:
         with:
           java-version: '21'
           distribution: graalvm-community
-          components: native-image
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: maven
       - name: Native smoke (Quarkus integration-tests)
-        # -am builds ntfy-core + ntfy-quarkus-runtime/deployment first, then native-compiles the
-        # integration-tests app and runs the *IT (@QuarkusIntegrationTest) against ./…-runner.
-        run: ./mvnw -q --batch-mode verify -Dnative -pl ntfy-quarkus/integration-tests -am
+        # The deployment module MUST be in the -pl set: the runtime's quarkus-extension-maven-plugin
+        # extension-descriptor goal verifies the deployment artifact's dependencies, and that
+        # verification only resolves the correct deps when deployment is in the reactor session (in a
+        # fresh CI repo it is otherwise unresolvable). -am then adds ntfy-core + ntfy-quarkus-runtime.
+        # The native compile + @QuarkusIntegrationTest run against ./…-runner in integration-tests.
+        run: ./mvnw -q --batch-mode verify -Dnative -pl ntfy-quarkus/integration-tests,ntfy-quarkus/deployment -am
