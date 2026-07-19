@@ -8,7 +8,7 @@ a `1.0` stability guarantee; security fixes will be released as new `0.x` patch 
 ## Reporting a Vulnerability
 
 Please report security vulnerabilities using GitHub's
-[private vulnerability reporting](https://github.com/Pimak/logback-ntfy/security/advisories/new)
+[private vulnerability reporting](https://github.com/Pimak/ntfy-logging/security/advisories/new)
 feature (Security tab → Report a vulnerability). Do not open a public issue for
 security-sensitive reports.
 

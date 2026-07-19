@@ -10,4 +10,4 @@ metadata:
   categories:
     - "logging"
   status: "stable"
-  guide: "https://github.com/pimak/logback-ntfy"
+  guide: "https://github.com/Pimak/ntfy-logging"

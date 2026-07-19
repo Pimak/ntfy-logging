@@ -1,6 +1,6 @@
 # ntfy-logging
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Pimak/logback-ntfy/ci.yml?branch=main)](https://github.com/Pimak/logback-ntfy/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Pimak/ntfy-logging/ci.yml?branch=main)](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pimak/ntfy-core)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
 
 **ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for

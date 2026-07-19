@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an enhancement for logback-ntfy
+description: Suggest an enhancement for ntfy-logging
 labels: [enhancement]
 body:
   - type: input

@@ -30,11 +30,11 @@
         </license>
     </licenses>
 
-    <url>https://github.com/pimak/logback-ntfy</url>
+    <url>https://github.com/Pimak/ntfy-logging</url>
     <scm>
-        <connection>scm:git:https://github.com/pimak/logback-ntfy.git</connection>
-        <developerConnection>scm:git:https://github.com/pimak/logback-ntfy.git</developerConnection>
-        <url>https://github.com/pimak/logback-ntfy</url>
+        <connection>scm:git:https://github.com/Pimak/ntfy-logging.git</connection>
+        <developerConnection>scm:git:https://github.com/Pimak/ntfy-logging.git</developerConnection>
+        <url>https://github.com/Pimak/ntfy-logging</url>
     </scm>
 
     <developers>
@@ -313,7 +313,7 @@
                 <repository>
                     <id>github</id>
                     <name>GitHub Packages</name>
-                    <url>https://maven.pkg.github.com/Pimak/logback-ntfy</url>
+                    <url>https://maven.pkg.github.com/Pimak/ntfy-logging</url>
                 </repository>
             </distributionManagement>
             <build>
