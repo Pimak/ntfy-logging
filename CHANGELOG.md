@@ -43,7 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on CI, release job resolves dependencies cold (no shared cache), Maven wrapper distribution
   pinned by SHA-256, Maven 3.9.9 release download pinned by inline SHA-512, strict Maven checksum
   policy, Dependabot enabled, and the Quarkus (3.15.7) / Spring Boot (3.4.13) BOMs moved to their
-  latest security patch levels.
+  latest security patch levels. CodeQL (Java + workflow files) and a PR dependency-review SCA
+  gate run in CI, and the Central publish job is gated behind a reviewer-protected `release`
+  environment.
 
 ## [1.0.0] - 2026-07-19
 ### Changed

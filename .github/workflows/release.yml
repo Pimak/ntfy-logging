@@ -14,6 +14,12 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Deployment gate: this environment's protection rules (Settings → Environments → release →
+    # Required reviewers) force a human approval between the tag push and the irreversible
+    # autoPublish=true Central deploy. The environment is auto-created on first run; the
+    # required-reviewers rule itself must be configured once in the repo settings — an
+    # environment with no rules approves silently.
+    environment: release
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 

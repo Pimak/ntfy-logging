@@ -1,0 +1,20 @@
+# SCA gate on pull requests: diffs the PR's dependency changes against the GitHub Advisory
+# Database and fails the check when a change introduces a known-vulnerable dependency.
+# Complements Dependabot (which proposes updates) by blocking regressions at review time.
+name: Dependency review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
