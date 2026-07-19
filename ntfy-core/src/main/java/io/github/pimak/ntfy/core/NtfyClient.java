@@ -29,24 +29,43 @@ public final class NtfyClient {
 
   /**
    * Publishes {@code title}/{@code message} to the configured topic with no {@code Priority}/{@code
-   * Tags} headers.
+   * Tags} headers. The configured {@link NtfyConfig#getClickUrl() clickUrl} (if any) is sent as the
+   * {@code Click} header.
    *
    * @return the publish outcome; never throws
    */
   public PublishResult notify(String title, String message) {
-    return publisher.publish(config.getUrl(), config.getTopic(), title, authMode, message);
+    return publisher.publish(
+        config.getUrl(), config.getTopic(), title, authMode, message, null, null,
+        config.getClickUrl());
   }
 
   /**
    * Publishes {@code title}/{@code message} to the configured topic, forwarding {@code priority}
    * and {@code tags} as ntfy's {@code Priority} and {@code Tags} headers (blank/null values send no
-   * corresponding header).
+   * corresponding header). The configured {@link NtfyConfig#getClickUrl() clickUrl} (if any) is
+   * sent as the {@code Click} header.
    *
    * @return the publish outcome; never throws
    */
   public PublishResult notify(String title, String message, String priority, String tags) {
     return publisher.publish(
-        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags);
+        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags,
+        config.getClickUrl());
+  }
+
+  /**
+   * Publishes {@code title}/{@code message} to the configured topic, forwarding {@code priority},
+   * {@code tags} and {@code click} as ntfy's {@code Priority}, {@code Tags} and {@code Click}
+   * headers (blank/null values send no corresponding header). {@code click} overrides the configured
+   * {@link NtfyConfig#getClickUrl() clickUrl} for this call.
+   *
+   * @return the publish outcome; never throws
+   */
+  public PublishResult notify(
+      String title, String message, String priority, String tags, String click) {
+    return publisher.publish(
+        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags, click);
   }
 
   /** Releases the underlying {@link HttpClient} (Java 21+ deterministic shutdown). */
