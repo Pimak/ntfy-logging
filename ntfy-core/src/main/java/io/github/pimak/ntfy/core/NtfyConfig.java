@@ -34,6 +34,7 @@ public final class NtfyConfig {
   private final String errorTags;
   private final String digestTags;
   private final String clickUrl;
+  private final String actions;
   private final List<String> excludedLoggerPrefixes;
   private final boolean enabled;
   private final boolean endpointFromClasspathFile;
@@ -56,6 +57,7 @@ public final class NtfyConfig {
     this.errorTags = b.errorTags;
     this.digestTags = b.digestTags;
     this.clickUrl = b.clickUrl;
+    this.actions = b.actions;
     this.excludedLoggerPrefixes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
     this.enabled = b.enabled;
@@ -140,6 +142,16 @@ public final class NtfyConfig {
     return clickUrl;
   }
 
+  /**
+   * The pre-serialized ntfy {@code Actions} header value (action buttons) sent with both individual
+   * error alerts and the storm digest, or {@code null}/blank to send no {@code Actions} header. Set
+   * either as a raw ntfy short-format string ({@link Builder#actionsHeader(String)}) or from typed
+   * {@link NtfyAction}s ({@link Builder#actions(List)}).
+   */
+  public String getActions() {
+    return actions;
+  }
+
   /** The unmodifiable list of logger-name prefixes excluded from alerting. */
   public List<String> getExcludedLoggerPrefixes() {
     return excludedLoggerPrefixes;
@@ -191,6 +203,7 @@ public final class NtfyConfig {
     private String errorTags = "rotating_light";
     private String digestTags = "fire";
     private String clickUrl;
+    private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
     private boolean enabled = true;
     private boolean endpointFromClasspathFile = false;
@@ -280,6 +293,28 @@ public final class NtfyConfig {
     /** URL opened when a notification is tapped (ntfy {@code Click} header); {@code null} to omit. */
     public Builder clickUrl(String clickUrl) {
       this.clickUrl = clickUrl;
+      return this;
+    }
+
+    /**
+     * Sets action buttons from a raw, pre-formatted ntfy {@code Actions} header value (the short
+     * "simple" format, e.g. {@code "view, View logs, https://grafana.example.com/d/abc"}). Forwarded
+     * verbatim; {@code null}/blank sends no {@code Actions} header. This is the flat-string entry
+     * point used by environment/YAML/XML configuration.
+     */
+    public Builder actionsHeader(String actionsHeader) {
+      this.actions = actionsHeader;
+      return this;
+    }
+
+    /**
+     * Sets action buttons from typed {@link NtfyAction}s, serialized to the ntfy {@code Actions}
+     * header via {@link NtfyActionSerializer}. ntfy caps a notification at three actions; extra
+     * entries and {@code null} elements are dropped. A {@code null}/empty list sends no {@code
+     * Actions} header. Constructing an individual {@link NtfyAction} with a blank label/url throws.
+     */
+    public Builder actions(List<NtfyAction> actions) {
+      this.actions = NtfyActionSerializer.serialize(actions);
       return this;
     }
 

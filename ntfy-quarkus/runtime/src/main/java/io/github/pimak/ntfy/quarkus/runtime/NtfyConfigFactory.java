@@ -36,6 +36,7 @@ final class NtfyConfigFactory {
     config.title().ifPresent(b::title);
     config.appName().ifPresent(b::appName);
     config.clickUrl().ifPresent(b::clickUrl);
+    config.actions().ifPresent(b::actionsHeader);
     config.excludedLoggers().ifPresent(b::excludedLoggers);
 
     return b.build();
