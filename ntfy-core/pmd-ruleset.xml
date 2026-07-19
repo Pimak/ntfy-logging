@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="ntfy-logging dead-code guard"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+    https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+  <description>
+    Minimal dead-code detection: unused private members/locals and unused imports only.
+    Deliberately excludes any unused-PUBLIC-member rule -- fluent config setters and adapter
+    entry points are called reflectively / from other modules and would false-positive.
+  </description>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod" />
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable" />
+  <rule ref="category/java/codestyle.xml/UnnecessaryImport" />
+</ruleset>

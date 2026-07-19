@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>ntfy-core</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-core</name>
+    <description>Framework-pure ntfy notification engine: config loading, alert dispatch, storm suppression, and the ntfy wire publisher. Pure JDK, zero runtime dependencies.</description>
+
+    <dependencies>
+        <!-- Pure JDK main sources: no logback, no slf4j, no compile-scope dependencies at all. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-dependency-allowlist</id>
+                        <!-- default phase = validate, no override needed -->
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <!--
+                                        Strict ALLOWLIST, not a blocklist. ntfy-core's entire promise
+                                        is "pure JDK, nothing else" (plus its own test stack): banning
+                                        everything and re-allowing only the verified roster below means
+                                        any new dependency is a deliberate, visible diff that trips this
+                                        rule, instead of silently sailing through. Note there is NO
+                                        logback and NO slf4j here — core is framework-agnostic; the
+                                        logging-framework adapters carry those in their own module poms.
+
+                                        To safely extend this allowlist for a genuinely new, legitimate
+                                        dependency:
+                                          1. Confirm the new dependency doesn't break core's "pure JDK"
+                                             promise. If it does, don't add it here; reconsider the
+                                             design instead.
+                                          2. Run `mvn dependency:tree` and add EVERY new direct + transitive
+                                             coordinate surfaced by the change, not just the one you added
+                                             by hand; transitives are exactly what this rule is designed to
+                                             catch.
+                                          3. Prefer a group-level wildcard (`groupId:*`) when a dependency
+                                             is a multi-artifact aggregator (see the org.junit.jupiter/
+                                             org.junit.platform entries below) so sibling artifacts under
+                                             the same groupId aren't missed.
+                                          4. Re-run `mvn validate` after editing and confirm BUILD SUCCESS
+                                             before committing.
+                                    -->
+                                    <searchTransitive>true</searchTransitive>
+                                    <excludes>
+                                        <exclude>*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>org.junit.jupiter:*</include>
+                                        <include>org.junit.platform:*</include>
+                                        <include>org.opentest4j:opentest4j</include>
+                                        <include>org.apiguardian:apiguardian-api</include>
+                                        <include>org.jspecify:jspecify</include>
+                                        <include>org.assertj:assertj-core</include>
+                                        <include>net.bytebuddy:byte-buddy</include>
+                                        <include>org.wiremock:wiremock-standalone</include>
+                                    </includes>
+                                    <message>
+                                        ntfy-core must stay pure JDK (plus its test stack). See the
+                                        allowlist comment above this rule before adding anything here.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

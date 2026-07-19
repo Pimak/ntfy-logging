@@ -5,12 +5,21 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.pimak</groupId>
-    <artifactId>logback-ntfy</artifactId>
-    <version>0.1.1</version>
-    <packaging>jar</packaging>
+    <artifactId>ntfy-logging</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
 
-    <name>logback-ntfy</name>
-    <description>Zero-dependency Logback appender that publishes ERROR-level log events as ntfy push notifications.</description>
+    <name>ntfy-logging</name>
+    <description>Zero-dependency ntfy notification engine plus logging-framework adapters that publish ERROR-level log events as ntfy push notifications.</description>
+
+    <modules>
+        <!--
+            Only ntfy-core is wired in for now. The four adapter modules (logback, log4j2,
+            spring-boot-starter, quarkus-extension) are added to this list by their own build-out
+            agents once their pom.xml exists, so the reactor never lists a module that cannot build.
+        -->
+        <module>ntfy-core</module>
+    </modules>
 
     <licenses>
         <license>
@@ -38,171 +47,154 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
         <logback.version>1.5.38</logback.version>
+        <slf4j.version>2.0.16</slf4j.version>
+        <junit.version>6.1.2</junit.version>
+        <assertj.version>3.27.7</assertj.version>
+        <wiremock.version>3.13.2</wiremock.version>
+        <quarkus.version>3.15.1</quarkus.version>
+        <spring-boot.version>3.4.1</spring-boot.version>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>6.1.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.27.7</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.wiremock</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>3.13.2</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Centralized versions for logging-framework and test dependencies used across modules. -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+
+            <!--
+                Platform BOMs imported for the future Spring Boot starter and Quarkus extension
+                modules. Harmless to the ntfy-core build (core declares no dependency drawn from
+                either BOM); declaring them here now gives the adapter modules a single, aligned
+                version surface once they are wired into <modules>.
+            -->
+            <dependency>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
-                <configuration>
-                    <release>21</release>
-                    <parameters>true</parameters>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.6</version>
-                <configuration>
-                    <excludes>
-                        <exclude>**/*IT.java</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.6</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.3</version>
-                <executions>
-                    <execution>
-                        <id>enforce-dependency-allowlist</id>
-                        <!-- default phase = validate, no override needed -->
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <bannedDependencies>
-                                    <!--
-                                        Strict ALLOWLIST, not a blocklist. logback-ntfy's entire promise
-                                        is "logback + JDK, nothing else" (plus its own test stack):
-                                        banning everything and re-allowing only the verified roster below
-                                        means any new dependency is a deliberate, visible diff that trips
-                                        this rule, instead of silently sailing through.
-
-                                        To safely extend this allowlist for a genuinely new, legitimate
-                                        dependency:
-                                          1. Re-read the README's "zero dependency beyond logback" promise
-                                             and confirm the new dependency doesn't break it. If it does,
-                                             don't add it here; reconsider the design instead.
-                                          2. Run `mvn dependency:tree` and add EVERY new direct + transitive
-                                             coordinate surfaced by the change, not just the one you added
-                                             by hand; transitives are exactly what this rule is designed to
-                                             catch.
-                                          3. Prefer a group-level wildcard (`groupId:*`) when a dependency
-                                             is a multi-artifact aggregator (see the org.junit.jupiter/
-                                             org.junit.platform entries below) so sibling artifacts under
-                                             the same groupId aren't missed.
-                                          4. Re-run `mvn validate` after editing and confirm BUILD SUCCESS
-                                             before committing.
-                                    -->
-                                    <searchTransitive>true</searchTransitive>
-                                    <excludes>
-                                        <exclude>*</exclude>
-                                    </excludes>
-                                    <includes>
-                                        <include>ch.qos.logback:logback-classic</include>
-                                        <include>ch.qos.logback:logback-core</include>
-                                        <include>org.slf4j:slf4j-api</include>
-                                        <include>org.junit.jupiter:*</include>
-                                        <include>org.junit.platform:*</include>
-                                        <include>org.opentest4j:opentest4j</include>
-                                        <include>org.apiguardian:apiguardian-api</include>
-                                        <include>org.jspecify:jspecify</include>
-                                        <include>org.assertj:assertj-core</include>
-                                        <include>net.bytebuddy:byte-buddy</include>
-                                        <include>org.wiremock:wiremock-standalone</include>
-                                    </includes>
-                                    <message>
-                                        logback-ntfy must stay zero-dependency beyond logback + JDK (plus
-                                        its test stack). See the allowlist comment above this rule before
-                                        adding anything here.
-                                    </message>
-                                </bannedDependencies>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.28.0</version>
-                <executions>
-                    <execution>
-                        <id>dead-code-guard</id>
-                        <!-- default phase = verify, no override needed -->
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <rulesets>
-                        <ruleset>pmd-ruleset.xml</ruleset>
-                    </rulesets>
-                    <failOnViolation>true</failOnViolation>
-                    <linkXRef>false</linkXRef>
-                </configuration>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.15.0</version>
+                    <configuration>
+                        <release>21</release>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.6</version>
+                    <configuration>
+                        <excludes>
+                            <exclude>**/*IT.java</exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.5.6</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.6.3</version>
+                    <!--
+                        Version is managed here so every module inherits it, but the concrete
+                        bannedDependencies ALLOWLIST execution lives in each module's own pom:
+                        the allowlist is per-module (ntfy-core is pure JDK + its test stack; the
+                        logback adapter additionally allows logback/slf4j, etc.), so it cannot be a
+                        single inherited execution. See each module pom for its allowlist and the
+                        explanatory comment that travels with it.
+                    -->
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>3.28.0</version>
+                    <executions>
+                        <execution>
+                            <id>dead-code-guard</id>
+                            <!-- default phase = verify, no override needed -->
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <rulesets>
+                            <!-- Each module keeps a copy of the shared dead-code ruleset at its own
+                                 basedir; resolution is module-relative just as in the original single
+                                 module build. -->
+                            <ruleset>${project.basedir}/pmd-ruleset.xml</ruleset>
+                        </rulesets>
+                        <failOnViolation>true</failOnViolation>
+                        <linkXRef>false</linkXRef>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <profiles>
         <!--
             Release-only machinery. Never activated by plain `verify` (CI's default), so day-to-day
             builds are untouched. Activate with `-P release` to assemble + sign the Central bundle.
-            Goal-binding order is deliberate (RESEARCH Pitfall 3):
+            Applied per-module across the reactor. Goal-binding order is deliberate (RESEARCH Pitfall 3):
               package -> sources jar + javadoc jar (both must exist first)
               verify  -> gpg:sign (signs the main + sources + javadoc jars once they are present)
         -->
