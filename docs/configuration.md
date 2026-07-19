@@ -1,84 +1,133 @@
 # Configuration Reference
 
-`logback-ntfy` is configured **exclusively through JavaBean setters** on `NtfyAlertAppender`.
-The library never reads `System.getenv()` or any other process-environment
-source directly — if you want environment-variable driven configuration (e.g.
-`NTFY_ALERT_URL`), wire it in your own `logback.xml`/`logback-spring.xml` using Logback's
-standard `${VAR_NAME}` property substitution and pass the resolved value into the setter's
-XML element. This keeps the appender itself dependency-free and testable in isolation.
+Every adapter in the `ntfy-logging` family configures the same framework-neutral engine, so there
+is **one set of settings** with the same names, types, and defaults everywhere. What differs is only
+*where* you write them:
 
-Every setter below corresponds to one XML element inside the `<appender>` block, using the
-standard Logback JavaBean convention: `setFoo(...)` maps to `<foo>...</foo>`.
+- **Core / plain Logback** — resolved by `ConfigLoader` from, highest precedence first: a JVM
+  system property `ntfy.<key>`, then an environment variable `NTFY_<KEY>`, then a classpath
+  `ntfy.properties` entry `ntfy.<key>`. (You can also set them explicitly through
+  `LogbackAlertAppender`'s XML setters or `NtfyConfig.builder()`.)
+- **Spring Boot** — your application's own config under the `ntfy.*` prefix (`application.yml` /
+  `application.properties`, environment, etc.), bound with Spring's relaxed binding.
+- **Quarkus** — your application's own config under the `quarkus.ntfy.*` prefix.
 
-## Setter Reference
+> The engine no longer refuses to read the process environment: config is resolved from
+> **sysprop > env > `ntfy.properties`** (core/Logback), or from **your framework's native config**
+> (Spring `ntfy.*`, Quarkus `quarkus.ntfy.*`). The old "never reads `getenv`" guarantee was a
+> property of the single Logback appender; it is intentionally gone.
 
-| XML element | Setter | Type | Default | Meaning |
-|---|---|---|---|---|
-| `<url>` | `setUrl(String)` | `String` | *(none — required)* | Base URL of the ntfy server (e.g. `https://ntfy.example.com`). |
-| `<topic>` | `setTopic(String)` | `String` | *(none — required)* | ntfy topic to publish alerts to. |
-| `<token>` | `setToken(String)` | `String` | *(none)* | Bearer token used for authentication. Takes precedence over `username`/`password` if both are set. |
-| `<username>` | `setUsername(String)` | `String` | *(none)* | Username for HTTP Basic authentication. Ignored if `token` is set. |
-| `<password>` | `setPassword(String)` | `String` | *(none)* | Password for HTTP Basic authentication. Ignored if `token` is set. |
-| `<title>` | `setTitle(String)` | `String` | *(none)* | Title prefix for notifications. When the event carries an exception, the root-cause exception class name is appended: `<title> - java.lang.FooException`. If unset, falls back to `appName`; if both are unset the title is empty (no `Title` header is sent) and the ntfy server shows its own server-side default, the topic name. |
-| `<appName>` | `setAppName(String)` | `String` | *(none)* | Application name used as the title fallback when `title` is not set (the same root-cause suffix rule applies to it). It does not appear in the notification body. |
-| `<maxStackFrames>` | `setMaxStackFrames(int)` | `int` | `5` | Maximum number of stack trace frames included per alert body before the trace is cut off. |
-| `<connectTimeout>` | `setConnectTimeout(Duration)` | `ch.qos.logback.core.util.Duration` | `5000` ms (5 seconds) | Timeout for establishing the HTTP connection to the ntfy server. |
-| `<requestTimeout>` | `setRequestTimeout(Duration)` | `ch.qos.logback.core.util.Duration` | `10000` ms (10 seconds) | Timeout for the full HTTP publish request/response round trip. |
-| `<maxAlertsPerWindow>` | `setMaxAlertsPerWindow(int)` | `int` | `3` | Number of individual alerts allowed per `suppressionWindow` before storm rate-limiting kicks in. See [alert-behavior.md](alert-behavior.md). |
-| `<suppressionWindow>` | `setSuppressionWindow(Duration)` | `ch.qos.logback.core.util.Duration` | `180000` ms (3 minutes) | Rolling window used both for the burst allowance and for the periodic digest timer. See [alert-behavior.md](alert-behavior.md). |
-| `<errorPriority>` | `setErrorPriority(String)` | `String` | `"high"` | ntfy `Priority` header value used for individual (non-suppressed) error alerts. |
-| `<digestPriority>` | `setDigestPriority(String)` | `String` | `"urgent"` | ntfy `Priority` header value used for aggregated storm digests. |
-| `<errorTags>` | `setErrorTags(String)` | `String` | `"rotating_light"` | ntfy `Tags` header value (comma-separated) used for individual error alerts. |
-| `<digestTags>` | `setDigestTags(String)` | `String` | `"fire"` | ntfy `Tags` header value (comma-separated) used for aggregated storm digests. |
-| `<excludedLoggers>` | `setExcludedLoggers(String)` | `String` | *(none)* | Single comma-separated value of logger-name prefixes to exclude from alerting entirely. See [filtering.md](filtering.md). |
+## Key reference
 
-`url` and `topic` are the only two settings without which the appender stays inactive
-(silently, if both are unset; loudly via a Logback status warning if only one is set — see
-[troubleshooting.md](troubleshooting.md)). Every other setter has a safe, source-verified
-default and can be omitted.
+`Key` is the canonical kebab-case name. Read the per-surface columns as:
 
-## Duration Syntax
+- **sysprop** — `-Dntfy.<key>` (core/Logback)
+- **env** — `NTFY_<KEY>` with `-` → `_` and upper-cased (core/Logback)
+- **`ntfy.properties`** — `ntfy.<key>` (core/Logback)
+- **Spring** — `ntfy.<key>` (relaxed: `ntfy.app-name`, `ntfy.appName`, and `NTFY_APP_NAME` all bind)
+- **Quarkus** — `quarkus.ntfy.<key>`
 
-`connectTimeout` and `suppressionWindow` are typed as `ch.qos.logback.core.util.Duration`, the
-standard Logback duration type. In XML configuration this accepts Logback's own duration
-syntax — a bare number of milliseconds, or a number followed by a unit word, e.g.:
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `url` | String | *(none — required)* | Base URL of the ntfy server (e.g. `https://ntfy.example.com`). Alerting is inactive until both `url` and `topic` are set. |
+| `topic` | String | *(none — required)* | ntfy topic to publish to. |
+| `token` | String | *(none)* | Bearer/access token (`tk_…`). Takes precedence over `username`/`password`. |
+| `username` | String | *(none)* | HTTP Basic username (used with `password` when no `token` is set). |
+| `password` | String | *(none)* | HTTP Basic password. |
+| `title` | String | *(none)* | Notification title prefix; the root-cause exception class is appended for error alerts. Falls back to `app-name` when unset. |
+| `app-name` | String | *(none)* | Application name used as the title fallback when `title` is unset. |
+| `max-stack-frames` | int | `5` | Maximum root-cause stack frames rendered into an alert body. |
+| `connect-timeout` | Duration | `5s` | HTTP connect timeout. |
+| `request-timeout` | Duration | `10s` | HTTP request/response round-trip timeout. |
+| `max-alerts-per-window` | int | `3` | Individual alerts allowed per `suppression-window` before storm rate-limiting kicks in (`0`/negative disables the limiter). See [alert-behavior.md](alert-behavior.md). |
+| `suppression-window` | Duration | `3m` | Rolling window for the burst allowance and the periodic digest timer. |
+| `error-priority` | String | `high` | ntfy `Priority` header for individual error alerts. |
+| `digest-priority` | String | `urgent` | ntfy `Priority` header for storm digests. |
+| `error-tags` | String | `rotating_light` | ntfy `Tags` header (comma-separated) for individual error alerts. |
+| `digest-tags` | String | `fire` | ntfy `Tags` header for storm digests. |
+| `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
+| `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
 
-```xml
-<connectTimeout>5 seconds</connectTimeout>
-<suppressionWindow>3 minutes</suppressionWindow>
+`url` and `topic` are the only two settings without which alerting stays inactive (silently if both
+are unset; with a warning if only one is set — see [troubleshooting.md](troubleshooting.md)). Every
+other setting has a safe default and can be omitted.
+
+## Duration syntax
+
+`connect-timeout`, `request-timeout`, and `suppression-window` are durations. For the
+core/Logback/Quarkus surfaces they are parsed by `DurationParser`, which accepts:
+
+- a **bare integer** — interpreted as **milliseconds** (`500` → 500 ms);
+- a **suffixed integer** — `ms`, `s`, `m`, `h`, `d` (`5s`, `3m`, `2h`, `1d`);
+- an **ISO-8601** duration — parsed by `java.time.Duration.parse` (`PT5S`, `PT3M`).
+
+An unparseable value throws `IllegalArgumentException` at startup rather than silently defaulting.
+
+In **Spring Boot**, these bind as native `java.time.Duration` values using Spring's own duration
+syntax (`5s`, `3m`, `PT5S`, or a bare number of milliseconds), so you get the same spellings through
+Spring's converter.
+
+## Per-framework examples
+
+### Core / plain Logback (environment)
+
+```bash
+export NTFY_URL=https://ntfy.example.com
+export NTFY_TOPIC=my-app-alerts
+export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+export NTFY_APP_NAME=my-app
+export NTFY_SUPPRESSION_WINDOW=3m
 ```
 
-Accepted unit words are the ones supported by `ch.qos.logback.core.util.Duration` itself
-(`millisecond(s)`, `second(s)`, `minute(s)`, `hour(s)`, `day(s)`). A bare integer is
-interpreted as milliseconds.
+or a classpath `ntfy.properties`:
 
-## Authentication
+```properties
+ntfy.url=https://ntfy.example.com
+ntfy.topic=my-app-alerts
+ntfy.app-name=my-app
+ntfy.max-alerts-per-window=3
+ntfy.suppression-window=3m
+```
 
-See [authentication.md](authentication.md) for the full precedence rules between `token` and
-`username`/`password`, and for the `NONE` (unauthenticated) mode.
-
-## Filtering
-
-See [filtering.md](filtering.md) for how `excludedLoggers` combines with the appender's
-always-on self-exclusion, and for the per-event `NO_ALERT` marker opt-out.
-
-## Alert Behavior
-
-See [alert-behavior.md](alert-behavior.md) for how `maxAlertsPerWindow`, `suppressionWindow`,
-`errorPriority`/`digestPriority`, and `errorTags`/`digestTags` combine at runtime to produce
-storm-resilient, triage-friendly notifications.
-
-## Example
-
-A minimal, generic configuration:
+or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
 
 ```xml
-<appender name="NTFY_ALERT_RAW" class="io.github.pimak.logbackntfy.NtfyAlertAppender">
+<appender name="NTFY_ALERT_RAW" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
   <url>https://ntfy.example.com</url>
   <topic>my-app-alerts</topic>
   <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token>
   <appName>my-app</appName>
-  <maxAlertsPerWindow>3</maxAlertsPerWindow>
-  <suppressionWindow>3 minutes</suppressionWindow>
+  <suppressionWindow>3m</suppressionWindow>
 </appender>
 ```
+
+### Spring Boot (`application.yml`)
+
+```yaml
+ntfy:
+  url: https://ntfy.example.com
+  topic: my-app-alerts
+  token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  app-name: my-app
+  suppression-window: 3m
+  excluded-loggers: org.apache.kafka, com.zaxxer.hikari
+```
+
+### Quarkus (`application.properties`)
+
+```properties
+quarkus.ntfy.url=https://ntfy.example.com
+quarkus.ntfy.topic=my-app-alerts
+quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+quarkus.ntfy.app-name=my-app
+quarkus.ntfy.suppression-window=3m
+```
+
+## See also
+
+- [authentication.md](authentication.md) — `token` vs `username`/`password` precedence and the
+  `None` (unauthenticated) mode.
+- [filtering.md](filtering.md) — how `excluded-loggers` combines with the always-on self-exclusion,
+  and the Logback-only `NO_ALERT` per-event opt-out.
+- [alert-behavior.md](alert-behavior.md) — how the rate-limiting, digest, priority, and tag settings
+  combine at runtime.

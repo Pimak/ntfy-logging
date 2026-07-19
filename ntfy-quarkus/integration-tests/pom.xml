@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-quarkus-integration-tests</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-quarkus-integration-tests</name>
+    <description>
+        A real (unpublished) Quarkus application that exercises the ntfy Quarkus extension
+        end-to-end. It boots the extension, logs an error through io.quarkus.logging.Log, and
+        asserts a loopback ntfy stand-in received the publish. The @QuarkusTest runs in-JVM under
+        plain `verify`; the @QuarkusIntegrationTest runs against the packaged artifact (a fast-jar
+        under `verify`, a native binary under `-Dnative`). This module is NEVER published to Central.
+    </description>
+
+    <properties>
+        <!-- This module is a test harness, not a released artifact: keep it out of every publish
+             and static-analysis path that the released modules run. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
+        <enforcer.skip>true</enforcer.skip>
+        <pmd.skip>true</pmd.skip>
+        <cpd.skip>true</cpd.skip>
+        <!-- Default (non-native) leg: run the @QuarkusIntegrationTest in JVM mode. The `native`
+             profile below flips quarkus.native.enabled so the SAME *IT runs against the native
+             binary. skipITs stays false in both so failsafe always drives the *IT. -->
+        <skipITs>false</skipITs>
+    </properties>
+
+    <dependencies>
+        <!-- The extension under test (the user-facing runtime artifact). Depending on the runtime
+             pulls the deployment module transitively via the Quarkus extension descriptor. -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-quarkus-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- A trivial REST endpoint (/boom) to trigger an error log. quarkus-rest is the Quarkus
+             3.15 artifact id (the former quarkus-resteasy-reactive); version from quarkus-bom. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest</artifactId>
+        </dependency>
+
+        <!-- Test stack: QuarkusTest / QuarkusIntegrationTest drivers + RestAssured to hit /boom. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Builds the runnable Quarkus artifact (default: fast-jar) at package, so the
+                 @QuarkusIntegrationTest has something to launch. -->
+            <plugin>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- @QuarkusTest (the JVM in-process test, class name *Test) runs here. Install the
+                 JBoss LogManager as the JUL LogManager before JUL initializes, so a real Quarkus
+                 boot in-JVM does not hit the default-RootLogger vs org.jboss.logmanager.Logger
+                 ClassCastException. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <!-- @QuarkusIntegrationTest (class name *IT) runs here against the packaged artifact.
+                 Version + integration-test/verify executions are inherited from the parent's
+                 pluginManagement; the plugin only needs to be declared to activate them. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipITs>${skipITs}</skipITs>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            Native leg. Activated by `-Dnative` (or the standard `native` property). Flips the
+            Quarkus build to produce a native binary (quarkus.native.enabled=true is the Quarkus
+            3.15 idiom; the legacy quarkus.package.type=native is deprecated). The @QuarkusIntegrationTest
+            then launches ./…-runner and runs the same assertions against the native image.
+        -->
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+            </properties>
+        </profile>
+    </profiles>
+</project>

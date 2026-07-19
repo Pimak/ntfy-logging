@@ -9,6 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Fast leg: the whole multi-module reactor (ntfy-core, ntfy-logback, the Spring starter, and the
+  # Quarkus runtime/deployment + integration-tests in JVM mode) on both supported JDKs.
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -24,3 +26,26 @@ jobs:
           cache: maven
       - name: Build and test
         run: ./mvnw --batch-mode verify
+
+  # Slow leg (the native smoke): GraalVM-native-compiles the Quarkus integration-tests app and runs
+  # its @QuarkusIntegrationTest against the native binary — proof the extension works in a native
+  # image (URL protocols, log handler install, engine boot at RUNTIME_INIT). This is the expensive
+  # job (a native build is minutes, not seconds), so it runs once on JDK 21 only, not the full
+  # matrix. Blocking (no continue-on-error): a native regression must turn CI red.
+  native-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up GraalVM (native-image)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: graalvm-community
+          components: native-image
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+      - name: Native smoke (Quarkus integration-tests)
+        # -am builds ntfy-core + ntfy-quarkus-runtime/deployment first, then native-compiles the
+        # integration-tests app and runs the *IT (@QuarkusIntegrationTest) against ./…-runner.
+        run: ./mvnw -q --batch-mode verify -Dnative -pl ntfy-quarkus/integration-tests -am

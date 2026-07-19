@@ -284,6 +284,17 @@
                             <!-- Block the build until the deployment is actually PUBLISHED, so a validation
                                  failure turns CI red instead of leaving a green-but-unpublished false positive. -->
                             <waitUntil>published</waitUntil>
+                            <!-- Keep the Quarkus native smoke app out of the Central bundle. The plugin
+                                 filters the aggregate bundle by artifactId (PublishMojo matches
+                                 excludeArtifacts.contains(artifact.getArtifactId())), so the plain
+                                 artifactId is the exact, verified match. This is the AUTHORITATIVE
+                                 exclusion — safer than per-module skipPublishing, which (deferred/aggregate
+                                 upload) could skip the whole upload if the excluded module triggers it.
+                                 The integration-tests module ALSO sets maven.deploy.skip/source/javadoc/gpg
+                                 skips in its own pom as defense in depth. -->
+                            <excludeArtifacts>
+                                <excludeArtifact>ntfy-quarkus-integration-tests</excludeArtifact>
+                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>

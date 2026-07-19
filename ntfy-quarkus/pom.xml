@@ -26,5 +26,11 @@
     <modules>
         <module>runtime</module>
         <module>deployment</module>
+        <!--
+            A real (unpublished) Quarkus app that exercises the extension end-to-end: JVM by
+            default under plain `verify`, native under `-Dnative`. Excluded from the Central
+            release (maven.deploy.skip=true in its own pom).
+        -->
+        <module>integration-tests</module>
     </modules>
 </project>
