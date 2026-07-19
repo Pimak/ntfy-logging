@@ -25,12 +25,12 @@ The engine is:
 
 ## Modules
 
-| Artifact | Purpose | Use when |
-|---|---|---|
-| **`ntfy-core`** | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. |
-| **`ntfy-logback`** | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. |
-| **`ntfy-spring-boot-starter`** | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. |
-| **`ntfy-quarkus-runtime`** | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
+| Artifact | Purpose | Use when | API docs |
+|---|---|---|---|
+| **`ntfy-core`** | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-core/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core) |
+| **`ntfy-logback`** | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback) |
+| **`ntfy-spring-boot-starter`** | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter) |
+| **`ntfy-quarkus-runtime`** | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime) |
 
 Each module pulls `ntfy-core` transitively — you only ever declare the one that matches your stack.
 
