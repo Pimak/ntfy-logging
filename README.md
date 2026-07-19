@@ -28,136 +28,33 @@ The engine is:
 
 ## Modules
 
-| Artifact | Purpose | Use when |
-|---|---|---|
-| **`ntfy-core`** | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. |
-| **`ntfy-logback`** | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. |
-| **`ntfy-spring-boot-starter`** | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. |
-| **`ntfy-quarkus-runtime`** | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
+| Artifact | Guide | Purpose | Use when |
+|---|---|---|---|
+| **`ntfy-spring-boot-starter`** | [Spring Boot](docs/spring-boot.md) | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. |
+| **`ntfy-quarkus-runtime`** | [Quarkus](docs/quarkus.md) | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
+| **`ntfy-logback`** | [Plain Logback](docs/logback.md) | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. |
+| **`ntfy-core`** | [Core](docs/core.md) | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. |
 
 Each module pulls `ntfy-core` transitively — you only ever declare the one that matches your stack.
+**Pick your stack's guide above** for install, the Maven Central link, and the base config; the
+shared reference pages (configuration, authentication, alert behavior, …) are linked from each guide
+and listed under [Documentation](#documentation).
 
 ## Install & configure
 
-### Spring Boot
+Each library has its own guide with the dependency snippet, the Maven Central link, and the base
+config to get error alerts publishing. Pick the one that matches your stack:
 
-```xml
-<dependency>
-  <groupId>io.github.pimak</groupId>
-  <artifactId>ntfy-spring-boot-starter</artifactId>
-  <version>1.0.0</version>
-</dependency>
-```
+| Guide | Artifact | The 30-second version |
+|---|---|---|
+| **[Spring Boot](docs/spring-boot.md)** | `ntfy-spring-boot-starter` | Add the starter, set `ntfy.url`/`ntfy.topic` in `application.yml` — error logs auto-publish; `@Autowired NtfyClient` for manual ones. |
+| **[Quarkus](docs/quarkus.md)** | `ntfy-quarkus-runtime` | Add the extension, set `quarkus.ntfy.url`/`.topic` — error logs auto-publish (native-ready); `@Inject NtfyClient` for manual ones. |
+| **[Plain Logback](docs/logback.md)** | `ntfy-logback` | Add the appender, set `NTFY_URL`/`NTFY_TOPIC` — zero-code auto-install, or wire it explicitly in `logback.xml`. |
+| **[Core](docs/core.md)** | `ntfy-core` | Build a `NtfyConfig`, drive `NtfyClient` yourself from any JVM app. |
 
-```yaml
-# application.yml
-ntfy:
-  url: https://ntfy.example.com
-  topic: my-app-alerts
-  token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx   # or username/password; omit for a public topic
-```
-
-Error logs auto-publish (an `ntfy-auto` Logback appender is installed idempotently). For manual
-notifications, inject the client:
-
-```java
-@Autowired NtfyClient ntfy;   // or constructor injection
-ntfy.notify("Deploy finished", "v1.2.3 is live");
-```
-
-### Quarkus
-
-```xml
-<dependency>
-  <groupId>io.github.pimak</groupId>
-  <artifactId>ntfy-quarkus-runtime</artifactId>
-  <version>1.0.0</version>
-</dependency>
-```
-
-```properties
-# application.properties
-quarkus.ntfy.url=https://ntfy.example.com
-quarkus.ntfy.topic=my-app-alerts
-quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Error logs auto-publish through the extension's log handler; the extension is native-image ready
-(the HTTP client is created at runtime-init). Inject the client for manual notifications:
-
-```java
-@Inject NtfyClient ntfy;
-ntfy.notify("Deploy finished", "v1.2.3 is live");
-```
-
-### Plain Logback (no Spring)
-
-```xml
-<dependency>
-  <groupId>io.github.pimak</groupId>
-  <artifactId>ntfy-logback</artifactId>
-  <version>1.0.0</version>
-</dependency>
-```
-
-**Zero-code auto-install** — set config via the environment and the appender attaches itself to the
-root logger at startup (via a Logback `Configurator` SPI), no `logback.xml` edit required:
-
-```bash
-export NTFY_URL=https://ntfy.example.com
-export NTFY_TOPIC=my-app-alerts
-export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Equivalently pass `-Dntfy.url=… -Dntfy.topic=…` as JVM system properties, or drop a classpath
-`ntfy.properties` with `ntfy.url` / `ntfy.topic` keys. Or wire it explicitly in `logback.xml`:
-
-```xml
-<appender name="NTFY_ALERT_RAW" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
-  <url>https://ntfy.example.com</url>
-  <topic>my-app-alerts</topic>
-  <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token>
-</appender>
-
-<!-- Recommended production wrapper: async + never-block + ERROR-only + flush on shutdown. -->
-<appender name="NTFY_ALERT" class="ch.qos.logback.classic.AsyncAppender">
-  <appender-ref ref="NTFY_ALERT_RAW"/>
-  <queueSize>256</queueSize>
-  <neverBlock>true</neverBlock>
-  <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-    <level>ERROR</level>
-  </filter>
-</appender>
-<shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook"/>
-
-<root level="INFO">
-  <appender-ref ref="NTFY_ALERT"/>
-</root>
-```
-
-### Core only (any JVM app, programmatic)
-
-```xml
-<dependency>
-  <groupId>io.github.pimak</groupId>
-  <artifactId>ntfy-core</artifactId>
-  <version>1.0.0</version>
-</dependency>
-```
-
-```java
-NtfyConfig config = NtfyConfig.builder()
-    .url("https://ntfy.example.com")
-    .topic("my-app-alerts")
-    .token("tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-    .build();
-
-try (NtfyClient client = new NtfyClient(config)) {   // close() releases the HTTP client
-  client.notify("Batch complete", "12,304 rows processed");
-}
-```
-
-`NtfyClient.notify(...)` never throws — every outcome is returned as a `PublishResult`.
+Everything beyond the base config — the full key reference, authentication, alert behavior,
+filtering, troubleshooting — is shared across all four and lives in the reference pages under
+[Documentation](#documentation), linked from each guide.
 
 ## Filtering: exclude-list, not allowlist
 
@@ -176,6 +73,17 @@ Java 21+ · Logback 1.5.x · Spring Boot 3.4.x · Quarkus 3.15.x · GraalVM nati
 extension). See [docs/compatibility.md](docs/compatibility.md) for the full matrix.
 
 ## Documentation
+
+**Per-library guides** — start here; each has install, the Maven Central link, and the base config:
+
+| Guide | For |
+|------|--------|
+| [docs/spring-boot.md](docs/spring-boot.md) | Spring Boot (`ntfy-spring-boot-starter`) |
+| [docs/quarkus.md](docs/quarkus.md) | Quarkus (`ntfy-quarkus-runtime`) |
+| [docs/logback.md](docs/logback.md) | Plain Logback (`ntfy-logback`) |
+| [docs/core.md](docs/core.md) | Any JVM app, programmatic (`ntfy-core`) |
+
+**Reference pages** — shared across every library, linked from each guide:
 
 | Page | Covers |
 |------|--------|
