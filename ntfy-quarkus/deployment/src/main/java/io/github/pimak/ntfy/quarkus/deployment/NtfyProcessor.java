@@ -20,8 +20,9 @@ import io.quarkus.deployment.builditem.LogHandlerBuildItem;
  *
  * <p>The {@link NtfyRuntimeConfig} run-time config is discovered automatically: it is a {@code
  * @ConfigMapping} + {@code @ConfigRoot(RUN_TIME)} interface, listed in {@code
- * META-INF/quarkus-config-roots.list} by the extension annotation processor, so it can be injected
- * directly as a build-step parameter and handed to the recorder.
+ * META-INF/quarkus-config-roots.list} by the extension annotation processor. Quarkus injects it
+ * through the {@link NtfyRecorder} constructor — a {@code RUN_TIME} config root can no longer be
+ * consumed directly as a {@code @BuildStep} parameter (Quarkus 3.19+).
  */
 class NtfyProcessor {
 
@@ -39,7 +40,7 @@ class NtfyProcessor {
 
   @BuildStep
   @Record(ExecutionTime.RUNTIME_INIT)
-  LogHandlerBuildItem addNtfyHandler(NtfyRecorder recorder, NtfyRuntimeConfig config) {
-    return new LogHandlerBuildItem(recorder.create(config));
+  LogHandlerBuildItem addNtfyHandler(NtfyRecorder recorder) {
+    return new LogHandlerBuildItem(recorder.create());
   }
 }
