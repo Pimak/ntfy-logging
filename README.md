@@ -2,7 +2,10 @@
 
 [![CI](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
+[![Javadoc: ntfy-core](https://javadoc.io/badge2/io.github.pimak/ntfy-core/ntfy--core.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core)
+[![Javadoc: ntfy-logback](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/ntfy--logback.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback)
+[![Javadoc: ntfy-spring-boot-starter](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/ntfy--spring--boot--starter.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
+[![Javadoc: ntfy-quarkus-runtime](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/ntfy--quarkus--runtime.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime)
 
 **ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for
 Logback and Spring Boot, a native-ready Quarkus extension, and a plain programmatic client.**
@@ -25,12 +28,12 @@ The engine is:
 
 ## Modules
 
-| Artifact | Purpose | Use when | API docs |
-|---|---|---|---|
-| **`ntfy-core`** | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-core/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core) |
-| **`ntfy-logback`** | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback) |
-| **`ntfy-spring-boot-starter`** | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter) |
-| **`ntfy-quarkus-runtime`** | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. | [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime) |
+| Artifact | Purpose | Use when |
+|---|---|---|
+| **`ntfy-core`** | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. |
+| **`ntfy-logback`** | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. |
+| **`ntfy-spring-boot-starter`** | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. |
+| **`ntfy-quarkus-runtime`** | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
 
 Each module pulls `ntfy-core` transitively — you only ever declare the one that matches your stack.
 
