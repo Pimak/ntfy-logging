@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-07-19
 ### Changed
 - **Project split into a multi-module reactor and renamed** from `logback-ntfy` to the
   `ntfy-logging` family. The single `io.github.pimak:logback-ntfy` artifact is superseded by
