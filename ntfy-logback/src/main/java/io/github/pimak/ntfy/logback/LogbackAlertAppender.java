@@ -47,6 +47,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String digestPriority;
   private String errorTags;
   private String digestTags;
+  private String clickUrl;
   private Integer maxStackFrames;
   private Integer maxAlertsPerWindow;
   private Boolean enabled;
@@ -121,6 +122,11 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
 
   public void setDigestTags(String digestTags) {
     this.digestTags = digestTags;
+  }
+
+  /** URL opened when a notification is tapped (ntfy {@code Click} header). */
+  public void setClickUrl(String clickUrl) {
+    this.clickUrl = clickUrl;
   }
 
   /** A single comma-separated value of logger-name prefixes to exclude from alerting. */
@@ -199,6 +205,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (digestTags != null) {
       builder.digestTags(digestTags);
+    }
+    if (clickUrl != null) {
+      builder.clickUrl(clickUrl);
     }
     if (enabled != null) {
       builder.enabled(enabled);

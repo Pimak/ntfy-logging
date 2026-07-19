@@ -81,6 +81,9 @@ public interface NtfyRuntimeConfig {
   @WithDefault("fire")
   String digestTags();
 
+  /** URL opened when a notification is tapped (ntfy {@code Click} header). Omitted when unset. */
+  Optional<String> clickUrl();
+
   /** Comma-separated logger-name prefixes excluded from alerting. */
   Optional<String> excludedLoggers();
 

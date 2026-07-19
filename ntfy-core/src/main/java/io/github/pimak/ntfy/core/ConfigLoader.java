@@ -61,6 +61,7 @@ public final class ConfigLoader {
     apply(builder::digestPriority, resolve("digest-priority", envLookup, fileProps, sysProps));
     apply(builder::errorTags, resolve("error-tags", envLookup, fileProps, sysProps));
     apply(builder::digestTags, resolve("digest-tags", envLookup, fileProps, sysProps));
+    apply(builder::clickUrl, resolve("click-url", envLookup, fileProps, sysProps));
 
     String excludedLoggers = resolve("excluded-loggers", envLookup, fileProps, sysProps);
     if (excludedLoggers != null) {

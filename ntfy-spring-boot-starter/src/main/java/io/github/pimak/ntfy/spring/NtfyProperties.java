@@ -28,6 +28,7 @@ public class NtfyProperties {
   private String digestPriority = "urgent";
   private String errorTags = "rotating_light";
   private String digestTags = "fire";
+  private String clickUrl;
   private String excludedLoggers;
   private boolean enabled = true;
 
@@ -157,6 +158,14 @@ public class NtfyProperties {
 
   public void setDigestTags(String digestTags) {
     this.digestTags = digestTags;
+  }
+
+  public String getClickUrl() {
+    return clickUrl;
+  }
+
+  public void setClickUrl(String clickUrl) {
+    this.clickUrl = clickUrl;
   }
 
   public String getExcludedLoggers() {

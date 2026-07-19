@@ -130,7 +130,8 @@ public final class AlertEngine {
     if (!isSendableHeaderValue(config.getErrorPriority())
         || !isSendableHeaderValue(config.getDigestPriority())
         || !isSendableHeaderValue(config.getErrorTags())
-        || !isSendableHeaderValue(config.getDigestTags())) {
+        || !isSendableHeaderValue(config.getDigestTags())
+        || !isSendableHeaderValue(config.getClickUrl())) {
       // One-time, specific diagnostic: the publisher silently omits such headers, and without
       // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
       // invisible.
@@ -292,7 +293,8 @@ public final class AlertEngine {
               auth,
               payload.body(),
               config.getErrorPriority(),
-              config.getErrorTags());
+              config.getErrorTags(),
+              config.getClickUrl());
       if (!result.success()) {
         diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), result.httpStatus()));
         // A failed individual publish folds into the suppression count instead of being
@@ -400,7 +402,8 @@ public final class AlertEngine {
             auth,
             truncatedBody,
             config.getDigestPriority(),
-            config.getDigestTags());
+            config.getDigestTags(),
+            config.getClickUrl());
     if (!r.success()) {
       // Mirror the submit() path — a persistently failing digest (auth revoked, topic
       // ACL change, sustained 429) must be visible in the engine's own diagnostics.

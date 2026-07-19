@@ -33,6 +33,7 @@ public final class NtfyConfig {
   private final String digestPriority;
   private final String errorTags;
   private final String digestTags;
+  private final String clickUrl;
   private final List<String> excludedLoggerPrefixes;
   private final boolean enabled;
   private final boolean endpointFromClasspathFile;
@@ -54,6 +55,7 @@ public final class NtfyConfig {
     this.digestPriority = b.digestPriority;
     this.errorTags = b.errorTags;
     this.digestTags = b.digestTags;
+    this.clickUrl = b.clickUrl;
     this.excludedLoggerPrefixes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
     this.enabled = b.enabled;
@@ -129,6 +131,15 @@ public final class NtfyConfig {
     return digestTags;
   }
 
+  /**
+   * The URL ntfy opens when a notification is tapped (sent as the {@code Click} header), or {@code
+   * null}/blank to send no {@code Click} header. Applies to both individual error alerts and the
+   * storm digest.
+   */
+  public String getClickUrl() {
+    return clickUrl;
+  }
+
   /** The unmodifiable list of logger-name prefixes excluded from alerting. */
   public List<String> getExcludedLoggerPrefixes() {
     return excludedLoggerPrefixes;
@@ -179,6 +190,7 @@ public final class NtfyConfig {
     private String digestPriority = "urgent";
     private String errorTags = "rotating_light";
     private String digestTags = "fire";
+    private String clickUrl;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
     private boolean enabled = true;
     private boolean endpointFromClasspathFile = false;
@@ -262,6 +274,12 @@ public final class NtfyConfig {
 
     public Builder digestTags(String digestTags) {
       this.digestTags = digestTags;
+      return this;
+    }
+
+    /** URL opened when a notification is tapped (ntfy {@code Click} header); {@code null} to omit. */
+    public Builder clickUrl(String clickUrl) {
+      this.clickUrl = clickUrl;
       return this;
     }
 

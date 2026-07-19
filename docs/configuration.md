@@ -45,6 +45,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `digest-priority` | String | `urgent` | ntfy `Priority` header for storm digests. |
 | `error-tags` | String | `rotating_light` | ntfy `Tags` header (comma-separated) for individual error alerts. |
 | `digest-tags` | String | `fire` | ntfy `Tags` header for storm digests. |
+| `click-url` | String | *(none)* | URL ntfy opens when the notification is tapped (ntfy `Click` header). Applies to both error alerts and digests; sent as-is (no header when unset). |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
 
