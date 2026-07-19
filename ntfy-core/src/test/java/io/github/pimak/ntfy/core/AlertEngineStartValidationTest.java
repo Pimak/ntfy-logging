@@ -1,0 +1,121 @@
+package io.github.pimak.ntfy.core;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Covers the start()-time security validations: an invalid topic refuses activation, credentials
+ * over plain http warn loudly, and the ACTIVE diagnostic never leaks a password fragment — even
+ * through the unencoded-{@code @}-in-password edge case.
+ */
+class AlertEngineStartValidationTest {
+
+  private static final class CapturingDiagnostics implements Diagnostics {
+    final List<String> infos = new ArrayList<>();
+    final List<String> warns = new ArrayList<>();
+
+    @Override
+    public void info(String msg) {
+      infos.add(msg);
+    }
+
+    @Override
+    public void warn(String msg) {
+      warns.add(msg);
+    }
+
+    @Override
+    public void error(String msg, Throwable t) {}
+  }
+
+  @Test
+  void invalidTopic_refusesActivationWithWarning() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("https://ntfy.example.com").topic("a/../b").build(),
+            diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_TOPIC);
+  }
+
+  @Test
+  void credentialsOverPlainHttp_warnButStillActivate() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://ntfy.internal:8080")
+                .topic("alerts")
+                .token("tk_secret")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void credentialsOverHttps_doNotWarnAboutCleartext() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .token("tk_secret")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void nonAsciiTagsValue_warnsOnceAtStart() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .errorTags("🚨") // a literal 🚨 emoji instead of the shortcode
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_PRIORITY_OR_TAGS);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void statusActive_stripsUserinfoIncludingUnencodedAtInPassword() {
+    assertThat(AlertMessages.statusActive("https://user:pass@ntfy.example.com/x", "t"))
+        .isEqualTo("ntfy alert engine ACTIVE (url=https://ntfy.example.com/x, topic=t)");
+    // Unencoded '@' inside the password: the strip must consume up to the LAST '@' before the
+    // path, never leaving a password tail ("ss@host") in diagnostic output.
+    assertThat(AlertMessages.statusActive("https://user:p@ss@ntfy.example.com/x", "t"))
+        .isEqualTo("ntfy alert engine ACTIVE (url=https://ntfy.example.com/x, topic=t)");
+  }
+}

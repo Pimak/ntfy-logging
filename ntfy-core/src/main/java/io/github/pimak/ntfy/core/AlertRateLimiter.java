@@ -26,6 +26,17 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 final class AlertRateLimiter {
 
+  /**
+   * Cap on distinct logger names tracked in the per-logger tally. Beyond it, further loggers fold
+   * into {@link #OVERFLOW_KEY}. Without a cap the map grows monotonically while digest publishes
+   * fail (every drained snapshot is restored), and an application minting dynamic logger names
+   * (per-tenant/per-connection) would let the alerting add-on OOM its host during an ntfy outage.
+   * The global count is never lossy — only the per-logger breakdown collapses.
+   */
+  private static final int MAX_TRACKED_LOGGERS = 100;
+
+  private static final String OVERFLOW_KEY = "(other loggers)";
+
   private final int maxAlertsPerWindow;
   private final long windowMillis;
 
@@ -73,8 +84,22 @@ final class AlertRateLimiter {
   void recordSuppressed(String loggerName) {
     synchronized (lock) {
       suppressedThisWindow++;
-      perLoggerSuppressed.merge(loggerName, 1, Integer::sum);
+      tally(loggerName, 1);
     }
+  }
+
+  /**
+   * Adds {@code delta} to {@code loggerName}'s tally entry, folding new logger names into {@link
+   * #OVERFLOW_KEY} once {@link #MAX_TRACKED_LOGGERS} distinct names are tracked. Must be called
+   * under {@code lock}.
+   */
+  private void tally(String loggerName, int delta) {
+    String key =
+        perLoggerSuppressed.containsKey(loggerName)
+                || perLoggerSuppressed.size() < MAX_TRACKED_LOGGERS
+            ? loggerName
+            : OVERFLOW_KEY;
+    perLoggerSuppressed.merge(key, delta, Integer::sum);
   }
 
   /**
@@ -116,7 +141,7 @@ final class AlertRateLimiter {
     synchronized (lock) {
       suppressedThisWindow += snapshot.count();
       for (Map.Entry<String, Integer> entry : snapshot.perLoggerTally().entrySet()) {
-        perLoggerSuppressed.merge(entry.getKey(), entry.getValue(), Integer::sum);
+        tally(entry.getKey(), entry.getValue());
       }
     }
   }

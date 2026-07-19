@@ -30,7 +30,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `url` | String | *(none — required)* | Base URL of the ntfy server (e.g. `https://ntfy.example.com`). Alerting is inactive until both `url` and `topic` are set. |
-| `topic` | String | *(none — required)* | ntfy topic to publish to. |
+| `topic` | String | *(none — required)* | ntfy topic to publish to. Must match ntfy's topic rule `[-_A-Za-z0-9]{1,64}` — anything else disables the engine with a warning. |
 | `token` | String | *(none)* | Bearer/access token (`tk_…`). Takes precedence over `username`/`password`. |
 | `username` | String | *(none)* | HTTP Basic username (used with `password` when no `token` is set). |
 | `password` | String | *(none)* | HTTP Basic password. |

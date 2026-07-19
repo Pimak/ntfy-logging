@@ -55,8 +55,8 @@
         <junit.version>6.1.2</junit.version>
         <assertj.version>3.27.7</assertj.version>
         <wiremock.version>3.13.2</wiremock.version>
-        <quarkus.version>3.15.1</quarkus.version>
-        <spring-boot.version>3.4.1</spring-boot.version>
+        <quarkus.version>3.15.7</quarkus.version>
+        <spring-boot.version>3.4.13</spring-boot.version>
     </properties>
 
     <dependencyManagement>

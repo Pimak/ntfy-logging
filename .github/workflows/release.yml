@@ -15,16 +15,18 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           distribution: temurin
           # Single JDK 21 (deliberately not the 21-and-25 build sweep that ci.yml runs). The
           # release profile's javadoc:jar is the first CI javadoc build and JDK 25's doclint is
           # stricter (Pitfall B); the publish path must run only on the JDK the artifact targets.
           java-version: '21'
-          cache: maven
+          # No `cache: maven` here (unlike ci.yml): the release job resolves everything cold from
+          # Central so a poisoned branch-build cache entry can never feed jars into the signed,
+          # auto-published bundle.
           # Import the GPG signing key so maven-gpg-plugin can sign the bundle.
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           # The env-var NAME (not the value); the value is injected per-step from the secret.
@@ -46,10 +48,12 @@ jobs:
         run: |
           set -euo pipefail
           MV=3.9.9
+          # Pinned sha512 of apache-maven-3.9.9-bin.tar.gz — NOT fetched from the same origin as
+          # the tarball, so a compromised download channel cannot supply both artifact and checksum.
+          SHA512="a555254d6b53d267965a3404ecb14e53c3827c09c3b94b5678835887ab404556bfaf78dcfe03ba76fa2508649dca8531c74bca4d5846513522404d48e8c4ac8b"
           BASE="https://archive.apache.org/dist/maven/maven-3/${MV}/binaries/apache-maven-${MV}-bin.tar.gz"
           curl -fsSL "$BASE" -o /tmp/maven.tar.gz
-          curl -fsSL "${BASE}.sha512" -o /tmp/maven.sha512
-          printf '%s  /tmp/maven.tar.gz\n' "$(cat /tmp/maven.sha512)" | sha512sum -c -
+          printf '%s  /tmp/maven.tar.gz\n' "$SHA512" | sha512sum -c -
           sudo tar -xzf /tmp/maven.tar.gz -C /opt
           echo "/opt/apache-maven-${MV}/bin" >> "$GITHUB_PATH"
 

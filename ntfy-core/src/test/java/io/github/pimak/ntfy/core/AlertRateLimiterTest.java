@@ -110,6 +110,42 @@ class AlertRateLimiterTest {
     assertThat(snapshot.perLoggerTally()).isEmpty();
   }
 
+  // Heap-exhaustion guard: dynamically-named loggers (per-tenant/per-connection) during a long
+  // ntfy outage must not grow the per-logger tally without bound — beyond 100 distinct names,
+  // new loggers fold into a single overflow bucket. The global count stays exact.
+  @Test
+  void perLoggerTally_capsDistinctLoggers_andFoldsOverflowIntoOtherBucket() {
+    AlertRateLimiter limiter = new AlertRateLimiter(3, 180_000);
+
+    for (int i = 0; i < 150; i++) {
+      limiter.recordSuppressed("com.dyn.Session" + i);
+    }
+
+    AlertRateLimiter.DigestSnapshot snapshot = limiter.drainAndReset();
+
+    assertThat(snapshot.count()).isEqualTo(150);
+    // 100 tracked names + the single overflow bucket.
+    assertThat(snapshot.perLoggerTally()).hasSize(101);
+    assertThat(snapshot.perLoggerTally()).containsEntry("(other loggers)", 50);
+  }
+
+  // The failed-digest restore path must respect the same cap: restore() is exactly how the map
+  // would otherwise re-grow forever while the ntfy server is unreachable.
+  @Test
+  void restore_ofOversizedSnapshot_respectsTheSameCap() {
+    AlertRateLimiter limiter = new AlertRateLimiter(3, 180_000);
+    java.util.Map<String, Integer> bigTally = new java.util.HashMap<>();
+    for (int i = 0; i < 150; i++) {
+      bigTally.put("com.dyn.Session" + i, 1);
+    }
+
+    limiter.restore(new AlertRateLimiter.DigestSnapshot(150, bigTally));
+    AlertRateLimiter.DigestSnapshot snapshot = limiter.drainAndReset();
+
+    assertThat(snapshot.count()).isEqualTo(150);
+    assertThat(snapshot.perLoggerTally()).hasSize(101);
+  }
+
   // Guard: only drainAndReset() zeroes suppression counters; a window-elapsed rollover inside
   // tryAcquire() must reset ONLY the burst-allowance counter.
   @Test
