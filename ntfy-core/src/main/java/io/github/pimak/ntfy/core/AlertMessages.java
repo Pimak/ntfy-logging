@@ -25,6 +25,33 @@ final class AlertMessages {
       "both token and username/password configured — token takes precedence";
 
   /**
+   * Fixed warning emitted from {@code start()} when credentials are configured but the URL scheme
+   * is plain {@code http://} — the Authorization header (token or basic credentials) and every
+   * alert body would travel in cleartext, readable by any on-path observer.
+   */
+  static final String STATUS_CREDENTIALS_OVER_PLAIN_HTTP =
+      "credentials configured with a plain http:// URL — the token/password and alert content "
+          + "are sent unencrypted; use https://";
+
+  /**
+   * Fixed message emitted from {@code start()} when the configured topic is not a valid ntfy topic
+   * name — the engine refuses activation rather than build request paths from it. Deliberately
+   * does NOT interpolate the rejected value (it could contain control characters).
+   */
+  static final String STATUS_INVALID_TOPIC =
+      "topic is not a valid ntfy topic name (allowed: A-Z, a-z, 0-9, '-', '_'; max 64 chars) "
+          + "— engine disabled";
+
+  /**
+   * Fixed warning emitted from {@code start()} when a configured priority/tags value contains
+   * non-printable-ASCII characters — the publisher omits such a header instead of letting it
+   * abort every publish at the header-build boundary.
+   */
+  static final String STATUS_INVALID_PRIORITY_OR_TAGS =
+      "configured priority/tags value contains non-printable-ASCII characters — the invalid "
+          + "header will be omitted from publishes";
+
+  /**
    * Fixed message emitted from {@code start()} when {@code suppressionWindow} is unset,
    * zero, or negative — the engine falls back to the default window instead of throwing out of
    * {@code start()} with resources half-acquired. Credential-safe: fixed text only.
@@ -47,7 +74,10 @@ final class AlertMessages {
    * into diagnostic output.
    */
   static String statusActive(String url, String topic) {
-    String safeUrl = url == null ? null : url.replaceFirst("//[^/@]+@", "//");
+    // Greedy [^/]* strips up to the LAST '@' before the first path slash: a raw unencoded '@'
+    // inside the password ("//user:p@ss@host") must not leave a password tail in the output,
+    // which the previous non-greedy-equivalent [^/@]+ form did.
+    String safeUrl = url == null ? null : url.replaceFirst("//[^/]*@", "//");
     return "ntfy alert engine ACTIVE (url=" + safeUrl + ", topic=" + topic + ")";
   }
 

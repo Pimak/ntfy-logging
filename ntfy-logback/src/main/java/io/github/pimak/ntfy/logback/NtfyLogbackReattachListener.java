@@ -39,7 +39,12 @@ final class NtfyLogbackReattachListener implements LoggerContextListener {
 
   @Override
   public void onStop(LoggerContext context) {
-    // no-op
+    // LoggerContext.stop() runs reset() BEFORE firing onStop, and that reset re-fired onReset
+    // above — resurrecting (restarting + re-attaching) the appender on a context that is going
+    // away. Undo it here: a stopping context must release the engine's executor and HttpClient
+    // threads, not leak them forever. A later onStart() re-attaches and restarts cleanly.
+    context.getLogger(Logger.ROOT_LOGGER_NAME).detachAppender(appender.getName());
+    appender.stop();
   }
 
   @Override

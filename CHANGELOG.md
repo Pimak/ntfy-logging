@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Security
+- **Logback adapter now gates at ERROR** (mirroring the Quarkus adapter's `SEVERE` gate): the
+  appender submits only ERROR-and-above events, so a root-logger install can no longer publish
+  INFO/WARN log content off-host.
+- **Topic validation**: the publisher and engine reject topics outside ntfy's
+  `[-_A-Za-z0-9]{1,64}` rule, closing a request-path injection through a `/`, `?`, `#`, or
+  `..`-bearing topic value.
+- **`Priority`/`Tags` header sanitization**: non-printable-ASCII configured values are omitted
+  (with a startup warning) instead of forwarded, so CRLF safety no longer depends solely on the
+  JDK client and one bad value can no longer abort every publish.
+- **Cleartext-credentials warning**: configuring a token/password with an `http://` URL now warns
+  loudly at startup.
+- **Classpath-activation warning**: the Logback zero-code auto-install warns (naming the
+  destination host) when the endpoint URL comes only from a classpath `ntfy.properties`, since any
+  jar can ship one.
+- **Bounded suppression tally**: the per-logger suppression map is capped at 100 distinct loggers
+  (overflow folds into `(other loggers)`), so a long ntfy outage plus dynamically-named loggers
+  can no longer grow it without bound.
+- **Cycle-guarded JUL cause-chain walk** (Quarkus adapter): a circular exception cause chain can
+  no longer loop the logging thread until OOM.
+- **Credential-redaction fix**: the `ACTIVE` diagnostic's userinfo stripping now handles an
+  unencoded `@` inside the password without leaking a password fragment.
+- **Race-proof lifecycle**: `AlertEngine.start()`/`stop()` are now synchronized, so concurrent
+  starts can no longer orphan live thread pools and duplicate digest timers.
+- **Context-stop leak fix** (Logback): `LoggerContext.stop()` fires a reset before `onStop`, which
+  resurrected the auto-installed appender mid-stop and leaked its engine threads and `HttpClient`
+  forever; the reattach listener now tears the appender down on `onStop`.
+- **No duplicate digest at shutdown**: `stop()` now shuts the digest scheduler down gracefully
+  before force-cancelling, so an in-flight digest publish is no longer interrupted mid-send —
+  which manufactured a spurious failure for a request the server had already accepted and made
+  the stop-flush re-send the same digest.
+- **Hardened config parsing**: malformed numeric/duration values from env/sysprops fall back to
+  defaults instead of throwing during logging-framework initialization.
+- **Supply-chain hardening**: GitHub Actions pinned to commit SHAs, `permissions: contents: read`
+  on CI, release job resolves dependencies cold (no shared cache), Maven wrapper distribution
+  pinned by SHA-256, Maven 3.9.9 release download pinned by inline SHA-512, strict Maven checksum
+  policy, Dependabot enabled, and the Quarkus (3.15.7) / Spring Boot (3.4.13) BOMs moved to their
+  latest security patch levels.
 
 ## [1.0.0] - 2026-07-19
 ### Changed

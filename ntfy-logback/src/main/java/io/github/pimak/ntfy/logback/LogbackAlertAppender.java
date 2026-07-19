@@ -1,5 +1,6 @@
 package io.github.pimak.ntfy.logback;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
 
@@ -205,11 +206,19 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     return builder.build();
   }
 
-  /** Maps the event and hands it to the engine, which owns all gating and publishing. */
+  /**
+   * Gates on ERROR, then maps the event and hands it to the engine, which owns all further gating
+   * and publishing. The level gate lives here (mirroring the Quarkus adapter's SEVERE gate) so the
+   * documented "ERROR-level events alert" contract holds on every install path — without it, a
+   * root-logger auto-install would push every INFO/WARN line verbatim to the ntfy topic.
+   */
   @Override
   protected void append(ILoggingEvent event) {
     AlertEngine e = engine;
     if (e == null) {
+      return;
+    }
+    if (event.getLevel() == null || !event.getLevel().isGreaterOrEqual(Level.ERROR)) {
       return;
     }
     e.submit(LogbackEventMapper.map(event));

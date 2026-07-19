@@ -19,7 +19,10 @@ import java.util.Base64;
  * {@link PublishResult}.
  *
  * <p>No SSRF guard is included here — that concern is out of scope for a plain HTTP publisher and
- * is the consumer's responsibility if the target URL is derived from untrusted input.
+ * is the consumer's responsibility if the target URL is derived from untrusted input. The topic,
+ * however, IS validated (ntfy's own {@code [-_A-Za-z0-9]{1,64}} rule): it is concatenated into the
+ * request path, and a topic containing {@code /}, {@code ?}, {@code #}, or {@code ..} would
+ * otherwise rewrite the request target (cross-topic publishing with the configured credential).
  */
 public class NtfyPublisher {
 
@@ -27,6 +30,13 @@ public class NtfyPublisher {
 
   private static final String GENERIC_INVALID_REQUEST_MESSAGE =
       "invalid request: malformed URL, topic, or header value";
+
+  /**
+   * ntfy's documented topic-name rule. Anything outside it (path separators, query/fragment
+   * characters, dot segments) is rejected before a URI is ever built from it.
+   */
+  private static final java.util.regex.Pattern TOPIC_PATTERN =
+      java.util.regex.Pattern.compile("[-_A-Za-z0-9]{1,64}");
 
   private final HttpClient httpClient;
   private final Duration requestTimeout;
@@ -56,9 +66,11 @@ public class NtfyPublisher {
    * Publishes {@code title}/{@code body} to {@code {url}/{topic}}, additionally forwarding {@code
    * priority} and {@code tags} as ntfy's {@code Priority} and {@code Tags} HTTP headers.
    *
-   * <p>Both values are forwarded VERBATIM: no local validation, no whitelist, no default
-   * substitution. A blank/null {@code priority} sends no {@code Priority} header; a blank/null
-   * {@code tags} sends no {@code Tags} header.
+   * <p>A blank/null {@code priority} sends no {@code Priority} header; a blank/null {@code tags}
+   * sends no {@code Tags} header. Values containing non-printable-ASCII characters are omitted
+   * rather than forwarded: the CRLF-injection guard must not depend solely on the JDK client's
+   * header validation, and a single invalid configured value must not abort every publish at the
+   * header-build boundary.
    *
    * <p>The {@code Authorization} header (if any) comes entirely from the supplied {@link
    * AuthMode}: {@code auth.buildHeader()} returns the header value to send, or {@code
@@ -74,6 +86,9 @@ public class NtfyPublisher {
       String body,
       String priority,
       String tags) {
+    if (!isValidTopic(topic)) {
+      return PublishResult.failure(GENERIC_INVALID_REQUEST_MESSAGE);
+    }
     try {
       String base = url.replaceAll("/+$", "");
       URI uri = URI.create(base + "/" + topic);
@@ -90,11 +105,11 @@ public class NtfyPublisher {
         builder.header("Title", asciiSafeTitle(title));
       }
 
-      if (!isBlank(priority)) {
+      if (!isBlank(priority) && isAsciiPrintable(priority)) {
         builder.header("Priority", priority);
       }
 
-      if (!isBlank(tags)) {
+      if (!isBlank(tags) && isAsciiPrintable(tags)) {
         builder.header("Tags", tags);
       }
 
@@ -142,6 +157,15 @@ public class NtfyPublisher {
 
   private static boolean isAsciiPrintable(String s) {
     return s.chars().allMatch(c -> c >= 0x20 && c <= 0x7E);
+  }
+
+  /**
+   * True when {@code topic} is a valid ntfy topic name ({@code [-_A-Za-z0-9]{1,64}}).
+   * Package-visible so {@code AlertEngine} can refuse activation on an invalid topic instead of
+   * failing every publish.
+   */
+  static boolean isValidTopic(String topic) {
+    return topic != null && TOPIC_PATTERN.matcher(topic).matches();
   }
 
   private static boolean isBlank(String s) {

@@ -3,6 +3,8 @@ package io.github.pimak.ntfy.quarkus.runtime;
 import io.github.pimak.ntfy.core.AlertEvent;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.LogRecord;
@@ -18,6 +20,9 @@ import java.util.logging.LogRecord;
  */
 final class JulEventMapper {
 
+  /** Hard bound on the cause-chain walk (see the guard comment in {@link #map}). */
+  private static final int MAX_CAUSE_DEPTH = 64;
+
   private JulEventMapper() {}
 
   /** Builds an {@link AlertEvent} from {@code record}. Never throws on a malformed record. */
@@ -27,9 +32,14 @@ final class JulEventMapper {
 
     Throwable thrown = record.getThrown();
     if (thrown != null) {
+      // Cycle/depth guard mirroring Throwable.printStackTrace's dejaVu handling: a circular cause
+      // chain is legally constructible (a.initCause(b); b.initCause(a)) and a custom getCause()
+      // can mint fresh instances forever — without both guards this walk would loop until OOM on
+      // the logging thread, breaking the "never throws on a malformed record" contract.
+      Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
       Throwable current = thrown;
       Throwable root = thrown;
-      while (current != null) {
+      while (current != null && causeChain.size() < MAX_CAUSE_DEPTH && seen.add(current)) {
         causeChain.add(new AlertEvent.Cause(current.getClass().getName(), current.getMessage()));
         root = current;
         current = current.getCause();

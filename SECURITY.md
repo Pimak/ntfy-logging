@@ -2,8 +2,12 @@
 
 ## Supported Versions
 
-Only the latest published `0.x` release is supported. This library has not yet reached
-a `1.0` stability guarantee; security fixes will be released as new `0.x` patch versions.
+| Version | Supported |
+|---|---|
+| Latest `1.x` release | ✅ |
+| `0.x` (retired `logback-ntfy` line) | ❌ |
+
+Security fixes are released as new `1.x` patch versions of the affected modules.
 
 ## Reporting a Vulnerability
 

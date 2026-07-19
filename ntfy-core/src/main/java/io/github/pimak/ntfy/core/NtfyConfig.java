@@ -35,6 +35,7 @@ public final class NtfyConfig {
   private final String digestTags;
   private final List<String> excludedLoggerPrefixes;
   private final boolean enabled;
+  private final boolean endpointFromClasspathFile;
 
   private NtfyConfig(Builder b) {
     this.url = b.url;
@@ -56,6 +57,7 @@ public final class NtfyConfig {
     this.excludedLoggerPrefixes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
     this.enabled = b.enabled;
+    this.endpointFromClasspathFile = b.endpointFromClasspathFile;
   }
 
   /** Returns a fresh {@link Builder} pre-loaded with every default. */
@@ -137,6 +139,16 @@ public final class NtfyConfig {
   }
 
   /**
+   * True when the endpoint URL was supplied ONLY by a classpath {@code ntfy.properties} (no system
+   * property or environment variable set it). Set by {@link ConfigLoader}; auto-installing
+   * adapters use it to warn loudly, because any jar on the classpath can carry such a file and
+   * silently redirect log-derived alerts to a server the operator never chose.
+   */
+  public boolean isEndpointFromClasspathFile() {
+    return endpointFromClasspathFile;
+  }
+
+  /**
    * True when this config should actually deliver alerts: it is {@link #enabled}, and both {@link
    * #getUrl()} and {@link #getTopic()} are non-blank. A config that is disabled or missing either
    * endpoint half is inactive (the engine reports why via {@link Diagnostics} at start).
@@ -169,6 +181,7 @@ public final class NtfyConfig {
     private String digestTags = "fire";
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
     private boolean enabled = true;
+    private boolean endpointFromClasspathFile = false;
 
     private Builder() {}
 
@@ -279,6 +292,12 @@ public final class NtfyConfig {
 
     public Builder enabled(boolean enabled) {
       this.enabled = enabled;
+      return this;
+    }
+
+    /** See {@link NtfyConfig#isEndpointFromClasspathFile()}; set by {@link ConfigLoader} only. */
+    public Builder endpointFromClasspathFile(boolean endpointFromClasspathFile) {
+      this.endpointFromClasspathFile = endpointFromClasspathFile;
       return this;
     }
 

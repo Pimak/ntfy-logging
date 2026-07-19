@@ -53,6 +53,26 @@ class JulEventMapperTest {
     assertThat(event.rootCauseFrames()).isEmpty();
   }
 
+  // DoS guard: a circular cause chain is legally constructible with initCause and, unguarded,
+  // would loop the logging thread until OOM — the walk must terminate and map each cause once.
+  @Test
+  void circularCauseChain_terminatesAndMapsEachCauseOnce() {
+    Exception a = new Exception("a");
+    Exception b = new Exception("b");
+    a.initCause(b);
+    b.initCause(a);
+
+    LogRecord record = new LogRecord(Level.SEVERE, "boom");
+    record.setLoggerName("app");
+    record.setThrown(a);
+
+    AlertEvent event = JulEventMapper.map(record);
+
+    assertThat(event.causeChain()).hasSize(2);
+    assertThat(event.causeChain().get(0).message()).isEqualTo("a");
+    assertThat(event.causeChain().get(1).message()).isEqualTo("b");
+  }
+
   @Test
   void fallsBackToRawMessageOnBadPattern() {
     LogRecord record = new LogRecord(Level.SEVERE, "bad {pattern");

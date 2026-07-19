@@ -85,8 +85,13 @@ public final class AlertEngine {
    * Already started -&gt; no-op, so a second {@code start()} without an intervening {@code stop()}
    * can never overwrite and orphan the first executor/HttpClient. Active: build one {@link
    * HttpClient} plus its daemon-thread executor and construct the {@link NtfyPublisher}.
+   *
+   * <p>{@code synchronized} (like {@link #stop()}): two threads racing {@code start()} — e.g. a
+   * Logback reset listener vs. a Spring installer — would otherwise both pass the started check
+   * and both acquire an executor/HttpClient/digest scheduler, orphaning the loser's live threads
+   * and leaving its digest timer ticking forever. Cold path, so the lock costs nothing.
    */
-  public void start() {
+  public synchronized void start() {
     if (isStarted()) {
       return;
     }
@@ -103,10 +108,33 @@ public final class AlertEngine {
       return;
     }
 
+    // The topic is concatenated into the request path by the publisher; a value ntfy itself would
+    // reject ('/', '?', '#', dot segments, over-long) can only ever fail — or worse, rewrite the
+    // request target — so refuse activation loudly rather than fail every publish quietly.
+    if (!NtfyPublisher.isValidTopic(config.getTopic())) {
+      diagnostics.warn(AlertMessages.STATUS_INVALID_TOPIC);
+      return;
+    }
+
     boolean hasToken = !isBlank(config.getToken());
     boolean hasBasic = !isBlank(config.getUsername()) && !isBlank(config.getPassword());
     if (hasToken && hasBasic) {
       diagnostics.warn(AlertMessages.STATUS_TOKEN_AND_BASIC_BOTH_SET);
+    }
+    if ((hasToken || hasBasic) && isPlainHttp(config.getUrl())) {
+      // Credentials over cleartext HTTP: the Authorization header is readable by any on-path
+      // observer. Warn loudly but still activate — a self-hosted plain-HTTP setup is the
+      // operator's deliberate (if risky) choice, and refusing would silence alerting.
+      diagnostics.warn(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+    }
+    if (!isSendableHeaderValue(config.getErrorPriority())
+        || !isSendableHeaderValue(config.getDigestPriority())
+        || !isSendableHeaderValue(config.getErrorTags())
+        || !isSendableHeaderValue(config.getDigestTags())) {
+      // One-time, specific diagnostic: the publisher silently omits such headers, and without
+      // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
+      // invisible.
+      diagnostics.warn(AlertMessages.STATUS_INVALID_PRIORITY_OR_TAGS);
     }
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());
@@ -172,16 +200,24 @@ public final class AlertEngine {
 
   /**
    * Releases every resource {@link #start()} acquired. Safe to call when never started (no NPE)
-   * and safe to call twice in a row — every field is guarded and nulled out.
+   * and safe to call twice in a row — every field is guarded and nulled out. {@code synchronized}
+   * so it can never interleave with a concurrent {@link #start()} and tear down a half-built
+   * engine.
    */
-  public void stop() {
+  public synchronized void stop() {
     // Ordering matters here: (1) cancel the digest timer FIRST so no new tick can race the
     // flush below; (2) synchronously flush any pending digest while the HTTP resources are
     // STILL LIVE; (3) only then release executor/httpClient/publisher/rateLimiter. Flushing
     // after releasing the HTTP executor would leave the flush publish with no transport.
     if (digestScheduler != null) {
-      digestScheduler.shutdownNow();
+      // Graceful shutdown() first, shutdownNow() second: an in-flight digest tick must be allowed
+      // to finish its HTTP publish. Interrupting it mid-send manufactures a spurious failure for a
+      // request the server may have already accepted — the tick then restores the drained count
+      // and the flush below re-sends it, duplicating the digest. Termination stays bounded: the
+      // await is 500ms, then shutdownNow() force-cancels anything genuinely stuck.
+      digestScheduler.shutdown();
       awaitTerminationQuietly(digestScheduler);
+      digestScheduler.shutdownNow();
     }
     digestScheduler = null;
 
@@ -417,6 +453,19 @@ public final class AlertEngine {
 
   private static boolean isBlank(String s) {
     return s == null || s.isBlank();
+  }
+
+  /** True when {@code url} uses the cleartext {@code http://} scheme. */
+  private static boolean isPlainHttp(String url) {
+    return url != null && url.trim().regionMatches(true, 0, "http://", 0, "http://".length());
+  }
+
+  /**
+   * True when {@code value} is absent (no header sent) or printable ASCII (header sent verbatim by
+   * the publisher) — i.e. anything except a value the publisher will silently omit.
+   */
+  private static boolean isSendableHeaderValue(String value) {
+    return isBlank(value) || value.chars().allMatch(c -> c >= 0x20 && c <= 0x7E);
   }
 
   /**

@@ -3,17 +3,16 @@
 The engine gives you three independent ways to control which log events actually generate a
 notification. Two are configurable (available on every adapter), one is always on.
 
-> **Level filtering is the framework's job, not the engine's.** The core `AlertEngine` does no
-> level gating — it alerts on every event handed to it (subject to the gates below). The adapters
-> differ in what they hand it:
+> **Alerting is ERROR-only on every adapter.** The core `AlertEngine` does no level gating — it
+> alerts on every event handed to it (subject to the gates below) — but each adapter gates before
+> submitting:
 >
-> - **Quarkus** — the JUL handler forwards only `SEVERE` (ERROR-equivalent) records and above, so
->   `quarkus.ntfy.*` alerting is ERROR-only out of the box.
-> - **Logback** (raw appender and the zero-code auto-install) — every event that reaches the
->   appender is submitted. Restrict to ERROR the Logback way: attach a `ThresholdFilter` set to
->   `ERROR` on the appender (as in the README quickstart), or attach the appender to an
->   already-ERROR-scoped logger. Without a level restriction, an appender on `root` alerts on every
->   event — immediately exhausting the rate limiter and producing noise digests.
+> - **Quarkus** — the JUL handler forwards only `SEVERE` (ERROR-equivalent) records and above.
+> - **Logback** (raw appender and the zero-code auto-install) — the appender submits only events
+>   at `ERROR` or above. This is a hard floor, not a default: without it, a root-logger
+>   auto-install would push every INFO/WARN line — request details, user identifiers, anything
+>   the app logs — verbatim to the ntfy topic. To alert on a *subset* of errors, scope the
+>   appender to specific loggers or use `excluded-loggers`/the `NO_ALERT` marker below.
 
 ## 1. `excluded-loggers` — configurable logger-name exclusion
 

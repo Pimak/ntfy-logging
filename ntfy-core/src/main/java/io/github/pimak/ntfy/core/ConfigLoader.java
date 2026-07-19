@@ -43,7 +43,14 @@ public final class ConfigLoader {
       Function<String, String> envLookup, Properties fileProps, Properties sysProps) {
     NtfyConfig.Builder builder = NtfyConfig.builder();
 
-    apply(builder::url, resolve("url", envLookup, fileProps, sysProps));
+    String url = resolve("url", envLookup, fileProps, sysProps);
+    apply(builder::url, url);
+    // Flag an endpoint URL that only the classpath-file layer supplied: any jar can ship a
+    // ntfy.properties, and an auto-installing adapter must be able to warn that alert delivery
+    // was activated by classpath content rather than by the operator's env/sysprops.
+    if (url != null && resolve("url", envLookup, null, sysProps) == null) {
+      builder.endpointFromClasspathFile(true);
+    }
     apply(builder::topic, resolve("topic", envLookup, fileProps, sysProps));
     apply(builder::token, resolve("token", envLookup, fileProps, sysProps));
     apply(builder::username, resolve("username", envLookup, fileProps, sysProps));
@@ -121,14 +128,24 @@ public final class ConfigLoader {
 
   private static void applyInt(java.util.function.IntConsumer setter, String value) {
     if (value != null) {
-      setter.accept(Integer.parseInt(value.trim()));
+      try {
+        setter.accept(Integer.parseInt(value.trim()));
+      } catch (NumberFormatException e) {
+        // A malformed value (e.g. NTFY_MAX_STACK_FRAMES=abc) keeps the builder default instead of
+        // throwing out of load() — an unparsable optional tuning knob must never break the
+        // logging framework's own initialization inside an adapter.
+      }
     }
   }
 
   private static void applyDuration(
       java.util.function.Consumer<java.time.Duration> setter, String value) {
     if (value != null) {
-      setter.accept(DurationParser.parse(value));
+      try {
+        setter.accept(DurationParser.parse(value));
+      } catch (IllegalArgumentException e) {
+        // Same rationale as applyInt: keep the default rather than fail logging init.
+      }
     }
   }
 

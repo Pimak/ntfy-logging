@@ -1,0 +1,13 @@
+# Automated dependency updates: Maven dependencies/plugins (incl. the Quarkus and Spring Boot
+# BOM patch levels) and the SHA-pinned GitHub Actions in ci.yml / release.yml.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
