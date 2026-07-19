@@ -1,7 +1,7 @@
 # ntfy-logging
 
 [![CI](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml)
-[![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
+[![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
 [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
 
 **ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for
