@@ -19,13 +19,24 @@ import java.util.logging.Handler;
 @Recorder
 public class NtfyRecorder {
 
+  private final RuntimeValue<NtfyRuntimeConfig> config;
+
+  /**
+   * The run-time config is injected through the recorder constructor. Since Quarkus 3.19+ a {@code
+   * RUN_TIME} {@code @ConfigRoot} can no longer be consumed directly as a {@code @BuildStep}
+   * parameter; it must be received here wrapped in a {@link RuntimeValue}.
+   */
+  public NtfyRecorder(RuntimeValue<NtfyRuntimeConfig> config) {
+    this.config = config;
+  }
+
   /**
    * Builds the ntfy JUL handler from the run-time config. Returns {@link Optional#empty()} when the
    * config is inactive (disabled, or missing the url/topic endpoint), so Quarkus installs no
    * handler at all.
    */
-  public RuntimeValue<Optional<Handler>> create(NtfyRuntimeConfig config) {
-    NtfyConfig cfg = NtfyConfigFactory.from(config);
+  public RuntimeValue<Optional<Handler>> create() {
+    NtfyConfig cfg = NtfyConfigFactory.from(config.getValue());
     if (!cfg.isActive()) {
       return new RuntimeValue<>(Optional.empty());
     }
