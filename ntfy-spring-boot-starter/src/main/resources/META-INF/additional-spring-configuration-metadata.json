@@ -1,0 +1,104 @@
+{
+  "properties": [
+    {
+      "name": "ntfy.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether the ntfy integration is active. When true, the Logback appender is installed and the NtfyClient bean is created.",
+      "defaultValue": true
+    },
+    {
+      "name": "ntfy.url",
+      "type": "java.lang.String",
+      "description": "Base URL of the ntfy server (e.g. https://ntfy.sh). Required for the appender to be installed."
+    },
+    {
+      "name": "ntfy.topic",
+      "type": "java.lang.String",
+      "description": "ntfy topic that notifications are published to. Required for the appender to be installed."
+    },
+    {
+      "name": "ntfy.token",
+      "type": "java.lang.String",
+      "description": "Bearer access token used for ntfy authentication (takes precedence over username/password)."
+    },
+    {
+      "name": "ntfy.username",
+      "type": "java.lang.String",
+      "description": "Username for ntfy HTTP basic authentication."
+    },
+    {
+      "name": "ntfy.password",
+      "type": "java.lang.String",
+      "description": "Password for ntfy HTTP basic authentication."
+    },
+    {
+      "name": "ntfy.title",
+      "type": "java.lang.String",
+      "description": "Static notification title. When unset a title is derived from the log event."
+    },
+    {
+      "name": "ntfy.app-name",
+      "type": "java.lang.String",
+      "description": "Application name included in notifications to identify the source."
+    },
+    {
+      "name": "ntfy.max-stack-frames",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of stack-trace frames included in a notification body.",
+      "defaultValue": 5
+    },
+    {
+      "name": "ntfy.connect-timeout",
+      "type": "java.time.Duration",
+      "description": "HTTP connect timeout for publishing to ntfy.",
+      "defaultValue": "5s"
+    },
+    {
+      "name": "ntfy.request-timeout",
+      "type": "java.time.Duration",
+      "description": "HTTP request timeout for publishing to ntfy.",
+      "defaultValue": "10s"
+    },
+    {
+      "name": "ntfy.max-alerts-per-window",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of alerts published within a suppression window before rate limiting kicks in.",
+      "defaultValue": 3
+    },
+    {
+      "name": "ntfy.suppression-window",
+      "type": "java.time.Duration",
+      "description": "Rolling window used for rate limiting and digesting suppressed alerts.",
+      "defaultValue": "3m"
+    },
+    {
+      "name": "ntfy.error-priority",
+      "type": "java.lang.String",
+      "description": "ntfy priority applied to individual ERROR notifications.",
+      "defaultValue": "high"
+    },
+    {
+      "name": "ntfy.digest-priority",
+      "type": "java.lang.String",
+      "description": "ntfy priority applied to digest notifications summarizing suppressed alerts.",
+      "defaultValue": "urgent"
+    },
+    {
+      "name": "ntfy.error-tags",
+      "type": "java.lang.String",
+      "description": "Comma-separated ntfy tags applied to individual ERROR notifications.",
+      "defaultValue": "rotating_light"
+    },
+    {
+      "name": "ntfy.digest-tags",
+      "type": "java.lang.String",
+      "description": "Comma-separated ntfy tags applied to digest notifications.",
+      "defaultValue": "fire"
+    },
+    {
+      "name": "ntfy.excluded-loggers",
+      "type": "java.lang.String",
+      "description": "Comma-separated list of logger names or prefixes whose events are never published."
+    }
+  ]
+}

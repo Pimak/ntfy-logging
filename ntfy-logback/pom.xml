@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-logback</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-logback</name>
+    <description>Logback adapter for the ntfy notification engine: a thin UnsynchronizedAppenderBase plus a reset-resistant auto-installing Configurator that map Logback events onto ntfy-core's framework-neutral AlertEngine.</description>
+
+    <dependencies>
+        <!--
+            The framework-neutral engine. Everything gating/publishing/digest-related lives here;
+            this module only maps a Logback ILoggingEvent onto an AlertEvent and calls submit().
+        -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+            Logback + SLF4J are provided-scope: the host application already brings its own logging
+            backend on the runtime classpath, so this adapter compiles against them but never drags
+            a (possibly conflicting) version onto the consumer's classpath. Versions are managed by
+            the reactor parent.
+        -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- For org.slf4j.Marker, referenced by the event mapper. -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-dependency-allowlist</id>
+                        <!-- default phase = validate, no override needed -->
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <!--
+                                        Strict ALLOWLIST, not a blocklist (same design as ntfy-core's
+                                        pom). This adapter's promise is "ntfy-core + the Logback/SLF4J
+                                        SPI it adapts, nothing else": banning everything and re-allowing
+                                        only the verified roster below means any new dependency is a
+                                        deliberate, visible diff that trips this rule instead of silently
+                                        sailing through. The extra entries over ntfy-core are exactly the
+                                        logback/slf4j triad this module adapts (all provided-scope) plus
+                                        the ntfy-core artifact itself.
+
+                                        To safely extend this allowlist for a genuinely new, legitimate
+                                        dependency:
+                                          1. Confirm it belongs at the adapter layer (framework glue),
+                                             not in ntfy-core. Engine logic stays pure-JDK in core.
+                                          2. Run `mvn dependency:tree` and add EVERY new direct +
+                                             transitive coordinate the change surfaces, not just the one
+                                             you added by hand; transitives are what this rule catches.
+                                          3. Prefer a group-level wildcard (`groupId:*`) for multi-artifact
+                                             aggregators (see the org.junit.jupiter/org.junit.platform
+                                             entries below).
+                                          4. Re-run `mvn validate` and confirm BUILD SUCCESS before
+                                             committing.
+                                    -->
+                                    <searchTransitive>true</searchTransitive>
+                                    <excludes>
+                                        <exclude>*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>ch.qos.logback:logback-classic</include>
+                                        <include>ch.qos.logback:logback-core</include>
+                                        <include>org.slf4j:slf4j-api</include>
+                                        <include>io.github.pimak:ntfy-core</include>
+                                        <include>org.junit.jupiter:*</include>
+                                        <include>org.junit.platform:*</include>
+                                        <include>org.opentest4j:opentest4j</include>
+                                        <include>org.apiguardian:apiguardian-api</include>
+                                        <include>org.jspecify:jspecify</include>
+                                        <include>org.assertj:assertj-core</include>
+                                        <include>net.bytebuddy:byte-buddy</include>
+                                        <include>org.wiremock:wiremock-standalone</include>
+                                    </includes>
+                                    <message>
+                                        ntfy-logback must stay "ntfy-core + the Logback/SLF4J SPI it
+                                        adapts" (plus its test stack). See the allowlist comment above
+                                        this rule before adding anything here.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

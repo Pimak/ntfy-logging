@@ -1,0 +1,13 @@
+---
+name: "ntfy"
+description: "Publishes ERROR/SEVERE log events as ntfy push notifications, and exposes a generic ntfy client for arbitrary notifications."
+metadata:
+  keywords:
+    - "ntfy"
+    - "logging"
+    - "alerting"
+    - "notifications"
+  categories:
+    - "logging"
+  status: "stable"
+  guide: "https://github.com/pimak/logback-ntfy"

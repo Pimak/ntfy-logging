@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-quarkus-deployment</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-quarkus-deployment</name>
+    <description>
+        Build-time half of the ntfy Quarkus extension: the NtfyProcessor build steps that register
+        the feature, wire the JUL handler in via a LogHandlerBuildItem recorded at RUNTIME_INIT, and
+        expose the CDI producer as an additional bean.
+    </description>
+
+    <dependencies>
+        <!-- The runtime artifact this processor drives (recorder, config, handler, producer). -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-quarkus-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Build-time APIs: @BuildStep, FeatureBuildItem, LogHandlerBuildItem, ReflectiveClassBuildItem. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-core-deployment</artifactId>
+        </dependency>
+        <!-- AdditionalBeanBuildItem for registering the NtfyClient producer. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc-deployment</artifactId>
+        </dependency>
+
+        <!-- QuarkusUnitTest lives here; drives a real (in-JVM) Quarkus boot for the integration test. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5-internal</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- Deployment modules also run the extension annotation processor: it validates
+                         the build steps and generates the BuildStep bytecode-invoker glue. -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.quarkus</groupId>
+                            <artifactId>quarkus-extension-processor</artifactId>
+                            <version>${quarkus.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- QuarkusUnitTest boots a real Quarkus app in-JVM, which requires the JBoss
+                         LogManager to be installed as the JUL LogManager before any logging is
+                         touched. Without this the test class-init fails with a ClassCastException
+                         (default RootLogger vs org.jboss.logmanager.Logger). -->
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

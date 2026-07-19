@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-spring-boot-starter</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-spring-boot-starter</name>
+    <description>Spring Boot auto-configuration starter that installs the ntfy Logback appender on the root logger from ntfy.* properties and exposes an injectable NtfyClient bean.</description>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                Spring Boot BOM scoped to this module (not the reactor parent) so its managed
+                versions never collide with the Quarkus BOM in the other adapter modules.
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!--
+            The framework-neutral engine (NtfyClient / NtfyConfig) and the Logback adapter
+            (LogbackAlertAppender) this starter wires into a Spring Boot application. Versions of
+            these two come from the reactor parent; the Spring Boot dependencies below come from the
+            spring-boot-dependencies BOM imported by the parent.
+        -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-logback</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot</artifactId>
+        </dependency>
+
+        <!--
+            Logback is provided-scope: every Spring Boot application already ships logback-classic
+            via spring-boot-starter-logging, so this starter compiles against it without forcing a
+            (possibly conflicting) version onto the consumer classpath.
+        -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Generates spring-configuration-metadata.json for ntfy.* keys (IDE completion). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <!--
+                Enforcer bannedDependencies (the strict per-module allowlist used by ntfy-core and
+                ntfy-logback) is deliberately NOT wired in here: a Spring Boot starter pulls in a
+                large, legitimate transitive tree (spring-context, spring-core, jackson, ...) that an
+                allowlist cannot usefully enumerate. PMD dead-code check is likewise skipped for this
+                module to avoid false positives on framework-shaped code.
+            -->
+        </plugins>
+    </build>
+</project>

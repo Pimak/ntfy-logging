@@ -13,12 +13,14 @@
     <description>Zero-dependency ntfy notification engine plus logging-framework adapters that publish ERROR-level log events as ntfy push notifications.</description>
 
     <modules>
-        <!--
-            Only ntfy-core is wired in for now. The four adapter modules (logback, log4j2,
-            spring-boot-starter, quarkus-extension) are added to this list by their own build-out
-            agents once their pom.xml exists, so the reactor never lists a module that cannot build.
-        -->
+        <!-- The framework-neutral engine every adapter builds on. -->
         <module>ntfy-core</module>
+        <!-- Logback appender + zero-code auto-install (Configurator SPI); serves Spring and any Logback app. -->
+        <module>ntfy-logback</module>
+        <!-- Spring Boot auto-configuration on top of ntfy-logback + an injectable NtfyClient bean. -->
+        <module>ntfy-spring-boot-starter</module>
+        <!-- Quarkus extension aggregator (runtime + deployment); native + zero-code via LogHandlerBuildItem. -->
+        <module>ntfy-quarkus</module>
     </modules>
 
     <licenses>
@@ -92,22 +94,19 @@
             </dependency>
 
             <!--
-                Platform BOMs imported for the future Spring Boot starter and Quarkus extension
-                modules. Harmless to the ntfy-core build (core declares no dependency drawn from
-                either BOM); declaring them here now gives the adapter modules a single, aligned
-                version surface once they are wired into <modules>.
+                Quarkus platform BOM for the Quarkus extension modules (runtime + deployment),
+                which parent this root pom directly. Harmless to ntfy-core/ntfy-logback (they
+                declare no Quarkus dependency; a BOM import alone adds nothing to a module).
+                NOTE: the Spring Boot BOM is deliberately NOT imported here — it is scoped to the
+                ntfy-spring-boot-starter module's own dependencyManagement instead. Importing both
+                platform BOMs at the parent made every module's effective model resolve hundreds of
+                overlapping managed-version conflicts (byte-buddy, etc.); keeping each BOM local to
+                the module that needs it removes that cross-contamination.
             -->
             <dependency>
                 <groupId>io.quarkus.platform</groupId>
                 <artifactId>quarkus-bom</artifactId>
                 <version>${quarkus.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

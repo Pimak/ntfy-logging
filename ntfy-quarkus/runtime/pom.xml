@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-quarkus-runtime</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-quarkus-runtime</name>
+    <description>
+        Runtime half of the ntfy Quarkus extension: a java.util.logging Handler that forwards
+        SEVERE records to the framework-neutral ntfy AlertEngine, the run-time @ConfigMapping,
+        the recorder that builds the handler at RUNTIME_INIT, and a CDI producer exposing a
+        generic NtfyClient. This is the artifact applications depend on.
+    </description>
+
+    <dependencies>
+        <!-- The framework-neutral engine/client. Every alert path ultimately calls into this. -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- quarkus-core: @Recorder, RuntimeValue, @ConfigRoot/@ConfigPhase; version managed by quarkus-bom. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-core</artifactId>
+        </dependency>
+        <!-- quarkus-arc: CDI (jakarta.enterprise/inject annotations) for the NtfyClient producer. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+        </dependency>
+
+        <!-- Test stack: plain JUnit + AssertJ. The reliable-path unit tests live here (a loopback
+             com.sun.net.httpserver.HttpServer stands in for ntfy, no WireMock needed). -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- The Quarkus extension annotation processor generates the build-time
+                         metadata this extension needs: notably META-INF/quarkus-config-roots.list
+                         (so the @ConfigRoot @ConfigMapping run-time config is discovered) and the
+                         extension bytecode-recording glue. Required for a well-formed 3.15 extension. -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.quarkus</groupId>
+                            <artifactId>quarkus-extension-processor</artifactId>
+                            <version>${quarkus.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <!-- Generates META-INF/quarkus-extension.properties, binding this runtime artifact to
+                 its deployment artifact so Quarkus knows which processor to load at build time. -->
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-extension-maven-plugin</artifactId>
+                <version>${quarkus.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-extension-descriptor</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>extension-descriptor</goal>
+                        </goals>
+                        <configuration>
+                            <deployment>io.github.pimak:ntfy-quarkus-deployment:${project.version}</deployment>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
