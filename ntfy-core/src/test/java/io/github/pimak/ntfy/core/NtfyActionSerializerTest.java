@@ -73,6 +73,83 @@ class NtfyActionSerializerTest {
   }
 
   @Test
+  void http_withHeaders_rendersHeaderFields() {
+    String header =
+        NtfyActionSerializer.serialize(
+            List.of(
+                NtfyAction.http(
+                    "Ack",
+                    "https://x/ack",
+                    "POST",
+                    null,
+                    new NtfyAction.HttpHeader("Authorization", "Bearer tok"),
+                    new NtfyAction.HttpHeader("X-Env", "prod"))));
+    assertThat(header)
+        .isEqualTo(
+            "http, Ack, https://x/ack, method=POST,"
+                + " headers.Authorization=Bearer tok, headers.X-Env=prod");
+  }
+
+  @Test
+  void http_headerValueWithComma_isDoubleQuoted() {
+    String header =
+        NtfyActionSerializer.serialize(
+            List.of(
+                NtfyAction.http(
+                    "Ack",
+                    "https://x/ack",
+                    null,
+                    null,
+                    new NtfyAction.HttpHeader("X-List", "a, b"))));
+    assertThat(header).isEqualTo("http, Ack, https://x/ack, headers.X-List=\"a, b\"");
+  }
+
+  @Test
+  void broadcast_minimal_rendersTypeAndLabel() {
+    String header = NtfyActionSerializer.serialize(List.of(NtfyAction.broadcast("Take photo")));
+    assertThat(header).isEqualTo("broadcast, Take photo");
+  }
+
+  @Test
+  void broadcast_withExtras_rendersExtraFields() {
+    String header =
+        NtfyActionSerializer.serialize(
+            List.of(
+                NtfyAction.broadcast(
+                    "Take photo",
+                    new NtfyAction.BroadcastExtra("cmd", "pic"),
+                    new NtfyAction.BroadcastExtra("camera", "front"))));
+    assertThat(header)
+        .isEqualTo("broadcast, Take photo, extras.cmd=pic, extras.camera=front");
+  }
+
+  @Test
+  void broadcast_withIntentAndClear_appendsBothTrailing() {
+    String header =
+        NtfyActionSerializer.serialize(
+            List.of(
+                new NtfyAction.Broadcast(
+                    "Run",
+                    "com.example.ACTION",
+                    List.of(new NtfyAction.BroadcastExtra("k", "v")),
+                    true)));
+    assertThat(header)
+        .isEqualTo("broadcast, Run, extras.k=v, intent=com.example.ACTION, clear=true");
+  }
+
+  @Test
+  void headerOrExtra_withBlankNameOrValue_throwsAtConstruction() {
+    assertThatThrownBy(() -> new NtfyAction.HttpHeader("  ", "v"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new NtfyAction.HttpHeader("X", ""))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new NtfyAction.BroadcastExtra(null, "v"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new NtfyAction.BroadcastExtra("k", "  "))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
   void multipleActions_joinedBySemicolon() {
     String header =
         NtfyActionSerializer.serialize(

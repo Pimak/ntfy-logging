@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Full ntfy action-button coverage** in `ntfy-core`: the typed `NtfyAction` model now supports all
+  three ntfy action types — added `NtfyAction.broadcast(...)` (Android broadcast intents, with typed
+  `BroadcastExtra` extras) and typed `HttpHeader`s on `http` actions (e.g. `Authorization`),
+  alongside the existing `view` and `http` types.
+
+### Changed
+- The `NtfyAction.Http` record gained a trailing `List<HttpHeader> headers` component. Code using the
+  `NtfyAction.http(...)` static factories is unaffected; direct `new NtfyAction.Http(...)` callers
+  must add the new argument.
+
 ### Security
 - **Logback adapter now gates at ERROR** (mirroring the Quarkus adapter's `SEVERE` gate): the
   appender submits only ERROR-and-above events, so a root-logger install can no longer publish

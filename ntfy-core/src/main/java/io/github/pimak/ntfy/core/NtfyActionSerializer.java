@@ -5,8 +5,9 @@ import java.util.List;
 /**
  * Renders a list of {@link NtfyAction}s into the value of ntfy's {@code Actions} HTTP header, using
  * ntfy's documented short "simple" format: fields within one action separated by {@code ", "},
- * actions separated by {@code "; "}. User-supplied field values (label, url, method, body) are
- * quoted only when they contain a delimiter ({@code ,} / {@code ;} / {@code "} / {@code \}) or have
+ * actions separated by {@code "; "}. User-supplied field values (label, url, method, body, and
+ * {@code headers.*}/{@code extras.*}/intent values) are quoted only when they contain a delimiter
+ * ({@code ,} / {@code ;} / {@code "} / {@code \}) or have
  * leading/trailing whitespace ntfy's parser would otherwise trim — an internal space (as in {@code
  * View logs}) needs no quoting.
  *
@@ -59,10 +60,24 @@ final class NtfyActionSerializer {
       if (!isBlank(http.method())) {
         sb.append(", method=").append(quote(http.method()));
       }
+      for (NtfyAction.HttpHeader header : http.headers()) {
+        sb.append(", headers.").append(header.name()).append('=').append(quote(header.value()));
+      }
       if (!isBlank(http.body())) {
         sb.append(", body=").append(quote(http.body()));
       }
       if (http.clear()) {
+        sb.append(", clear=true");
+      }
+    } else if (action instanceof NtfyAction.Broadcast broadcast) {
+      sb.append("broadcast, ").append(quote(broadcast.label()));
+      for (NtfyAction.BroadcastExtra extra : broadcast.extras()) {
+        sb.append(", extras.").append(extra.name()).append('=').append(quote(extra.value()));
+      }
+      if (!isBlank(broadcast.intent())) {
+        sb.append(", intent=").append(quote(broadcast.intent()));
+      }
+      if (broadcast.clear()) {
         sb.append(", clear=true");
       }
     }
