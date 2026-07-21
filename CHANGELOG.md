@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 2026-07-21
 ### Added
 - **Ergonomic factories** for `ntfy-core` types: `AlertEvent.of(loggerName, formattedMessage,
   timestampMillis)` builds the common "no throwable, no markers" event, and new

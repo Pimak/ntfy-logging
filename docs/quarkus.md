@@ -18,7 +18,7 @@ runtime-init — so it works in both JVM and native builds.
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-quarkus-runtime</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 
