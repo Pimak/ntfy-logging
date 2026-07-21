@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.1] - Unreleased
 ### Added
 - **Ergonomic factories** for `ntfy-core` types: `AlertEvent.of(loggerName, formattedMessage,
   timestampMillis)` builds the common "no throwable, no markers" event, and new
