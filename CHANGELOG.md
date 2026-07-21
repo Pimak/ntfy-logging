@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **Ergonomic factories** for `ntfy-core` types: `AlertEvent.of(loggerName, formattedMessage,
+  timestampMillis)` builds the common "no throwable, no markers" event, and new
+  `NtfyAction.http(...)` / `NtfyAction.broadcast(...)` overloads take an explicit `clear` flag
+  (previously reachable only via the raw canonical constructor). The `AlertEvent` compact
+  constructor now validates its mandatory fields and normalizes optional collections to empty for
+  every construction path. The existing constructors and factories are unchanged, so these
+  additions are backward-compatible.
 - **Full ntfy action-button coverage** in `ntfy-core`: the typed `NtfyAction` model now supports all
   three ntfy action types — added `NtfyAction.broadcast(...)` (Android broadcast intents, with typed
   `BroadcastExtra` extras) and typed `HttpHeader`s on `http` actions (e.g. `Authorization`),

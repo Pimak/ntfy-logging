@@ -49,6 +49,15 @@ public sealed interface NtfyAction permits NtfyAction.View, NtfyAction.Http, Ntf
     return new Http(label, url, method, body, false, List.of(headers));
   }
 
+  /**
+   * An {@code http} action as {@link #http(String, String, String, String, HttpHeader...)} but with
+   * an explicit {@code clear} flag dismissing the notification on tap.
+   */
+  static Http http(
+      String label, String url, String method, String body, boolean clear, HttpHeader... headers) {
+    return new Http(label, url, method, body, clear, List.of(headers));
+  }
+
   /** A {@code broadcast} action sending ntfy's default intent, with optional {@code extras}. */
   static Broadcast broadcast(String label, BroadcastExtra... extras) {
     return new Broadcast(label, null, List.of(extras), false);
@@ -57,6 +66,15 @@ public sealed interface NtfyAction permits NtfyAction.View, NtfyAction.Http, Ntf
   /** A {@code broadcast} action sending {@code intent} (blank uses ntfy's default), with extras. */
   static Broadcast broadcast(String label, String intent, BroadcastExtra... extras) {
     return new Broadcast(label, intent, List.of(extras), false);
+  }
+
+  /**
+   * A {@code broadcast} action sending {@code intent} (blank uses ntfy's default) with an explicit
+   * {@code clear} flag dismissing the notification on tap, plus optional {@code extras}.
+   */
+  static Broadcast broadcast(
+      String label, String intent, boolean clear, BroadcastExtra... extras) {
+    return new Broadcast(label, intent, List.of(extras), clear);
   }
 
   /** Opens {@code url} in the browser/app when the action button is tapped. */

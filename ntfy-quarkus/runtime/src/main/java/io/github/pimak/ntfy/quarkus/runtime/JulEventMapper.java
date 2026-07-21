@@ -53,12 +53,21 @@ final class JulEventMapper {
     }
 
     return new AlertEvent(
-        record.getLoggerName(),
+        loggerName(record),
         formatMessage(record),
         record.getMillis(),
         causeChain,
         rootCauseFrames,
         Set.of());
+  }
+
+  /**
+   * The record's logger name, falling back to {@code "ROOT"} for anonymous loggers (whose {@link
+   * LogRecord#getLoggerName()} is {@code null}), so the mapper never emits a blank mandatory field.
+   */
+  private static String loggerName(LogRecord record) {
+    String name = record.getLoggerName();
+    return name == null || name.isBlank() ? "ROOT" : name;
   }
 
   /**

@@ -28,6 +28,23 @@ public record AlertEvent(
     Set<String> markerNames) {
 
   /**
+   * Validates the mandatory fields and normalizes the optional collections so every construction
+   * path — direct {@code new}, the {@link #of} factory, or an adapter — yields a null-free,
+   * defensively copied event.
+   */
+  public AlertEvent {
+    if (loggerName == null || loggerName.isBlank()) {
+      throw new IllegalArgumentException("loggerName must not be blank");
+    }
+    if (formattedMessage == null || formattedMessage.isBlank()) {
+      throw new IllegalArgumentException("formattedMessage must not be blank");
+    }
+    causeChain = causeChain == null ? List.of() : List.copyOf(causeChain);
+    rootCauseFrames = rootCauseFrames == null ? List.of() : List.copyOf(rootCauseFrames);
+    markerNames = markerNames == null ? Set.of() : Set.copyOf(markerNames);
+  }
+
+  /**
    * One link of an exception chain: the throwable's class name and its message (either may be
    * {@code null} in degenerate cases, mirroring the source throwable).
    *
@@ -35,4 +52,13 @@ public record AlertEvent(
    * @param message the throwable's message, or {@code null}
    */
   public record Cause(String className, String message) {}
+
+  /**
+   * Convenience factory for the "no throwable, no markers" case: {@code causeChain}, {@code
+   * rootCauseFrames} and {@code markerNames} default to empty collections.
+   */
+  public static AlertEvent of(String loggerName, String formattedMessage, long timestampMillis) {
+    return new AlertEvent(
+        loggerName, formattedMessage, timestampMillis, List.of(), List.of(), Set.of());
+  }
 }
