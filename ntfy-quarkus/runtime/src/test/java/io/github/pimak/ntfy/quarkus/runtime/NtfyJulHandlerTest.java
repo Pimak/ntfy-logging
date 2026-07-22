@@ -76,6 +76,33 @@ class NtfyJulHandlerTest {
   }
 
   @Test
+  void severeRecordIsPublishedInAsyncMode() throws InterruptedException {
+    NtfyConfig cfg =
+        NtfyConfig.builder()
+            .url(baseUrl())
+            .topic("alerts")
+            .maxAlertsPerWindow(10)
+            .asyncEnabled(true)
+            .build();
+    AlertEngine engine = new AlertEngine(cfg, new JulDiagnostics());
+    engine.start();
+    NtfyJulHandler handler = new NtfyJulHandler(engine);
+    try {
+      LogRecord record = new LogRecord(Level.SEVERE, "kaboom-async");
+      record.setLoggerName("com.example.Boom");
+      record.setThrown(new IllegalStateException("bad state"));
+
+      handler.publish(record);
+
+      // The publish is offloaded to the ntfy-alert-delivery worker; it still reaches the server.
+      assertThat(waitForRequest()).isTrue();
+      assertThat(receivedPaths).contains("/alerts");
+    } finally {
+      handler.close();
+    }
+  }
+
+  @Test
   void belowSevereRecordIsIgnored() throws InterruptedException {
     NtfyConfig cfg = NtfyConfig.builder().url(baseUrl()).topic("alerts").build();
     AlertEngine engine = new AlertEngine(cfg, new JulDiagnostics());
