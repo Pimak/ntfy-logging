@@ -184,8 +184,10 @@ class AlertEngineStartValidationTest {
   void statusInvalidUrl_isFixedTextAndNeverEchoesTheRejectedUrl() {
     // No-leak discipline: the message is a fixed constant and never interpolates the rejected URL
     // (which could carry a credential in a user:pass@host form).
-    assertThat(AlertMessages.STATUS_INVALID_URL).doesNotContain("ntfy.sh");
-    assertThat(AlertMessages.STATUS_INVALID_URL).doesNotContain("user:pass");
+    assertThat(AlertMessages.STATUS_INVALID_URL)
+        .isEqualTo(
+            "url is not a valid http(s) endpoint (expected http:// or https:// with a host) "
+                + "— engine disabled");
   }
 
   @Test

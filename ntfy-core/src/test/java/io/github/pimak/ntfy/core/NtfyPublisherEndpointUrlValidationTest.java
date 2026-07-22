@@ -9,7 +9,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 /**
  * Direct unit tests for {@link NtfyPublisher#isValidEndpointUrl(String)}. A malformed / non-http(s)
  * endpoint URL can never produce a successful publish, so the engine must refuse activation rather
- * than manufacture a per-event failure for every alert. These pins the accept/reject contract —
+ * than manufacture a per-event failure for every alert. These pin the accept/reject contract —
  * including the getAuthority()-not-getHost() choice that keeps the documented {@code
  * user:pass@host} basic-auth form and underscore hostnames working — independently of the engine
  * wiring.

@@ -2,6 +2,7 @@ package io.github.pimak.ntfy.core;
 
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -251,7 +252,7 @@ public class NtfyPublisher {
       return scheme != null
           && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
           && !isBlank(uri.getAuthority());
-    } catch (java.net.URISyntaxException e) {
+    } catch (URISyntaxException e) {
       return false;
     }
   }
