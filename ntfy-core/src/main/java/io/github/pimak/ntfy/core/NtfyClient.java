@@ -10,10 +10,11 @@ import java.util.List;
  * that config's {@code url}/{@code topic}.
  *
  * <p>Not thread-lifecycle managed the way the engine is: construct it, call {@link #notify} as
- * needed, and {@link #close} it to release the underlying HTTP client. Publishing never throws —
- * every outcome is reported through the returned {@link PublishResult}.
+ * needed, and {@link #close} it to release the underlying HTTP client. Because it implements
+ * {@link AutoCloseable}, it can be managed with a try-with-resources block for guaranteed disposal.
+ * Publishing never throws — every outcome is reported through the returned {@link PublishResult}.
  */
-public final class NtfyClient {
+public final class NtfyClient implements AutoCloseable {
 
   private final NtfyConfig config;
   private final HttpClient httpClient;
@@ -86,7 +87,11 @@ public final class NtfyClient {
         config.getClickUrl(), NtfyActionSerializer.serialize(actions));
   }
 
-  /** Releases the underlying {@link HttpClient} (Java 21+ deterministic shutdown). */
+  /**
+   * Releases the underlying {@link HttpClient} (Java 21+ deterministic shutdown). May be invoked
+   * automatically via a try-with-resources block, and is safe to call more than once.
+   */
+  @Override
   public void close() {
     httpClient.shutdownNow();
   }

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- `NtfyClient` now implements `AutoCloseable`, so it can be used in a try-with-resources block and
+  IDEs/linters can flag a leaked client. The existing `close()` method is unchanged; this is a
+  source- and binary-compatible addition and makes the try-with-resources example in `docs/core.md`
+  compile.
 
 ## [1.0.2] - 2026-07-22
 ### Added
