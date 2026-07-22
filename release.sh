@@ -52,9 +52,12 @@ for doc in "${DOC_FILES[@]}"; do
   sed -i "s#\(io.github.pimak:ntfy-[a-z-]*:\)[0-9][0-9.]*#\1${VERSION}#g" "${doc}"
 done
 
-# 3) Single reviewed commit folding the bump + docs pass.
+# 3) Single reviewed commit folding the bump + docs pass. versions:set touches every
+#    module's pom.xml (root + each child), so stage them all by name, not just the root
+#    pom.xml — a partial stage here silently ships a reactor with mismatched module
+#    versions, which Central then rejects (or worse, half-publishes).
 echo "==> Committing release ${VERSION}"
-git add pom.xml CHANGELOG.md README.md docs
+git add $(find . -name pom.xml -not -path '*/target/*') CHANGELOG.md README.md docs
 git commit -m "chore(release): ${VERSION}"
 
 # 4) Annotated tag.
