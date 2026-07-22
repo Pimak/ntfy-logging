@@ -2,6 +2,7 @@ package io.github.pimak.ntfy.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -118,7 +119,7 @@ class AlertEngineStartValidationTest {
             NtfyConfig.builder()
                 .url("https://ntfy.example.com")
                 .topic("alerts")
-                .connectTimeout(java.time.Duration.ZERO)
+                .connectTimeout(Duration.ZERO)
                 .build(),
             diagnostics);
     try {
@@ -139,7 +140,7 @@ class AlertEngineStartValidationTest {
             NtfyConfig.builder()
                 .url("https://ntfy.example.com")
                 .topic("alerts")
-                .connectTimeout(java.time.Duration.ofSeconds(-1))
+                .connectTimeout(Duration.ofSeconds(-1))
                 .build(),
             diagnostics);
     try {
@@ -181,7 +182,7 @@ class AlertEngineStartValidationTest {
             NtfyConfig.builder()
                 .url("https://ntfy.example.com")
                 .topic("alerts")
-                .requestTimeout(java.time.Duration.ZERO)
+                .requestTimeout(Duration.ZERO)
                 .build(),
             diagnostics);
     try {
@@ -202,7 +203,7 @@ class AlertEngineStartValidationTest {
             NtfyConfig.builder()
                 .url("https://ntfy.example.com")
                 .topic("alerts")
-                .requestTimeout(java.time.Duration.ofSeconds(-1))
+                .requestTimeout(Duration.ofSeconds(-1))
                 .build(),
             diagnostics);
     try {
