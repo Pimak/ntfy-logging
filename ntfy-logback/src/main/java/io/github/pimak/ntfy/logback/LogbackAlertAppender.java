@@ -7,6 +7,7 @@ import ch.qos.logback.core.UnsynchronizedAppenderBase;
 import io.github.pimak.ntfy.core.AlertEngine;
 import io.github.pimak.ntfy.core.DurationParser;
 import io.github.pimak.ntfy.core.NtfyConfig;
+import io.github.pimak.ntfy.core.PipelineCounters;
 
 /**
  * A thin Logback {@code UnsynchronizedAppenderBase<ILoggingEvent>} shell over the framework-neutral
@@ -59,6 +60,12 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private NtfyConfig injectedConfig;
 
   private AlertEngine engine;
+
+  // Read-only pipeline observability counters. Owned by the appender (which outlives individual
+  // engines) and handed to every engine built in start(), so the tallies survive stop()/start()
+  // cycles and the reset/reattach handled by NtfyLogbackReattachListener — i.e. they are monotonic
+  // for this appender instance's whole lifetime.
+  private final PipelineCounters counters = new PipelineCounters();
 
   public void setUrl(String url) {
     this.url = url;
@@ -186,7 +193,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
       return;
     }
     NtfyConfig config = injectedConfig != null ? injectedConfig : buildConfigFromSetters();
-    this.engine = new AlertEngine(config, new LogbackDiagnostics(this));
+    this.engine = new AlertEngine(config, new LogbackDiagnostics(this), counters);
     engine.start();
     if (engine.isStarted()) {
       super.start();
@@ -278,5 +285,16 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     engine = null;
     super.stop();
+  }
+
+  /**
+   * Read-only pipeline observability counters (published / suppressed / failed) for this appender.
+   * The returned holder is stable for the appender's whole lifetime — the same instance before and
+   * after {@code start()}/{@code stop()} cycles — so the tallies are monotonic and never reset by a
+   * stop or a Logback context reset/reattach. Counters are pulled here, never logged, preserving the
+   * loop-safe design.
+   */
+  public PipelineCounters getCounters() {
+    return counters;
   }
 }
