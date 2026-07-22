@@ -63,6 +63,11 @@ public final class AlertEngine {
   private final NtfyConfig config;
   private final Diagnostics diagnostics;
 
+  // Read-only pipeline observability counters. Injected so an adapter can hand the SAME instance to
+  // every engine it builds, keeping the tallies monotonic across start()/stop() cycles and
+  // LoggerContext resets. The engine only ever increments; callers only read.
+  private final PipelineCounters counters;
+
   // volatile: start()/stop() run on a config thread while submit() runs on application threads.
   private volatile boolean started = false;
 
@@ -98,13 +103,34 @@ public final class AlertEngine {
   private final AtomicLong lastAsyncOverflowWarnMillis = new AtomicLong(0L);
 
   public AlertEngine(NtfyConfig config, Diagnostics diagnostics) {
+    this(config, diagnostics, new PipelineCounters());
+  }
+
+  /**
+   * Constructs an engine sharing an externally-owned {@link PipelineCounters}. Adapters that outlive
+   * individual engines (e.g. the Logback appender across {@code start()}/{@code stop()} cycles and
+   * context resets) inject one long-lived holder here so the observability tallies stay monotonic
+   * across engine instances.
+   */
+  public AlertEngine(NtfyConfig config, Diagnostics diagnostics, PipelineCounters counters) {
     this.config = config;
     this.diagnostics = diagnostics;
+    this.counters = counters;
   }
 
   /** True once {@link #start()} has activated the engine, until {@link #stop()} tears it down. */
   public boolean isStarted() {
     return started;
+  }
+
+  /**
+   * Read-only pipeline observability counters (published / suppressed / failed). Callers only read;
+   * the increment methods are package-private so nothing outside the engine can mutate the tallies.
+   * The counters are pulled, never logged, and monotonic for this engine's lifetime — and, when an
+   * external {@link PipelineCounters} was injected, across engine instances sharing that holder.
+   */
+  public PipelineCounters counters() {
+    return counters;
   }
 
   /**
@@ -327,6 +353,9 @@ public final class AlertEngine {
         for (Runnable r : unsent) {
           if (r instanceof DeliveryTask t) {
             rlDrain.recordSuppressed(t.loggerName());
+            // A queued-but-unsent event never published — count it `failed`, consistent with the
+            // overflow handler below and with every other never-published path.
+            counters.incrementFailed();
           }
         }
       }
@@ -392,6 +421,9 @@ public final class AlertEngine {
     // published — they surface later as part of the aggregated digest.
     if (!rl.tryAcquire()) {
       rl.recordSuppressed(event.loggerName());
+      // Observability tally: the rate-limiter gate is the ONLY site incrementing `suppressed`, so
+      // it can never overlap with `failed` — the two counters stay disjoint.
+      counters.incrementSuppressed();
       return;
     }
     // Rate-limit gating (above) runs on the submitting thread, so the async queue only ever holds
@@ -441,13 +473,18 @@ public final class AlertEngine {
               config.getErrorTags(),
               config.getClickUrl(),
               config.getActions());
-      if (!result.success()) {
+      if (result.success()) {
+        counters.incrementPublished();
+      } else {
+        counters.incrementFailed();
         diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), result.httpStatus()));
         // A failed individual publish folds into the suppression count instead of being
-        // lost — it will surface in the next digest.
+        // lost — it will surface in the next digest. This digest-accounting fold is separate from
+        // the observability counters: the event is counted `failed` (above), never `suppressed`.
         rl.recordSuppressed(loggerName);
       }
     } catch (RuntimeException e) {
+      counters.incrementFailed();
       // Fixed generic message — never e.getMessage() here, it could embed a credential.
       diagnostics.error(AlertMessages.PUBLISH_UNEXPECTED_ERROR, e);
     }
@@ -493,6 +530,8 @@ public final class AlertEngine {
       AlertRateLimiter rl = rateLimiter;
       if (rl != null && r instanceof DeliveryTask t) {
         rl.recordSuppressed(t.loggerName());
+        // A dropped event never published — count it `failed`, mirroring the stop()-drain path.
+        counters.incrementFailed();
       }
       if (executor.isShutdown()) {
         return;
@@ -604,16 +643,23 @@ public final class AlertEngine {
             config.getDigestTags(),
             config.getClickUrl(),
             config.getActions());
-    if (!r.success()) {
-      // Mirror the submit() path — a persistently failing digest (auth revoked, topic
-      // ACL change, sustained 429) must be visible in the engine's own diagnostics.
-      // Composer interpolates only topic + HTTP status, never a credential.
-      diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), r.httpStatus()));
-      // Carry the lost count forward instead of dropping it — one atomic bulk
-      // merge restores the global count from the snapshot's own count() (single source of truth)
-      // and the per-logger breakdown, so the next window's digest stays accurate.
-      rl.restore(snap);
+    if (r.success()) {
+      // A digest notification accepted by ntfy counts as one published notification. This site also
+      // covers the stop()-flush path, which routes through this same method.
+      counters.incrementPublished();
+      return;
     }
+    counters.incrementFailed();
+    // Mirror the submit() path — a persistently failing digest (auth revoked, topic
+    // ACL change, sustained 429) must be visible in the engine's own diagnostics.
+    // Composer interpolates only topic + HTTP status, never a credential.
+    diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), r.httpStatus()));
+    // Carry the lost count forward instead of dropping it — one atomic bulk
+    // merge restores the global count from the snapshot's own count() (single source of truth)
+    // and the per-logger breakdown, so the next window's digest stays accurate. This affects only
+    // the digest tally, never the observability counters, so the restored count is not re-counted
+    // as `failed` on the next window.
+    rl.restore(snap);
   }
 
   /** Human-readable window description for the digest body (e.g. {@code "3 minutes"}). */
