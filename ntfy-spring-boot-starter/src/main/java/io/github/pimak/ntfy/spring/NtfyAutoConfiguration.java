@@ -103,6 +103,8 @@ public class NtfyAutoConfiguration implements DisposableBean {
     appender.setActions(p.getActions());
     appender.setExcludedLoggers(p.getExcludedLoggers());
     appender.setEnabled(p.isEnabled());
+    appender.setAsync(p.isAsync());
+    appender.setAsyncQueueCapacity(p.getAsyncQueueCapacity());
     appender.start();
     root.addAppender(appender);
     this.installedAppender = appender;
@@ -139,6 +141,8 @@ public class NtfyAutoConfiguration implements DisposableBean {
         .actionsHeader(p.getActions())
         .excludedLoggers(p.getExcludedLoggers())
         .enabled(p.isEnabled())
+        .asyncEnabled(p.isAsync())
+        .asyncQueueCapacity(p.getAsyncQueueCapacity())
         .build();
     return new NtfyClient(config);
   }

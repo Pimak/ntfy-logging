@@ -37,6 +37,8 @@ public final class NtfyConfig {
   private final String actions;
   private final List<String> excludedLoggerPrefixes;
   private final boolean enabled;
+  private final boolean asyncEnabled;
+  private final int asyncQueueCapacity;
   private final boolean endpointFromClasspathFile;
 
   private NtfyConfig(Builder b) {
@@ -61,6 +63,8 @@ public final class NtfyConfig {
     this.excludedLoggerPrefixes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
     this.enabled = b.enabled;
+    this.asyncEnabled = b.asyncEnabled;
+    this.asyncQueueCapacity = b.asyncQueueCapacity;
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
   }
 
@@ -162,6 +166,26 @@ public final class NtfyConfig {
   }
 
   /**
+   * True when delivery of individual error alerts should be offloaded to the engine's bounded
+   * asynchronous work queue instead of running inline on the calling (logging) thread. Off by
+   * default: with async disabled, delivery is synchronous and behavior is identical to before this
+   * flag existed. When on, a slow or unreachable ntfy server can no longer back-pressure application
+   * threads during an error storm — see {@link AlertEngine} for the queue/overflow semantics.
+   */
+  public boolean isAsyncEnabled() {
+    return asyncEnabled;
+  }
+
+  /**
+   * Maximum number of pending error alerts the asynchronous delivery queue holds before overflow
+   * kicks in (see {@link AlertEngine}). Only consulted when {@link #isAsyncEnabled()} is true. A
+   * non-positive value is clamped to a safe minimum by the engine at start.
+   */
+  public int getAsyncQueueCapacity() {
+    return asyncQueueCapacity;
+  }
+
+  /**
    * True when the endpoint URL was supplied ONLY by a classpath {@code ntfy.properties} (no system
    * property or environment variable set it). Set by {@link ConfigLoader}; auto-installing
    * adapters use it to warn loudly, because any jar on the classpath can carry such a file and
@@ -206,6 +230,8 @@ public final class NtfyConfig {
     private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
     private boolean enabled = true;
+    private boolean asyncEnabled = false;
+    private int asyncQueueCapacity = 1024;
     private boolean endpointFromClasspathFile = false;
 
     private Builder() {}
@@ -345,6 +371,24 @@ public final class NtfyConfig {
 
     public Builder enabled(boolean enabled) {
       this.enabled = enabled;
+      return this;
+    }
+
+    /**
+     * Opt into asynchronous (offloaded) delivery of individual error alerts. Off by default; see
+     * {@link NtfyConfig#isAsyncEnabled()}.
+     */
+    public Builder asyncEnabled(boolean asyncEnabled) {
+      this.asyncEnabled = asyncEnabled;
+      return this;
+    }
+
+    /**
+     * Sets the bounded async delivery queue capacity (see {@link NtfyConfig#getAsyncQueueCapacity()}).
+     * A non-positive value is clamped to a safe minimum by the engine at start.
+     */
+    public Builder asyncQueueCapacity(int asyncQueueCapacity) {
+      this.asyncQueueCapacity = asyncQueueCapacity;
       return this;
     }
 

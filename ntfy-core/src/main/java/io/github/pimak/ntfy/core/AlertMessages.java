@@ -88,6 +88,23 @@ final class AlertMessages {
       "requestTimeout must be positive — falling back to default (10 seconds)";
 
   /**
+   * Fixed message emitted from {@code start()} when {@code asyncQueueCapacity} is zero or negative
+   * while async delivery is enabled — the engine clamps it to a safe minimum instead of building a
+   * degenerate queue. Credential-safe: fixed text only.
+   */
+  static final String STATUS_INVALID_ASYNC_QUEUE_CAPACITY =
+      "asyncQueueCapacity must be positive — falling back to the minimum (1)";
+
+  /**
+   * Fixed, throttled warning emitted by the async delivery rejection handler when the bounded queue
+   * is full and an error alert is dropped. The dropped event is still folded into the suppression
+   * count (so it surfaces in the next digest) — this warning only signals that the queue is
+   * saturated. Credential-safe: fixed text only.
+   */
+  static final String STATUS_ASYNC_QUEUE_OVERFLOW =
+      "ntfy async delivery queue is full — dropped alerts are folded into the storm digest";
+
+  /**
    * Fixed, generic message for an unexpected {@code RuntimeException} inside {@code submit()}.
    * Deliberately never concatenates {@code e.getMessage()} — the exception itself
    * is still passed to {@code error(String, Throwable)} for the diagnostics sink to record, but the

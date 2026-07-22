@@ -4,10 +4,14 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Framework-pure alert engine: the extracted heart of the original Logback {@code
@@ -20,10 +24,16 @@ import java.util.concurrent.TimeUnit;
  * engine owns exclusion/marker gating, storm rate-limiting, payload assembly, HTTP publishing, and
  * the periodic storm digest.
  *
- * <p>Delivery is synchronous by design: {@code HttpClient.send()} blocks the calling (logging)
- * thread for up to connectTimeout + requestTimeout per event. The executor only services the
- * client's internal async tasks — it does NOT offload delivery. Non-blocking delivery is the
- * consumer/adapter's concern (e.g. an {@code AsyncAppender} wrapper).
+ * <p>Delivery is synchronous by default: {@code HttpClient.send()} blocks the calling (logging)
+ * thread for up to connectTimeout + requestTimeout per event, and the HTTP executor only services
+ * the client's internal async tasks. For a first-class non-blocking option, enable {@linkplain
+ * NtfyConfig#isAsyncEnabled() async delivery}: individual error publishes are then handed to a
+ * bounded work queue drained by a single daemon worker thread ({@code ntfy-alert-delivery}), so a
+ * slow or unreachable ntfy server can never back-pressure application threads during an error
+ * storm. When the queue is full an alert is dropped but folded into the storm digest's suppression
+ * count (never lost silently), and {@link #stop()} drains any queued-but-unsent events into that
+ * same count before the final synchronous flush. Async is opt-in; with it off, delivery is inline
+ * and identical to before the flag existed.
  */
 public final class AlertEngine {
 
@@ -33,6 +43,9 @@ public final class AlertEngine {
   // a null/invalid override degrades to the same value an untouched builder would have produced.
   private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
   private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+
+  /** Smallest bounded-queue capacity the async delivery worker accepts (see {@link #start()}). */
+  private static final int MIN_ASYNC_QUEUE_CAPACITY = 1;
 
   /**
    * This library's own package root is always excluded from alerting, independent of any
@@ -71,6 +84,18 @@ public final class AlertEngine {
   private volatile AlertRateLimiter rateLimiter;
 
   private ScheduledExecutorService digestScheduler;
+
+  // volatile: submit() reads it on application threads while start()/stop() mutate it on the config
+  // thread — the exact publication model that forces publisher/authMode/rateLimiter to be volatile.
+  // A plain field risks a stale-null read (silent fallback to sync delivery) or a stale non-null
+  // read of a torn-down executor after stop(). Non-null only when async delivery is enabled;
+  // submit() snapshots it into a local before branching.
+  private volatile ThreadPoolExecutor deliveryExecutor;
+
+  // Throttle guard for the async overflow warning so a sustained outage cannot turn the rejection
+  // handler into its own diagnostics storm: at most one warn per suppression window. The per-event
+  // suppression accounting still happens on every rejection.
+  private final AtomicLong lastAsyncOverflowWarnMillis = new AtomicLong(0L);
 
   public AlertEngine(NtfyConfig config, Diagnostics diagnostics) {
     this.config = config;
@@ -231,6 +256,34 @@ public final class AlertEngine {
         windowMillis,
         TimeUnit.MILLISECONDS);
 
+    // Async delivery worker (opt-in): a single daemon thread draining a bounded queue, so a slow or
+    // unreachable ntfy server never back-pressures application threads. Built AFTER publisher and
+    // rateLimiter are assigned (the worker and the rejection handler read them) and BEFORE started
+    // is set. A ThreadPoolExecutor gives us two free primitives: shutdownNow() returns the list of
+    // never-started queued tasks (what stop() must drain) and a RejectedExecutionHandler is the
+    // natural overflow hook. GraalVM-native-safe: plain platform daemon threads, no reflection.
+    if (config.isAsyncEnabled()) {
+      int capacity = config.getAsyncQueueCapacity();
+      if (capacity < MIN_ASYNC_QUEUE_CAPACITY) {
+        capacity = MIN_ASYNC_QUEUE_CAPACITY;
+        diagnostics.warn(AlertMessages.STATUS_INVALID_ASYNC_QUEUE_CAPACITY);
+      }
+      long overflowWarnWindowMillis = windowMillis;
+      this.deliveryExecutor =
+          new ThreadPoolExecutor(
+              1,
+              1,
+              0L,
+              TimeUnit.MILLISECONDS,
+              new ArrayBlockingQueue<>(capacity),
+              r -> {
+                Thread t = new Thread(r, "ntfy-alert-delivery");
+                t.setDaemon(true);
+                return t;
+              },
+              asyncOverflowHandler(overflowWarnWindowMillis));
+    }
+
     diagnostics.info(AlertMessages.statusActive(config.getUrl(), config.getTopic())); // never token
     diagnostics.info(
         AlertMessages.statusExclusions(config.getExcludedLoggerPrefixes())); // exactly once
@@ -260,6 +313,25 @@ public final class AlertEngine {
     }
     digestScheduler = null;
 
+    // Drain the async delivery worker BEFORE the digest flush, so any queued-but-unsent alerts fold
+    // into the suppression count and are reported by the flush below rather than silently dropped.
+    // shutdownNow() interrupts the worker's in-flight send (an interrupt-manufactured failure
+    // re-folds through deliver()'s recordSuppressed) and returns the never-started queued tasks.
+    // HTTP resources are still live here, for both the interrupted send and the flush.
+    ThreadPoolExecutor de = deliveryExecutor;
+    if (de != null) {
+      List<Runnable> unsent = de.shutdownNow();
+      awaitTerminationQuietly(de);
+      AlertRateLimiter rlDrain = rateLimiter;
+      if (rlDrain != null) {
+        for (Runnable r : unsent) {
+          if (r instanceof DeliveryTask t) {
+            rlDrain.recordSuppressed(t.loggerName());
+          }
+        }
+      }
+    }
+
     AlertRateLimiter rl = rateLimiter;
     if (rl != null && rl.hasPending()) {
       emitDigest();
@@ -285,6 +357,7 @@ public final class AlertEngine {
     publisher = null;
     authMode = null;
     rateLimiter = null;
+    deliveryExecutor = null;
     this.started = false;
   }
 
@@ -321,8 +394,42 @@ public final class AlertEngine {
       rl.recordSuppressed(event.loggerName());
       return;
     }
+    // Rate-limit gating (above) runs on the submitting thread, so the async queue only ever holds
+    // events that already won a publish slot — keeping the bounded queue small. Payload assembly
+    // also stays here; the worker (when enabled) does only the blocking HTTP send.
     try {
       AlertPayload payload = buildPayload(event);
+      ThreadPoolExecutor de = deliveryExecutor;
+      if (de != null) {
+        // Async: hand off to the daemon worker. A full queue routes to the overflow handler (drop
+        // + fold into the suppression count), never blocking the submitting thread.
+        de.execute(new DeliveryTask(payload, event.loggerName()));
+      } else {
+        // Sync (default): publish inline on the calling thread, exactly as before this flag existed.
+        deliver(payload, event.loggerName());
+      }
+    } catch (RuntimeException e) {
+      // Fixed generic message — never e.getMessage() here, it could embed a credential.
+      diagnostics.error(AlertMessages.PUBLISH_UNEXPECTED_ERROR, e);
+    }
+  }
+
+  /**
+   * The single shared error-alert delivery path, invoked inline by {@link #submit} in sync mode and
+   * from the {@code ntfy-alert-delivery} worker in async mode. Snapshots {@link #publisher}/{@link
+   * #authMode}/{@link #rateLimiter} defensively (a worker task may run after a concurrent {@code
+   * stop()} nulled them, and must no-op rather than NPE). A failed publish folds into the
+   * suppression count so it surfaces in the next digest rather than being lost; an unexpected
+   * exception is reported through diagnostics with a fixed, credential-safe message.
+   */
+  private void deliver(AlertPayload payload, String loggerName) {
+    NtfyPublisher p = publisher;
+    AuthMode auth = authMode;
+    AlertRateLimiter rl = rateLimiter;
+    if (p == null || auth == null || rl == null) {
+      return;
+    }
+    try {
       PublishResult result =
           p.publish(
               config.getUrl(),
@@ -338,12 +445,65 @@ public final class AlertEngine {
         diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), result.httpStatus()));
         // A failed individual publish folds into the suppression count instead of being
         // lost — it will surface in the next digest.
-        rl.recordSuppressed(event.loggerName());
+        rl.recordSuppressed(loggerName);
       }
     } catch (RuntimeException e) {
       // Fixed generic message — never e.getMessage() here, it could embed a credential.
       diagnostics.error(AlertMessages.PUBLISH_UNEXPECTED_ERROR, e);
     }
+  }
+
+  /**
+   * Carries a gated, payload-assembled error alert from {@link #submit} to the async delivery
+   * worker. An inner (non-static) class so {@code run()} can call the enclosing engine's {@link
+   * #deliver}; {@link #loggerName()} is read back by the overflow handler and by {@link #stop()}'s
+   * drain so a dropped/unsent task still folds into the suppression count.
+   */
+  private final class DeliveryTask implements Runnable {
+    private final AlertPayload payload;
+    private final String loggerName;
+
+    DeliveryTask(AlertPayload payload, String loggerName) {
+      this.payload = payload;
+      this.loggerName = loggerName;
+    }
+
+    String loggerName() {
+      return loggerName;
+    }
+
+    @Override
+    public void run() {
+      deliver(payload, loggerName);
+    }
+  }
+
+  /**
+   * Builds the async worker's {@link RejectedExecutionHandler}. On a full queue it folds the dropped
+   * event into the suppression count (so it still surfaces in the next digest — never a silent drop)
+   * and emits a throttled overflow warning (at most once per {@code warnWindowMillis} so the handler
+   * cannot become its own diagnostics storm). Two hardening cases: (1) the volatile {@link
+   * #rateLimiter} is snapshotted and null-checked, because a {@code submit()} racing a concurrent
+   * {@code stop()} lands here after {@code shutdownNow()}; (2) a rejection caused by executor
+   * shutdown is teardown, not overflow, so the warn is skipped (the count is still recorded, since a
+   * shutdown-rejected task is not in {@code stop()}'s drained queue list).
+   */
+  private RejectedExecutionHandler asyncOverflowHandler(long warnWindowMillis) {
+    return (r, executor) -> {
+      AlertRateLimiter rl = rateLimiter;
+      if (rl != null && r instanceof DeliveryTask t) {
+        rl.recordSuppressed(t.loggerName());
+      }
+      if (executor.isShutdown()) {
+        return;
+      }
+      long now = System.currentTimeMillis();
+      long last = lastAsyncOverflowWarnMillis.get();
+      if (now - last >= warnWindowMillis
+          && lastAsyncOverflowWarnMillis.compareAndSet(last, now)) {
+        diagnostics.warn(AlertMessages.STATUS_ASYNC_QUEUE_OVERFLOW);
+      }
+    };
   }
 
   /**

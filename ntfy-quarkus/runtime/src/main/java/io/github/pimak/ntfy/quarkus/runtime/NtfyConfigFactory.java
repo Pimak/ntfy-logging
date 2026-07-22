@@ -26,7 +26,9 @@ final class NtfyConfigFactory {
             .digestPriority(config.digestPriority())
             .errorTags(config.errorTags())
             .digestTags(config.digestTags())
-            .enabled(config.enabled());
+            .enabled(config.enabled())
+            .asyncEnabled(config.async())
+            .asyncQueueCapacity(config.asyncQueueCapacity());
 
     config.url().ifPresent(b::url);
     config.topic().ifPresent(b::topic);

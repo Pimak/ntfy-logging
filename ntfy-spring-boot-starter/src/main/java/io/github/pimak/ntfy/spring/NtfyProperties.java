@@ -32,6 +32,8 @@ public class NtfyProperties {
   private String actions;
   private String excludedLoggers;
   private boolean enabled = true;
+  private boolean async = false;
+  private int asyncQueueCapacity = 1024;
 
   public String getUrl() {
     return url;
@@ -191,5 +193,21 @@ public class NtfyProperties {
 
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
+  }
+
+  public boolean isAsync() {
+    return async;
+  }
+
+  public void setAsync(boolean async) {
+    this.async = async;
+  }
+
+  public int getAsyncQueueCapacity() {
+    return asyncQueueCapacity;
+  }
+
+  public void setAsyncQueueCapacity(int asyncQueueCapacity) {
+    this.asyncQueueCapacity = asyncQueueCapacity;
   }
 }

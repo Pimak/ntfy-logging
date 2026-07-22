@@ -45,7 +45,8 @@ public final class NtfyJulHandler extends Handler {
 
   @Override
   public void flush() {
-    // Delivery is synchronous inside the engine; nothing is buffered here.
+    // Nothing to flush here: in synchronous mode delivery completes inline, and in async mode the
+    // engine's own bounded queue buffers pending alerts and is drained on close()/stop().
   }
 
   @Override

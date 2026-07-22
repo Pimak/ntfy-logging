@@ -87,6 +87,14 @@ public final class ConfigLoader {
       builder.enabled(Boolean.parseBoolean(enabled.trim()));
     }
 
+    String async = resolve("async", envLookup, fileProps, sysProps);
+    if (async != null) {
+      builder.asyncEnabled(Boolean.parseBoolean(async.trim()));
+    }
+    applyInt(
+        builder::asyncQueueCapacity,
+        resolve("async-queue-capacity", envLookup, fileProps, sysProps));
+
     return builder.build();
   }
 

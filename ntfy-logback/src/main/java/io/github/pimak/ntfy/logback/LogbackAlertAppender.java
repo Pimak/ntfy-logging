@@ -52,6 +52,8 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private Integer maxStackFrames;
   private Integer maxAlertsPerWindow;
   private Boolean enabled;
+  private Boolean async;
+  private Integer asyncQueueCapacity;
 
   // Pre-built config injected by the Configurator; when present it wins over the setters.
   private NtfyConfig injectedConfig;
@@ -148,6 +150,20 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Opt into asynchronous (offloaded) delivery: individual error alerts are handed to the engine's
+   * bounded work queue and published by a daemon worker, so a slow/unreachable ntfy server never
+   * blocks the logging thread. Off by default (synchronous delivery).
+   */
+  public void setAsync(boolean async) {
+    this.async = async;
+  }
+
+  /** Bounded async delivery queue capacity; only consulted when {@code async} is {@code true}. */
+  public void setAsyncQueueCapacity(int asyncQueueCapacity) {
+    this.asyncQueueCapacity = asyncQueueCapacity;
+  }
+
+  /**
    * Injects a pre-built {@link NtfyConfig} (bypassing the JavaBean setters). Used by the
    * auto-installing {@code NtfyLogbackConfigurator}, which loads its config from the ambient
    * environment via {@code ConfigLoader} rather than from XML.
@@ -223,6 +239,12 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (enabled != null) {
       builder.enabled(enabled);
+    }
+    if (async != null) {
+      builder.asyncEnabled(async);
+    }
+    if (asyncQueueCapacity != null) {
+      builder.asyncQueueCapacity(asyncQueueCapacity);
     }
     return builder.build();
   }

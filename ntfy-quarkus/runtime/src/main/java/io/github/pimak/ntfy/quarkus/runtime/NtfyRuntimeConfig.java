@@ -96,4 +96,16 @@ public interface NtfyRuntimeConfig {
   /** Master switch; when {@code false} the handler is never installed. */
   @WithDefault("true")
   boolean enabled();
+
+  /**
+   * Opt into asynchronous (offloaded) delivery: individual error alerts are handed to the engine's
+   * bounded work queue and published by a daemon worker, so a slow/unreachable ntfy server never
+   * blocks the logging thread. Off by default (synchronous delivery).
+   */
+  @WithDefault("false")
+  boolean async();
+
+  /** Bounded async delivery queue capacity; only consulted when {@link #async()} is {@code true}. */
+  @WithDefault("1024")
+  int asyncQueueCapacity();
 }
