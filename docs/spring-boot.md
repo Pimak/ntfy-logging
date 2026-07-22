@@ -1,7 +1,7 @@
 # Spring Boot — `ntfy-spring-boot-starter`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-spring-boot-starter%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-spring-boot-starter)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
+[![Javadoc: ntfy-spring-boot-starter](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/ntfy--spring--boot--starter.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
 
 Spring Boot auto-configuration that binds the `ntfy.*` properties, installs an `ntfy-auto` Logback
 appender so your ERROR logs publish with no code, and exposes an injectable `NtfyClient` bean for

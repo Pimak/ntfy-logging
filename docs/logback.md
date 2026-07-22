@@ -1,7 +1,7 @@
 # Plain Logback — `ntfy-logback`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-logback%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-logback)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback)
+[![Javadoc: ntfy-logback](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/ntfy--logback.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback)
 
 A Logback appender plus a zero-code auto-install via a Logback `Configurator` SPI. Because it
 installs through the logging framework itself, alerting is live at startup — before any DI container

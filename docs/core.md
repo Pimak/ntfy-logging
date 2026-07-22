@@ -1,7 +1,7 @@
 # Core (any JVM app) — `ntfy-core`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-core/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core)
+[![Javadoc: ntfy-core](https://javadoc.io/badge2/io.github.pimak/ntfy-core/ntfy--core.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core)
 
 The framework-neutral ntfy engine and its `NtfyClient` — no logging-framework dependency. It ships
 GraalVM native-image metadata for hand-rolled native builds.
