@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.2] - Unreleased
+## [1.0.2] - 2026-07-22
 ### Added
 - **Regression test coverage** for `ntfy-core` config resolution: unit tests now pin the
   `ConfigLoader` precedence chain, `DurationParser` parsing rules, and `AuthMode` header

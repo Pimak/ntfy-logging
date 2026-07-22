@@ -17,7 +17,7 @@ building your own adapter. Every other module in this family depends on `ntfy-co
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-core</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
 </dependency>
 ```
 
