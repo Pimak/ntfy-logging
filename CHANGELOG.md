@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.0.2] - Unreleased
 ### Added
 - **Regression test coverage** for `ntfy-core` config resolution: unit tests now pin the
   `ConfigLoader` precedence chain, `DurationParser` parsing rules, and `AuthMode` header
