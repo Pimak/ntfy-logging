@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # --- single source of truth: change these two lines for a future release ---------------
-VERSION="1.0.2"
+VERSION="1.1.0"
 TAG="v${VERSION}"
 # ---------------------------------------------------------------------------------------
 
