@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ConfigLoader` precedence chain, `DurationParser` parsing rules, and `AuthMode` header
   construction. Behavior is unchanged.
 
+### Fixed
+- **Invalid HTTP timeouts no longer break engine startup or silently kill alerting.** A zero,
+  negative, or unset `connectTimeout`/`requestTimeout` (e.g. from `NTFY_CONNECT_TIMEOUT=0` or a
+  framework setter passing `null`) previously threw out of engine startup — leaking the
+  `ntfy-alert-http` thread pool — or made every publish fail silently. The engine now validates both
+  timeouts before acquiring any resource, falls back to the built-in defaults (5s connect, 10s
+  request), and emits a one-time startup warning instead.
+
 ## [1.0.1] - 2026-07-21
 ### Added
 - **Ergonomic factories** for `ntfy-core` types: `AlertEvent.of(loggerName, formattedMessage,

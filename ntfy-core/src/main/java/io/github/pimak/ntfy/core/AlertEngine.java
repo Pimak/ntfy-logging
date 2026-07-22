@@ -29,6 +29,11 @@ public final class AlertEngine {
 
   private static final Duration DEFAULT_SUPPRESSION_WINDOW = Duration.ofMillis(180_000L);
 
+  // Kept in sync with the NtfyConfig.Builder defaults (connectTimeout = 5s, requestTimeout = 10s):
+  // a null/invalid override degrades to the same value an untouched builder would have produced.
+  private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(5);
+  private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+
   /**
    * This library's own package root is always excluded from alerting, independent of any
    * configured exclusion list — a belt-and-suspenders anti-loop guard that survives even a
@@ -154,6 +159,28 @@ public final class AlertEngine {
       diagnostics.warn(AlertMessages.STATUS_INVALID_SUPPRESSION_WINDOW);
     }
 
+    // Validate both HTTP timeouts BEFORE acquiring any resource, for the same reason as the
+    // suppression window above. A zero/negative/null connectTimeout would throw
+    // IllegalArgumentException/NullPointerException out of HttpClient.newBuilder().connectTimeout(..)
+    // AFTER the executor was built but BEFORE the engine is marked started, leaking the daemon
+    // thread pool into a half-initialized engine (callers call start() bare and never stop() it). A
+    // bad requestTimeout would not leak threads but would silently fail every later publish. Policy
+    // matches the window guard: fall back to the default (loudly) rather than refuse activation.
+    Duration effectiveConnectTimeout = config.getConnectTimeout();
+    if (effectiveConnectTimeout == null
+        || effectiveConnectTimeout.isZero()
+        || effectiveConnectTimeout.isNegative()) {
+      effectiveConnectTimeout = DEFAULT_CONNECT_TIMEOUT;
+      diagnostics.warn(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+    }
+    Duration effectiveRequestTimeout = config.getRequestTimeout();
+    if (effectiveRequestTimeout == null
+        || effectiveRequestTimeout.isZero()
+        || effectiveRequestTimeout.isNegative()) {
+      effectiveRequestTimeout = DEFAULT_REQUEST_TIMEOUT;
+      diagnostics.warn(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+    }
+
     this.executor =
         Executors.newFixedThreadPool(
             2,
@@ -164,10 +191,10 @@ public final class AlertEngine {
             });
     this.httpClient =
         HttpClient.newBuilder()
-            .connectTimeout(config.getConnectTimeout())
+            .connectTimeout(effectiveConnectTimeout)
             .executor(executor)
             .build();
-    this.publisher = new NtfyPublisher(httpClient, config.getRequestTimeout());
+    this.publisher = new NtfyPublisher(httpClient, effectiveRequestTimeout);
 
     this.rateLimiter = new AlertRateLimiter(config.getMaxAlertsPerWindow(), windowMillis);
     this.digestScheduler =

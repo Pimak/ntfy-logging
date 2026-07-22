@@ -60,6 +60,23 @@ final class AlertMessages {
       "suppressionWindow must be positive — falling back to default (3 minutes)";
 
   /**
+   * Fixed message emitted from {@code start()} when {@code connectTimeout} is unset, zero, or
+   * negative — the engine falls back to the default connect timeout instead of throwing out of
+   * {@code start()} with the HTTP thread pool already acquired. Credential-safe: fixed text only,
+   * never interpolating the offending value.
+   */
+  static final String STATUS_INVALID_CONNECT_TIMEOUT =
+      "connectTimeout must be positive — falling back to default (5 seconds)";
+
+  /**
+   * Fixed message emitted from {@code start()} when {@code requestTimeout} is unset, zero, or
+   * negative — the engine falls back to the default request timeout instead of silently failing
+   * every publish later. Credential-safe: fixed text only, never interpolating the offending value.
+   */
+  static final String STATUS_INVALID_REQUEST_TIMEOUT =
+      "requestTimeout must be positive — falling back to default (10 seconds)";
+
+  /**
    * Fixed, generic message for an unexpected {@code RuntimeException} inside {@code submit()}.
    * Deliberately never concatenates {@code e.getMessage()} — the exception itself
    * is still passed to {@code error(String, Throwable)} for the diagnostics sink to record, but the

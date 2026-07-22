@@ -8,8 +8,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Covers the start()-time security validations: an invalid topic refuses activation, credentials
- * over plain http warn loudly, and the ACTIVE diagnostic never leaks a password fragment — even
- * through the unencoded-{@code @}-in-password edge case.
+ * over plain http warn loudly, the ACTIVE diagnostic never leaks a password fragment — even through
+ * the unencoded-{@code @}-in-password edge case — and an invalid connect/request timeout falls back
+ * to the default (loudly) instead of throwing out of {@code start()} with resources half-acquired.
  */
 class AlertEngineStartValidationTest {
 
@@ -107,6 +108,159 @@ class AlertEngineStartValidationTest {
     } finally {
       engine.stop();
     }
+  }
+
+  @Test
+  void zeroConnectTimeout_warnsAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .connectTimeout(java.time.Duration.ZERO)
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void negativeConnectTimeout_warnsAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .connectTimeout(java.time.Duration.ofSeconds(-1))
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void nullConnectTimeout_warnsAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .connectTimeout(null)
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void zeroRequestTimeout_warnsAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .requestTimeout(java.time.Duration.ZERO)
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void negativeRequestTimeout_warnsAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .requestTimeout(java.time.Duration.ofSeconds(-1))
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void nullRequestTimeout_warnsAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .requestTimeout(null)
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void validTimeouts_doNotWarn() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("https://ntfy.example.com").topic("alerts").build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns)
+          .doesNotContain(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT)
+          .doesNotContain(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void invalidTimeoutWarnings_neverEmbedTheOffendingValue() {
+    // Locks in the credential-safety convention: the fixed messages must never interpolate the
+    // user-supplied value (e.g. the raw "-1"), matching the neighboring status constants.
+    assertThat(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT).doesNotContain("-1");
+    assertThat(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT).doesNotContain("-1");
   }
 
   @Test
