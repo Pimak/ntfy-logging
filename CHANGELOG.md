@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ntfy-alert-http` thread pool — or made every publish fail silently. The engine now validates both
   timeouts before acquiring any resource, falls back to the built-in defaults (5s connect, 10s
   request), and emits a one-time startup warning instead.
+- **Endpoint URL validation at startup**: the engine now refuses to activate when the configured
+  `url` is not a structurally valid http(s) endpoint (no scheme like `ntfy.sh`, a non-http(s)
+  scheme like `ftp://…`, unparseable syntax, whitespace-padded, or missing a host/authority),
+  emitting one specific startup diagnostic instead of failing every publish with an opaque generic
+  error. Valid forms — reverse-proxy paths, non-standard ports, trailing slashes, `user:pass@host`
+  basic-auth URLs, underscore hostnames, and IPv6 literals — continue to activate as before.
 
 ## [1.0.1] - 2026-07-21
 ### Added

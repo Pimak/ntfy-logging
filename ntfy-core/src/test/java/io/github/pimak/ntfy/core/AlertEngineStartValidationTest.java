@@ -48,6 +48,147 @@ class AlertEngineStartValidationTest {
   }
 
   @Test
+  void noSchemeUrl_refusesActivationWithWarning() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("ntfy.sh").topic("alerts").build(), diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+  }
+
+  @Test
+  void nonHttpScheme_refusesActivation() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("ftp://ntfy.example.com").topic("alerts").build(),
+            diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+  }
+
+  @Test
+  void unparseableUrl_refusesActivation() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("not a url").topic("alerts").build(), diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+  }
+
+  @Test
+  void whitespacePaddedUrl_refusesActivation() {
+    // Pins the no-trim decision: the publisher never trims, so " https://..." fails URI parsing on
+    // every publish. Activation must be refused loudly, not deferred to per-publish generic
+    // failures.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url(" https://ntfy.example.com").topic("alerts").build(),
+            diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+  }
+
+  @Test
+  void reverseProxyPathUrl_activates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("https://host.example.com/ntfy").topic("alerts").build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void nonStandardPortUrl_activates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("https://ntfy.example.com:8443").topic("alerts").build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void trailingSlashUrl_activates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder().url("https://ntfy.sh/").topic("alerts").build(), diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void userinfoUrl_activatesAndDoesNotTripUrlValidation() {
+    // Regression guard for the getAuthority()-not-getHost() choice: URI.getHost() is null for a
+    // user:pass@host URL, so a host-based rule would over-reject this already-supported form. Over
+    // https there must be no cleartext warning either.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://user:pass@ntfy.example.com")
+                .topic("alerts")
+                .token("tk_secret")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+      assertThat(diagnostics.warns)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void statusInvalidUrl_isFixedTextAndNeverEchoesTheRejectedUrl() {
+    // No-leak discipline: the message is a fixed constant and never interpolates the rejected URL
+    // (which could carry a credential in a user:pass@host form).
+    assertThat(AlertMessages.STATUS_INVALID_URL).doesNotContain("ntfy.sh");
+    assertThat(AlertMessages.STATUS_INVALID_URL).doesNotContain("user:pass");
+  }
+
+  @Test
   void credentialsOverPlainHttp_warnButStillActivate() {
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
     AlertEngine engine =

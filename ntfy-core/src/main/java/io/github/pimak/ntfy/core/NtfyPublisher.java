@@ -218,6 +218,44 @@ public class NtfyPublisher {
     return topic != null && TOPIC_PATTERN.matcher(topic).matches();
   }
 
+  /**
+   * True when {@code url} is a structurally valid http(s) endpoint the publisher can actually
+   * consume — non-blank, parseable, with an {@code http}/{@code https} scheme and a non-blank
+   * authority. Package-visible so {@code AlertEngine} can refuse activation on a malformed /
+   * non-http(s) URL instead of failing every publish quietly (where the {@code URI.create}
+   * failure is deliberately collapsed into a generic no-leak message).
+   *
+   * <p>The URL is normalized with the character-for-character identical expression the publish
+   * path uses ({@code replaceAll("/+$", "")} — see {@link #publish(String, String, String,
+   * AuthMode, String, String, String, String, String)}), and deliberately nothing more. In
+   * particular there is no {@code trim()}: neither {@code NtfyConfig} nor the publisher trims, so a
+   * whitespace-padded URL fails {@code URI} parsing on every publish; trimming here would accept a
+   * config the publisher cannot consume and recreate the silent-failure gap this guard closes. Any
+   * future change to the publisher's normalization must be mirrored here.
+   *
+   * <p>The authority (not the host) is what is checked: {@code URI.getHost()} returns {@code null}
+   * for the documented {@code https://user:pass@host} basic-auth form and for underscore
+   * hostnames (registry-based host parsing fails on the unencoded {@code @} / {@code _}), so a
+   * {@code getHost() != null} rule would over-reject those already-supported forms.
+   * {@code getAuthority()} is present for all of them and absent for a scheme-less string like
+   * {@code ntfy.sh}.
+   */
+  static boolean isValidEndpointUrl(String url) {
+    if (isBlank(url)) {
+      return false;
+    }
+    String normalized = url.replaceAll("/+$", "");
+    try {
+      URI uri = new URI(normalized);
+      String scheme = uri.getScheme();
+      return scheme != null
+          && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
+          && !isBlank(uri.getAuthority());
+    } catch (java.net.URISyntaxException e) {
+      return false;
+    }
+  }
+
   private static boolean isBlank(String s) {
     return s == null || s.isBlank();
   }

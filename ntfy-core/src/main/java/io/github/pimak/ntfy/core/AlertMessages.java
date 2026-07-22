@@ -43,6 +43,17 @@ final class AlertMessages {
           + "— engine disabled";
 
   /**
+   * Fixed message emitted from {@code start()} when the configured URL is not a structurally valid
+   * http(s) endpoint (no scheme, a non-http(s) scheme, unparseable syntax, or no authority) — the
+   * engine refuses activation rather than manufacture a per-event publish failure for every alert.
+   * Deliberately does NOT interpolate the rejected value (it could carry a credential in a
+   * {@code user:pass@host} URL).
+   */
+  static final String STATUS_INVALID_URL =
+      "url is not a valid http(s) endpoint (expected http:// or https:// with a host) "
+          + "— engine disabled";
+
+  /**
    * Fixed warning emitted from {@code start()} when a configured priority/tags value contains
    * non-printable-ASCII characters — the publisher omits such a header instead of letting it
    * abort every publish at the header-build boundary.

@@ -113,6 +113,16 @@ public final class AlertEngine {
       return;
     }
 
+    // A valid http(s) scheme + authority is the most fundamental endpoint precondition. A URL with
+    // no scheme ("ntfy.sh"), a non-http(s) scheme ("ftp://host"), unparseable syntax, or no
+    // authority can never produce a successful publish — the URI failure is deliberately collapsed
+    // into a generic no-leak message inside publish(), so the operator would otherwise see only
+    // opaque repeated failures. Refuse activation loudly with a specific diagnostic instead.
+    if (!NtfyPublisher.isValidEndpointUrl(config.getUrl())) {
+      diagnostics.warn(AlertMessages.STATUS_INVALID_URL);
+      return;
+    }
+
     // The topic is concatenated into the request path by the publisher; a value ntfy itself would
     // reject ('/', '?', '#', dot segments, over-long) can only ever fail — or worse, rewrite the
     // request target — so refuse activation loudly rather than fail every publish quietly.
