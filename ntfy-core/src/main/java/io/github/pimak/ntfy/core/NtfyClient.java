@@ -12,6 +12,9 @@ import java.util.List;
  * <p>Not thread-lifecycle managed the way the engine is: construct it, call {@link #notify} as
  * needed, and {@link #close} it to release the underlying HTTP client. Because it implements
  * {@link AutoCloseable}, it can be managed with a try-with-resources block for guaranteed disposal.
+ * {@code AutoCloseable} does not mandate closing, so a long-lived, container-managed instance (e.g.
+ * a Spring/Quarkus bean) may be kept open for the application's lifetime — any IDE resource-leak
+ * inspection flagging such a bean is a false positive.
  * Publishing never throws — every outcome is reported through the returned {@link PublishResult}.
  */
 public final class NtfyClient implements AutoCloseable {

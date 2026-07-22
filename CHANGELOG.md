@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NtfyClient` now implements `AutoCloseable`, so it can be used in a try-with-resources block and
   IDEs/linters can flag a leaked client. The existing `close()` method is unchanged; this is a
   source- and binary-compatible addition and makes the try-with-resources example in `docs/core.md`
-  compile.
+  compile. The Javadoc notes that `AutoCloseable` does not mandate closing, so a long-lived,
+  container-managed instance (e.g. a Spring/Quarkus bean) may be kept open for the application's
+  lifetime without an IDE resource-leak warning being a real defect.
 
 ## [1.0.2] - 2026-07-22
 ### Added
