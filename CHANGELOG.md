@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   container-managed instance (e.g. a Spring/Quarkus bean) may be kept open for the application's
   lifetime without an IDE resource-leak warning being a real defect.
 
+### Fixed
+- Hardened the Logback appender's shutdown thread-leak regression coverage so it also watches for a
+  leaked `ntfy-alert-delivery` async worker after `stop()`, keeping the no-leak-on-shutdown contract
+  enforced for the async delivery path as well as the synchronous one.
+
 ## [1.0.2] - 2026-07-22
 ### Added
 - **Regression test coverage** for `ntfy-core` config resolution: unit tests now pin the

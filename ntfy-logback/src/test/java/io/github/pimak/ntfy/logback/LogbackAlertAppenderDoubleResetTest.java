@@ -27,14 +27,18 @@ import ch.qos.logback.classic.spi.LoggingEvent;
 @WireMockTest
 class LogbackAlertAppenderDoubleResetTest {
 
-  // Scans both the engine's own executor threads AND the JDK HttpClient's internal selector-manager
-  // thread: stop() must release both deterministically.
+  // Scans every engine executor thread (http sender, digest scheduler, async delivery worker) AND
+  // the JDK HttpClient's internal selector-manager thread: stop() must release all of them
+  // deterministically. The delivery prefix is included so this scanner stays honest if async mode is
+  // ever enabled here later.
   private static boolean anyNtfyThreadAlive() {
     return Thread.getAllStackTraces().keySet().stream()
         .anyMatch(
             t ->
                 t.isAlive()
                     && (t.getName().startsWith("ntfy-alert-http")
+                        || t.getName().startsWith("ntfy-alert-digest")
+                        || t.getName().startsWith("ntfy-alert-delivery")
                         || (t.getName().contains("HttpClient-")
                             && t.getName().contains("SelectorManager"))));
   }
