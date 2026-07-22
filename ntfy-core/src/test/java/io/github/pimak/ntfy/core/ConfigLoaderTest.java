@@ -284,7 +284,10 @@ class ConfigLoaderTest {
     assertThat(config.getTopic()).isNull();
     assertThat(config.getMaxStackFrames()).isEqualTo(defaults.getMaxStackFrames());
     assertThat(config.getConnectTimeout()).isEqualTo(defaults.getConnectTimeout());
+    assertThat(config.getRequestTimeout()).isEqualTo(defaults.getRequestTimeout());
+    assertThat(config.getSuppressionWindow()).isEqualTo(defaults.getSuppressionWindow());
     assertThat(config.getMaxAlertsPerWindow()).isEqualTo(defaults.getMaxAlertsPerWindow());
+    assertThat(config.getDigestPriority()).isEqualTo(defaults.getDigestPriority());
     assertThat(config.isEnabled()).isEqualTo(defaults.isEnabled());
     assertThat(config.isEndpointFromClasspathFile()).isFalse();
   }

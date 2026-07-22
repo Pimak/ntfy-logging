@@ -7,15 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- **Regression test coverage** for `ntfy-core` configuration resolution: dedicated unit tests now
-  pin the `ConfigLoader` precedence chain (system property > environment variable > classpath file >
-  default), its blank-value masking, value trimming, kebab-to-key mapping, the
-  `endpointFromClasspathFile` trust flag, and the silent fallback to defaults on malformed
-  int/duration values. `DurationParser` (bare-millis, `ms/s/m/h/d` suffixes, ISO-8601, and
-  throw-on-unparseable, including currently-accepted signed/whitespace forms) and `AuthMode`
-  (token-wins-over-basic precedence and Bearer/Basic header construction) are likewise locked in.
-  Behavior is unchanged; consumers relying on these documented rules are now protected against
-  accidental regressions.
+- **Regression test coverage** for `ntfy-core` config resolution: unit tests now pin the
+  `ConfigLoader` precedence chain, `DurationParser` parsing rules, and `AuthMode` header
+  construction. Behavior is unchanged.
 
 ## [1.0.1] - 2026-07-21
 ### Added
