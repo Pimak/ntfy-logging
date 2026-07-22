@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - Unreleased
+## [1.1.0] - 2026-07-22
 ### Added
 - **Opt-in asynchronous delivery mode.** A new `async` flag (default `false`) offloads individual
   error-alert publishing to a bounded work queue drained by a single daemon worker thread, so a slow

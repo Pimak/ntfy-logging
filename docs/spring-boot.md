@@ -18,7 +18,7 @@ manual notifications.
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-spring-boot-starter</artifactId>
-  <version>1.0.2</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
