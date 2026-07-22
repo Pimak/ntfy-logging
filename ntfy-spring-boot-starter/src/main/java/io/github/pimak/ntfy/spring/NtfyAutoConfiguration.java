@@ -10,11 +10,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Auto-configuration that turns {@code ntfy.*} properties into a live ntfy integration for a Spring
@@ -147,6 +149,16 @@ public class NtfyAutoConfiguration implements DisposableBean {
     return new NtfyClient(config);
   }
 
+  /**
+   * The currently-installed appender, or {@code null} when none is active. Read lazily by the
+   * Micrometer binding at scrape time so meters always reflect the current appender (and null-safe
+   * to 0 before install / after shutdown). The backing field is {@code volatile}, so this read is
+   * safe from meter-scrape threads.
+   */
+  LogbackAlertAppender installedAppender() {
+    return this.installedAppender;
+  }
+
   @Override
   public void destroy() {
     LogbackAlertAppender appender = this.installedAppender;
@@ -167,5 +179,32 @@ public class NtfyAutoConfiguration implements DisposableBean {
 
   private static boolean isBlank(String s) {
     return s == null || s.isBlank();
+  }
+
+  /**
+   * Micrometer binding for the ntfy pipeline counters, isolated in a nested {@code
+   * @ConditionalOnClass(MeterRegistry)} configuration so no Micrometer type ever appears in the
+   * outer class's introspected signatures. When micrometer-core is absent, this whole class is
+   * skipped and never loaded; when present, the binder bean is created only if a {@code
+   * MeterRegistry} bean exists.
+   *
+   * <p>The {@code MeterRegistry} appears only as a {@code @Bean} method parameter of THIS nested
+   * class (loaded lazily, after its own {@code @ConditionalOnClass} has already passed) and inside
+   * {@link NtfyMetricsBinder} — never in {@link NtfyAutoConfiguration} itself.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(name = "io.micrometer.core.instrument.MeterRegistry")
+  static class NtfyMicrometerConfiguration {
+
+    @Bean
+    @ConditionalOnBean(io.micrometer.core.instrument.MeterRegistry.class)
+    @ConditionalOnProperty(prefix = "ntfy", name = "enabled", havingValue = "true",
+        matchIfMissing = true)
+    NtfyMetricsBinder ntfyMetricsBinder(io.micrometer.core.instrument.MeterRegistry registry,
+        NtfyAutoConfiguration autoConfiguration) {
+      // Lazy supplier: meters resolve the current appender at scrape time (null-safe to 0), so they
+      // survive a re-install and never depend on installer-vs-binder ordering.
+      return new NtfyMetricsBinder(registry, autoConfiguration::installedAppender);
+    }
   }
 }

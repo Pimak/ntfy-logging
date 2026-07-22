@@ -13,6 +13,8 @@ import ch.qos.logback.core.Appender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import io.github.pimak.ntfy.core.NtfyClient;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -45,7 +48,16 @@ class NtfyAutoConfigurationTest {
   @Configuration
   @EnableAutoConfiguration
   static class TestApp {
+    // A MeterRegistry on the context triggers the starter's @ConditionalOnClass/@ConditionalOnBean
+    // Micrometer binding, exposing the ntfy pipeline counters as meters.
+    @Bean
+    MeterRegistry meterRegistry() {
+      return new SimpleMeterRegistry();
+    }
   }
+
+  @Autowired(required = false)
+  MeterRegistry meterRegistry;
 
   @BeforeAll
   static void startWireMock() {
@@ -94,5 +106,24 @@ class NtfyAutoConfigurationTest {
 
     await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
         WIREMOCK.verify(postRequestedFor(urlPathEqualTo("/alerts"))));
+  }
+
+  @Test
+  void pipelineCountersAreBoundToMicrometerAndReflectPublishes() {
+    assertThat(meterRegistry).as("MeterRegistry bean").isNotNull();
+
+    // The three ntfy pipeline meters are registered as function counters.
+    assertThat(meterRegistry.find("ntfy.pipeline.published").functionCounter()).isNotNull();
+    assertThat(meterRegistry.find("ntfy.pipeline.suppressed").functionCounter()).isNotNull();
+    assertThat(meterRegistry.find("ntfy.pipeline.failed").functionCounter()).isNotNull();
+
+    // Logging an ERROR through the installed appender publishes to WireMock (200) and, in turn,
+    // increments the published counter the meter reads lazily from the appender.
+    Logger appLogger = LoggerFactory.getLogger("com.example.demo.MetricsLogger");
+    appLogger.error("boom for the metrics binding test");
+
+    await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+        assertThat(meterRegistry.get("ntfy.pipeline.published").functionCounter().count())
+            .isGreaterThanOrEqualTo(1.0));
   }
 }

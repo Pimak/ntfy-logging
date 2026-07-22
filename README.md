@@ -92,6 +92,7 @@ extension). See [docs/compatibility.md](docs/compatibility.md) for the full matr
 |------|--------|
 | [docs/configuration.md](docs/configuration.md) | The unified `ntfy.*` key reference (types, defaults) and the per-framework mapping (env/sysprop/properties, Spring `ntfy.*`, Quarkus `quarkus.ntfy.*`), plus `DurationParser` syntax |
 | [docs/alert-behavior.md](docs/alert-behavior.md) | Why alerting behaves the way it does: immediate single-error alerts, storm suppression, digest-on-window-close, digest-on-shutdown |
+| [docs/observability.md](docs/observability.md) | The read-only `published`/`suppressed`/`failed` pipeline counters, reading them programmatically, and the classpath-conditional Micrometer binding in the Spring Boot starter |
 | [docs/authentication.md](docs/authentication.md) | The three auth modes (`BearerToken`, `BasicAuth`, `None`) and the "token wins" precedence rule |
 | [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the Logback `NO_ALERT` marker, and the always-on self-exclusion |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |

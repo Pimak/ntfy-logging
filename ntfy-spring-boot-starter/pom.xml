@@ -78,6 +78,21 @@
             <optional>true</optional>
         </dependency>
 
+        <!--
+            Optional Micrometer binding: when the consumer already has micrometer-core on the
+            classpath (any Spring Boot Actuator app does), the starter exports the ntfy pipeline
+            counters as meters. Marked optional so it is never forced onto consumers who do not want
+            metrics; the Micrometer wiring is guarded by @ConditionalOnClass(MeterRegistry.class).
+            Optionality only affects downstream resolution — the dependency stays on this module's
+            own compile AND test classpath, so no separate test-scope declaration is needed. Version
+            comes from the imported spring-boot-dependencies BOM.
+        -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

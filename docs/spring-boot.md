@@ -52,6 +52,14 @@ ntfy.notify("Deploy finished", "v1.2.3 is live");
 
 `NtfyClient.notify(...)` never throws — every outcome is returned as a `PublishResult`.
 
+## Metrics
+
+When `micrometer-core` is on the classpath (it is in any Spring Boot Actuator app) and a
+`MeterRegistry` bean exists, the starter automatically exports three monotonic counters —
+`ntfy.pipeline.published`, `ntfy.pipeline.suppressed`, `ntfy.pipeline.failed` — so you can alert on a
+spike in publish failures. The binding is classpath-conditional and adds no dependency when
+Micrometer is absent. See **[Observability](observability.md)** for the full semantics.
+
 ## Going further
 
 The base config above covers the common case. Everything else is shared across all adapters and

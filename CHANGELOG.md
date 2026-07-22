@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `quarkus.ntfy.async-queue-capacity`, `NtfyConfig.Builder.asyncEnabled(...)`/`asyncQueueCapacity(...)`
   for programmatic core users, and `ConfigLoader` (`NTFY_ASYNC` / `NTFY_ASYNC_QUEUE_CAPACITY`).
   Default behavior is unchanged: with `async` off, delivery is synchronous and identical to before.
+- **Pipeline observability counters** for the alert pipeline: the engine now tracks read-only,
+  monotonic `published`, `suppressed`, and `failed` tallies so you can "alert on the alerter" (e.g.
+  a spike in `failed` signalling a revoked token or a topic ACL change). Read them programmatically
+  via `AlertEngine.counters()` (`ntfy-core`) or `LogbackAlertAppender.getCounters()`
+  (`ntfy-logback`); the Logback appender keeps them monotonic across `stop()`/`start()` cycles and
+  context resets. Counters are pulled, never logged, so reading them cannot re-enter the logging
+  pipeline. The `suppressed` and `failed` counters are disjoint (a failed publish is never also
+  counted suppressed). See [docs/observability.md](docs/observability.md).
+- **Micrometer metrics in the Spring Boot starter**: when `micrometer-core` is on the classpath and
+  a `MeterRegistry` bean is present, the starter exports `ntfy.pipeline.published`,
+  `ntfy.pipeline.suppressed`, and `ntfy.pipeline.failed` as monotonic `FunctionCounter`s. The
+  binding is classpath-conditional — consumers without Micrometer get no new dependency and
+  `ntfy-core` stays dependency-free.
 
 ### Changed
 - `NtfyClient` now implements `AutoCloseable`, so it can be used in a try-with-resources block and
