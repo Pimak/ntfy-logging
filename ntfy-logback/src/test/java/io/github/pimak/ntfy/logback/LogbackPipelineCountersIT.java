@@ -96,4 +96,49 @@ class LogbackPipelineCountersIT {
 
     appender.stop();
   }
+
+  @Test
+  void counters_surviveContextReset_viaReattachListener_monotonic(WireMockRuntimeInfo wm) {
+    stubFor(post(urlEqualTo("/alerts")).willReturn(aResponse().withStatus(200)));
+
+    LoggerContext context = new LoggerContext();
+    LogbackAlertAppender appender = appender(context, wm, 10);
+    appender.setName("ntfy-reset-test");
+    appender.start();
+
+    Logger root = context.getLogger(Logger.ROOT_LOGGER_NAME);
+    root.addAppender(appender);
+    // The reset-resistant listener is exactly what the zero-code auto-install registers to keep the
+    // appender attached across an application's own JoranConfigurator run.
+    context.addListener(new NtfyLogbackReattachListener(appender));
+
+    PipelineCounters countersBefore = appender.getCounters();
+    for (int i = 0; i < 3; i++) {
+      appender.doAppend(errorEvent(context, "pre-reset " + i));
+    }
+    assertThat(appender.getCounters().published()).isEqualTo(3);
+
+    // A literal context.reset() (what a JoranConfigurator run triggers): every appender is detached
+    // and stopped, then the reset-resistant listener re-attaches (and restarts) ours.
+    context.reset();
+
+    assertThat(context.getLogger(Logger.ROOT_LOGGER_NAME).getAppender("ntfy-reset-test"))
+        .as("reattach listener must re-add the appender after context.reset()")
+        .isNotNull();
+    assertThat(appender.isStarted()).isTrue();
+    assertThat(appender.getCounters())
+        .as("same PipelineCounters instance across the context reset")
+        .isSameAs(countersBefore);
+
+    for (int i = 0; i < 2; i++) {
+      appender.doAppend(errorEvent(context, "post-reset " + i));
+    }
+
+    // 3 before the reset + 2 after — the reattached engine keeps the appender-owned counters.
+    assertThat(appender.getCounters().published()).isEqualTo(5);
+    assertThat(appender.getCounters().suppressed()).isZero();
+    assertThat(appender.getCounters().failed()).isZero();
+
+    appender.stop();
+  }
 }
