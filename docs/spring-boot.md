@@ -37,6 +37,10 @@ ntfy:
 That is all you need. As soon as `url` and `topic` are set, error logs auto-publish (an `ntfy-auto`
 Logback appender is installed idempotently) — no `logback.xml` edit required.
 
+To keep a slow or unreachable ntfy server from blocking your application threads, set `ntfy.async:
+true` (optionally tune `ntfy.async-queue-capacity`, default `1024`); delivery is then offloaded to a
+bounded queue drained by a daemon worker. See [alert-behavior.md](alert-behavior.md).
+
 ## Manual notifications
 
 Inject the client to send your own notifications:

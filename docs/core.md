@@ -42,6 +42,12 @@ try (NtfyClient client = new NtfyClient(config)) {   // close() releases the HTT
 The engine can also resolve config from the environment (sysprop > env > classpath `ntfy.properties`)
 via `ConfigLoader` — see the [configuration reference](configuration.md).
 
+When you drive an `AlertEngine` directly (the log-adapter path, not the synchronous `NtfyClient`),
+`NtfyConfig.builder().asyncEnabled(true).asyncQueueCapacity(1024)` offloads error-alert delivery to a
+bounded queue drained by a daemon worker, so a slow ntfy server never blocks the submitting thread.
+`NtfyClient` itself stays synchronous by contract (it returns a `PublishResult`). See
+[alert-behavior.md](alert-behavior.md) for the queue and overflow semantics.
+
 ## Going further
 
 The base config above covers the common case. Everything else is shared across all adapters and

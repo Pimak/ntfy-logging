@@ -40,10 +40,29 @@ export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Equivalently pass `-Dntfy.url=… -Dntfy.topic=…` as JVM system properties, or drop a classpath
 `ntfy.properties` with `ntfy.url` / `ntfy.topic` keys.
 
+### Built-in async delivery
+
+Instead of hand-wrapping the appender in an `AsyncAppender`, set `async` on the appender itself:
+
+```xml
+<appender name="NTFY_ALERT" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
+  <url>https://ntfy.example.com</url>
+  <topic>my-app-alerts</topic>
+  <async>true</async>
+  <asyncQueueCapacity>1024</asyncQueueCapacity>
+</appender>
+```
+
+With `async=true`, each error alert is handed to the engine's bounded queue and published by a
+daemon worker, so a slow or unreachable ntfy server never blocks the logging thread. Overflow drops
+fold into the storm digest rather than being lost. See [alert-behavior.md](alert-behavior.md) for the
+full semantics. The `AsyncAppender` wrapper below remains available if you prefer Logback's own
+offloading.
+
 ### Explicit `logback.xml`
 
-Or wire it explicitly. The recommended production wrapper is async + never-block + ERROR-only + flush
-on shutdown:
+Or wire it explicitly. The `AsyncAppender` wrapper is a production-grade alternative to the built-in
+`async` flag — async + never-block + ERROR-only + flush on shutdown:
 
 ```xml
 <appender name="NTFY_ALERT_RAW" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">

@@ -73,12 +73,26 @@ trace) so the message, logger name, and cause chain stay intact as long as possi
 measured in UTF-8 bytes, not string length, so multi-byte characters are never split mid-character
 and the published body never exceeds the byte budget.
 
-## Delivery is synchronous
+## Delivery mode: synchronous (default) or asynchronous
 
-The engine publishes on the calling (logging) thread: `HttpClient.send()` blocks for up to
-`connect-timeout + request-timeout` per event. Non-blocking delivery is the adapter/consumer's
-concern — for Logback, wrap `LogbackAlertAppender` in an `AsyncAppender` with `neverBlock=true` (see
-the README quickstart) so a slow/unreachable ntfy server never blocks your application threads.
+By default the engine publishes on the calling (logging) thread: `HttpClient.send()` blocks for up to
+`connect-timeout + request-timeout` per event.
+
+Set `async = true` to offload delivery instead. Individual error alerts are then handed to a
+**bounded work queue** drained by a single daemon worker thread (`ntfy-alert-delivery`), so a slow or
+unreachable ntfy server never back-pressures your application threads during an error storm. This is
+the first-class alternative to hand-wrapping `LogbackAlertAppender` in an `AsyncAppender`.
+
+Rate-limit gating still runs on the submitting thread, so the queue only ever holds events that have
+already won a publish slot. The queue holds up to `async-queue-capacity` pending alerts (default
+`1024`). When it is full, an alert is **dropped but folded into the storm digest's suppressed count**
+(and a throttled overflow warning is emitted) — it is never lost silently, consistent with the
+"suppressed count is never silently dropped" guarantee above. On shutdown, `stop()` drains any
+queued-but-unsent alerts into that same digest count before the final synchronous flush.
+
+Async is opt-in: with `async = false` (the default) delivery is inline and behaves exactly as it did
+before the flag existed. See [configuration.md](configuration.md) for the `async` /
+`async-queue-capacity` keys and each adapter's spelling.
 
 ## See also
 

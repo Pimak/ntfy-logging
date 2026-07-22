@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Opt-in asynchronous delivery mode.** A new `async` flag (default `false`) offloads individual
+  error-alert publishing to a bounded work queue drained by a single daemon worker thread, so a slow
+  or unreachable ntfy server no longer back-pressures your application/logging threads during an
+  error storm — the first-class alternative to hand-wrapping the appender in an `AsyncAppender`.
+  When the queue is full (capacity is tunable via `async-queue-capacity`, default `1024`), an alert
+  is dropped but folded into the storm digest's suppressed count rather than lost silently, and
+  shutdown drains any queued-but-unsent alerts into that same count. The flag is available on every
+  surface: Logback `setAsync`/`setAsyncQueueCapacity` (XML `<async>`/`<asyncQueueCapacity>`), Spring
+  `ntfy.async`/`ntfy.async-queue-capacity`, Quarkus `quarkus.ntfy.async`/
+  `quarkus.ntfy.async-queue-capacity`, `NtfyConfig.Builder.asyncEnabled(...)`/`asyncQueueCapacity(...)`
+  for programmatic core users, and `ConfigLoader` (`NTFY_ASYNC` / `NTFY_ASYNC_QUEUE_CAPACITY`).
+  Default behavior is unchanged: with `async` off, delivery is synchronous and identical to before.
+
 ### Changed
 - `NtfyClient` now implements `AutoCloseable`, so it can be used in a try-with-resources block and
   IDEs/linters can flag a leaked client. The existing `close()` method is unchanged; this is a

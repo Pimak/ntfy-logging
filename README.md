@@ -17,6 +17,9 @@ The engine is:
   of errors collapses into one follow-up notification instead of flooding your topic;
 - **loop-safe** — it never logs its own diagnostics back through the logging pipeline it publishes
   from, so a failure inside the notifier can never trigger itself;
+- **non-blocking on demand** — an opt-in `async` flag offloads delivery to a bounded queue drained
+  by a daemon worker (the first-class alternative to hand-wrapping an `AsyncAppender`), so a slow or
+  unreachable ntfy server never back-pressures your application threads during an error storm;
 - **early** — the Logback and Quarkus adapters install through the logging framework itself, so
   alerting is live before your Spring `ApplicationContext` (or any DI container) exists — exactly
   the startup window where early fatal errors are otherwise invisible;

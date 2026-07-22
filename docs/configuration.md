@@ -49,6 +49,8 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
+| `async` | boolean | `false` | Offload delivery to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. Off by default (synchronous, inline delivery). See [alert-behavior.md](alert-behavior.md). |
+| `async-queue-capacity` | int | `1024` | Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when `async` is `true`; a non-positive value is clamped to a minimum of `1`. |
 
 `url` and `topic` are the only two settings without which alerting stays inactive (silently if both
 are unset; with a warning if only one is set — see [troubleshooting.md](troubleshooting.md)). Every
