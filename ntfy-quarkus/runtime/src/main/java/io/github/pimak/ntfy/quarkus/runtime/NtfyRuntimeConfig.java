@@ -10,7 +10,7 @@ import java.util.Optional;
  * Run-time configuration surface for the ntfy Quarkus extension, mapped from the {@code
  * quarkus.ntfy.*} config namespace.
  *
- * <p>Declared as a {@link ConfigMapping} interface (the Quarkus 3.15 idiom — the legacy {@code
+ * <p>Declared as a {@link ConfigMapping} interface (the Quarkus 3.37 idiom — the legacy {@code
  * @ConfigItem} field style may not be mixed with mappings in the same module) and marked {@link
  * ConfigPhase#RUN_TIME} so every value — including the endpoint {@code url}/{@code topic} and the
  * credentials — is read when the application starts, never baked into the build. This is what keeps
