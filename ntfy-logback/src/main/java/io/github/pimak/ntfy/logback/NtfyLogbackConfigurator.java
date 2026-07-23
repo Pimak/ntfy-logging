@@ -49,7 +49,7 @@ public class NtfyLogbackConfigurator extends ContextAwareBase implements Configu
         addWarn(
             "ntfy: endpoint URL comes ONLY from a classpath ntfy.properties (no NTFY_URL env var "
                 + "or ntfy.url system property set) — refusing to auto-install alerting to '"
-                + cfg.getUrl().replaceFirst("//[^/]*@", "//")
+                + cfg.getUrl().replaceFirst("//[^/?#]*@", "//")
                 + "' for supply-chain safety. If that file is yours and you trust it, opt in with "
                 + "-Dntfy.allow-classpath-endpoint=true or NTFY_ALLOW_CLASSPATH_ENDPOINT=true, or "
                 + "set the URL yourself via NTFY_URL / -Dntfy.url");
@@ -60,7 +60,7 @@ public class NtfyLogbackConfigurator extends ContextAwareBase implements Configu
       addWarn(
           "ntfy: endpoint URL comes from a classpath ntfy.properties (no NTFY_URL env var or "
               + "ntfy.url system property set) — alerts will be published to '"
-              + cfg.getUrl().replaceFirst("//[^/]*@", "//")
+              + cfg.getUrl().replaceFirst("//[^/?#]*@", "//")
               + "'; make sure that file is one you trust");
     }
 
