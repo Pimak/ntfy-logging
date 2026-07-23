@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Security
+- **The Logback zero-code auto-install now refuses a classpath-only endpoint URL unless explicitly
+  opted in.** Previously, a `ntfy.properties` shipped inside ANY jar on the classpath (e.g. a
+  malicious or compromised transitive dependency) could point `ntfy.url` at attacker infrastructure
+  and silently activate alerting — exfiltrating every ERROR log (messages and stack traces) with
+  zero code change by the victim; the only guard was a WARN status line. Now, when the endpoint URL
+  comes only from a classpath `ntfy.properties` (no `ntfy.url` system property or `NTFY_URL` env
+  var), `NtfyLogbackConfigurator` does not install the appender and emits a WARN status explaining
+  why and how to opt in. Operators who intentionally configure via a classpath file can restore the
+  old behavior with the new `allow-classpath-endpoint` flag (default `false`;
+  `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`) — which is
+  deliberately NOT readable from `ntfy.properties` itself, so a classpath file can never grant
+  itself trust — or simply set the URL via env/sysprop. Explicit configuration (Logback XML setters,
+  Spring, Quarkus, programmatic `NtfyConfig`) is unaffected.
 - **Broadened cleartext-credential detection at startup.** The existing warning for credentials
   over a plain `http://` URL now also fires when the URL itself embeds userinfo
   (`http://user:pass@host`), even when no separate `token` or `username`/`password` is configured —

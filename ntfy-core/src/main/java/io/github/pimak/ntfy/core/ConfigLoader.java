@@ -19,6 +19,11 @@ import java.util.function.Function;
  *   <li>classpath {@code ntfy.properties} entry {@code ntfy.<kebab-key>};
  *   <li>the built-in default carried by {@link NtfyConfig.Builder}.
  * </ol>
+ *
+ * <p><strong>Exception:</strong> {@code allow-classpath-endpoint} is deliberately resolved from the
+ * system-property and environment layers only — never the classpath {@code ntfy.properties} file —
+ * so a file shipped on the classpath can never grant itself the trust to auto-activate alerting
+ * (see {@link #load()}).
  */
 public final class ConfigLoader {
 
@@ -85,6 +90,15 @@ public final class ConfigLoader {
     String enabled = resolve("enabled", envLookup, fileProps, sysProps);
     if (enabled != null) {
       builder.enabled(Boolean.parseBoolean(enabled.trim()));
+    }
+
+    // Deliberately resolved WITHOUT the classpath-file layer: this flag is the operator's opt-in
+    // for trusting a classpath-supplied endpoint, so a jar shipping ntfy.properties must never be
+    // able to grant that trust to itself. Only a system property or env var can set it.
+    String allowClasspathEndpoint =
+        resolve("allow-classpath-endpoint", envLookup, null, sysProps);
+    if (allowClasspathEndpoint != null) {
+      builder.allowClasspathEndpoint(Boolean.parseBoolean(allowClasspathEndpoint.trim()));
     }
 
     String async = resolve("async", envLookup, fileProps, sysProps);

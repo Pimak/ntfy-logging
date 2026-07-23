@@ -40,6 +40,13 @@ export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Equivalently pass `-Dntfy.url=… -Dntfy.topic=…` as JVM system properties, or drop a classpath
 `ntfy.properties` with `ntfy.url` / `ntfy.topic` keys.
 
+> **Classpath endpoints require an explicit opt-in.** If the endpoint `url` comes *only* from a
+> classpath `ntfy.properties` (no `ntfy.url` sysprop or `NTFY_URL` env var), the auto-install is
+> refused with a warn status: any jar on the classpath can ship such a file, so honoring it blindly
+> would let a compromised dependency redirect your error logs. If the file is yours, opt in with
+> `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true` (the flag itself is
+> intentionally ignored inside `ntfy.properties`), or set the URL via env/sysprop instead.
+
 ### Built-in async delivery
 
 Instead of hand-wrapping the appender in an `AsyncAppender`, set `async` on the appender itself:

@@ -41,6 +41,7 @@ public final class NtfyConfig {
   private final int asyncQueueCapacity;
   private final boolean requireHttpsForCredentials;
   private final boolean endpointFromClasspathFile;
+  private final boolean allowClasspathEndpoint;
 
   private NtfyConfig(Builder b) {
     this.url = b.url;
@@ -68,6 +69,7 @@ public final class NtfyConfig {
     this.asyncQueueCapacity = b.asyncQueueCapacity;
     this.requireHttpsForCredentials = b.requireHttpsForCredentials;
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
+    this.allowClasspathEndpoint = b.allowClasspathEndpoint;
   }
 
   /** Returns a fresh {@link Builder} pre-loaded with every default. */
@@ -209,6 +211,19 @@ public final class NtfyConfig {
   }
 
   /**
+   * True when the operator has explicitly opted in to activating alert delivery from an endpoint
+   * URL supplied only by a classpath {@code ntfy.properties} (see {@link
+   * #isEndpointFromClasspathFile()}). Default {@code false}: because any jar on the classpath can
+   * ship such a file and silently redirect log-derived alerts (messages and stack traces) to a
+   * server the operator never chose, auto-installing adapters refuse classpath-only activation
+   * unless this flag is set (kebab key {@code allow-classpath-endpoint}, env {@code
+   * NTFY_ALLOW_CLASSPATH_ENDPOINT}, sysprop {@code ntfy.allow-classpath-endpoint}).
+   */
+  public boolean isAllowClasspathEndpoint() {
+    return allowClasspathEndpoint;
+  }
+
+  /**
    * True when this config should actually deliver alerts: it is {@link #enabled}, and both {@link
    * #getUrl()} and {@link #getTopic()} are non-blank. A config that is disabled or missing either
    * endpoint half is inactive (the engine reports why via {@link Diagnostics} at start).
@@ -247,6 +262,7 @@ public final class NtfyConfig {
     private int asyncQueueCapacity = 1024;
     private boolean requireHttpsForCredentials = false;
     private boolean endpointFromClasspathFile = false;
+    private boolean allowClasspathEndpoint = false;
 
     private Builder() {}
 
@@ -419,6 +435,15 @@ public final class NtfyConfig {
     /** See {@link NtfyConfig#isEndpointFromClasspathFile()}; set by {@link ConfigLoader} only. */
     public Builder endpointFromClasspathFile(boolean endpointFromClasspathFile) {
       this.endpointFromClasspathFile = endpointFromClasspathFile;
+      return this;
+    }
+
+    /**
+     * Explicit opt-in for activating from a classpath-only endpoint URL; see {@link
+     * NtfyConfig#isAllowClasspathEndpoint()}. Off by default.
+     */
+    public Builder allowClasspathEndpoint(boolean allowClasspathEndpoint) {
+      this.allowClasspathEndpoint = allowClasspathEndpoint;
       return this;
     }
 

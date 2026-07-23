@@ -183,6 +183,59 @@ class ConfigLoaderTest {
     assertThat(config.isEndpointFromClasspathFile()).isFalse();
   }
 
+  // --- allow-classpath-endpoint opt-in ----------------------------------------------------------
+
+  @Test
+  void allowClasspathEndpoint_defaultsToFalse() {
+    NtfyConfig config = ConfigLoader.load(null, null, null);
+
+    assertThat(config.isAllowClasspathEndpoint()).isFalse();
+  }
+
+  @Test
+  void allowClasspathEndpoint_fromSysprop() {
+    Properties sys = props("ntfy.allow-classpath-endpoint", "true");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    assertThat(config.isAllowClasspathEndpoint()).isTrue();
+  }
+
+  @Test
+  void allowClasspathEndpoint_fromEnv() {
+    Function<String, String> env = env(Map.of("NTFY_ALLOW_CLASSPATH_ENDPOINT", "true"));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    assertThat(config.isAllowClasspathEndpoint()).isTrue();
+  }
+
+  @Test
+  void allowClasspathEndpoint_sysprop_winsOverEnv() {
+    Function<String, String> env = env(Map.of("NTFY_ALLOW_CLASSPATH_ENDPOINT", "true"));
+    Properties sys = props("ntfy.allow-classpath-endpoint", "false");
+
+    NtfyConfig config = ConfigLoader.load(env, null, sys);
+
+    assertThat(config.isAllowClasspathEndpoint()).isFalse();
+  }
+
+  @Test
+  void allowClasspathEndpoint_cannotBeGrantedByTheClasspathFileItself() {
+    // The whole point of the flag is guarding against a malicious ntfy.properties on the classpath,
+    // so that file must never be able to opt itself in.
+    Properties file =
+        props(
+            "ntfy.url", "https://file.example",
+            "ntfy.topic", "alerts",
+            "ntfy.allow-classpath-endpoint", "true");
+
+    NtfyConfig config = ConfigLoader.load(null, file, null);
+
+    assertThat(config.isEndpointFromClasspathFile()).isTrue();
+    assertThat(config.isAllowClasspathEndpoint()).isFalse();
+  }
+
   // --- Silent fallback for malformed values -----------------------------------------------------
 
   @Test
