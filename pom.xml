@@ -6,7 +6,7 @@
 
     <groupId>io.github.pimak</groupId>
     <artifactId>ntfy-logging</artifactId>
-    <version>1.1.1</version>
+    <version>1.2.0</version>
     <packaging>pom</packaging>
 
     <name>ntfy-logging</name>

@@ -18,7 +18,7 @@ with no config at all.
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-logback</artifactId>
-  <version>1.1.1</version>
+  <version>1.2.0</version>
 </dependency>
 ```
 
