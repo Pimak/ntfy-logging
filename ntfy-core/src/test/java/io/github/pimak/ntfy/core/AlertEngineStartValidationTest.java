@@ -212,6 +212,156 @@ class AlertEngineStartValidationTest {
   }
 
   @Test
+  void userinfoInUrlOverPlainHttp_warnsEvenWithoutConfiguredCredentials() {
+    // Gap (a) regression: http://user:pass@host embeds a secret in the request target even when no
+    // token/username/password is configured — the cleartext warning must fire, and default mode
+    // still activates.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://user:pass@ntfy.internal:8080")
+                .topic("alerts")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void plainHttpWithAtInQuery_isNotMisreadAsCredentials() {
+    // urlHasUserinfo must terminate the authority at the first '/', '?', or '#'. A query/fragment
+    // '@' (e.g. an email in a query param) is NOT userinfo, so with no configured credentials the
+    // cleartext-credential warning must NOT fire and the engine activates normally.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://ntfy.internal:8080?email=a@b.com")
+                .topic("alerts")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void requireHttpsForCredentials_refusesActivationForTokenOverPlainHttp() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://ntfy.internal:8080")
+                .topic("alerts")
+                .token("tk_secret")
+                .requireHttpsForCredentials(true)
+                .build(),
+            diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns)
+        .contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+  }
+
+  @Test
+  void requireHttpsForCredentials_refusesActivationForUserinfoUrlOverPlainHttp() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://user:pass@ntfy.internal:8080")
+                .topic("alerts")
+                .requireHttpsForCredentials(true)
+                .build(),
+            diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns)
+        .contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+  }
+
+  @Test
+  void requireHttpsForCredentials_overHttps_startsNormally() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .token("tk_secret")
+                .requireHttpsForCredentials(true)
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void requireHttpsForCredentials_noCredentialsOverPlainHttp_startsNormally() {
+    // Strict mode only gates CREDENTIALS over cleartext — a credential-free http:// endpoint
+    // remains a valid, first-class configuration.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://ntfy.internal:8080")
+                .topic("alerts")
+                .requireHttpsForCredentials(true)
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP)
+          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void cleartextCredentialWarnings_areFixedTextWithoutSampleCredentials() {
+    // No-leak pin: both cleartext-credential messages are fixed constants that never interpolate
+    // (or even resemble) a credential or the offending URL.
+    assertThat(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP)
+        .doesNotContain("tk_")
+        .doesNotContain("user:pass")
+        .doesNotContain("@");
+    assertThat(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED)
+        .doesNotContain("tk_")
+        .doesNotContain("user:pass")
+        .doesNotContain("@")
+        .contains("engine disabled");
+  }
+
+  @Test
   void credentialsOverHttps_doNotWarnAboutCleartext() {
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
     AlertEngine engine =
@@ -515,5 +665,19 @@ class AlertEngineStartValidationTest {
     // path, never leaving a password tail ("ss@host") in diagnostic output.
     assertThat(AlertMessages.statusActive("https://user:p@ss@ntfy.example.com/x", "t"))
         .isEqualTo("ntfy alert engine ACTIVE (url=https://ntfy.example.com/x, topic=t)");
+  }
+
+  @Test
+  void statusActive_doesNotOverStripQueryAtWithoutPath() {
+    // A '@' in a query (not userinfo) must not be mistaken for credentials: with no path slash, the
+    // strip must still terminate the authority at '?'/'#' and leave the URL intact rather than
+    // mangling it to "http://b.com".
+    assertThat(AlertMessages.statusActive("http://ntfy.internal:8080?email=a@b.com", "t"))
+        .isEqualTo(
+            "ntfy alert engine ACTIVE (url=http://ntfy.internal:8080?email=a@b.com, topic=t)");
+    // Real userinfo alongside a later query '@' is still stripped, and the query is preserved.
+    assertThat(AlertMessages.statusActive("http://user:pass@ntfy.internal:8080?email=a@b.com", "t"))
+        .isEqualTo(
+            "ntfy alert engine ACTIVE (url=http://ntfy.internal:8080?email=a@b.com, topic=t)");
   }
 }

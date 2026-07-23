@@ -55,6 +55,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private Boolean enabled;
   private Boolean async;
   private Integer asyncQueueCapacity;
+  private Boolean requireHttpsForCredentials;
 
   // Pre-built config injected by the Configurator; when present it wins over the setters.
   private NtfyConfig injectedConfig;
@@ -171,6 +172,14 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Strict mode: refuse engine activation (rather than only warn) when credentials would be sent
+   * over a cleartext {@code http://} endpoint. Off by default (warn-and-activate).
+   */
+  public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
+    this.requireHttpsForCredentials = requireHttpsForCredentials;
+  }
+
+  /**
    * Injects a pre-built {@link NtfyConfig} (bypassing the JavaBean setters). Used by the
    * auto-installing {@code NtfyLogbackConfigurator}, which loads its config from the ambient
    * environment via {@code ConfigLoader} rather than from XML.
@@ -252,6 +261,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (asyncQueueCapacity != null) {
       builder.asyncQueueCapacity(asyncQueueCapacity);
+    }
+    if (requireHttpsForCredentials != null) {
+      builder.requireHttpsForCredentials(requireHttpsForCredentials);
     }
     return builder.build();
   }

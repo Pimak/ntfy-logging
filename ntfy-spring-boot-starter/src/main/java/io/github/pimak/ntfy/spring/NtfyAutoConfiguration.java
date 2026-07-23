@@ -107,6 +107,7 @@ public class NtfyAutoConfiguration implements DisposableBean {
     appender.setEnabled(p.isEnabled());
     appender.setAsync(p.isAsync());
     appender.setAsyncQueueCapacity(p.getAsyncQueueCapacity());
+    appender.setRequireHttpsForCredentials(p.isRequireHttpsForCredentials());
     appender.start();
     root.addAppender(appender);
     this.installedAppender = appender;
@@ -145,6 +146,7 @@ public class NtfyAutoConfiguration implements DisposableBean {
         .enabled(p.isEnabled())
         .asyncEnabled(p.isAsync())
         .asyncQueueCapacity(p.getAsyncQueueCapacity())
+        .requireHttpsForCredentials(p.isRequireHttpsForCredentials())
         .build();
     return new NtfyClient(config);
   }

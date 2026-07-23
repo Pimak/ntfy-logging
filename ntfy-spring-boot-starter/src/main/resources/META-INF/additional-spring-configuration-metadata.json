@@ -99,6 +99,12 @@
       "name": "ntfy.excluded-loggers",
       "type": "java.lang.String",
       "description": "Comma-separated list of logger names or prefixes whose events are never published."
+    },
+    {
+      "name": "ntfy.require-https-for-credentials",
+      "type": "java.lang.Boolean",
+      "description": "Strict mode: refuse to activate alerting (instead of only warning) when credentials would be sent over a plain http:// endpoint.",
+      "defaultValue": false
     }
   ]
 }

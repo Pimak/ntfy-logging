@@ -39,6 +39,7 @@ public final class NtfyConfig {
   private final boolean enabled;
   private final boolean asyncEnabled;
   private final int asyncQueueCapacity;
+  private final boolean requireHttpsForCredentials;
   private final boolean endpointFromClasspathFile;
 
   private NtfyConfig(Builder b) {
@@ -65,6 +66,7 @@ public final class NtfyConfig {
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
     this.asyncQueueCapacity = b.asyncQueueCapacity;
+    this.requireHttpsForCredentials = b.requireHttpsForCredentials;
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
   }
 
@@ -186,6 +188,17 @@ public final class NtfyConfig {
   }
 
   /**
+   * True when the engine must REFUSE activation (rather than merely warn) if credentials — a
+   * configured token, a username/password pair, or userinfo embedded in the URL itself — would be
+   * sent over a cleartext {@code http://} endpoint. Off by default: without this opt-in, the engine
+   * warns loudly but still activates, preserving pre-existing behavior for deliberate self-hosted
+   * plain-HTTP setups.
+   */
+  public boolean isRequireHttpsForCredentials() {
+    return requireHttpsForCredentials;
+  }
+
+  /**
    * True when the endpoint URL was supplied ONLY by a classpath {@code ntfy.properties} (no system
    * property or environment variable set it). Set by {@link ConfigLoader}; auto-installing
    * adapters use it to warn loudly, because any jar on the classpath can carry such a file and
@@ -232,6 +245,7 @@ public final class NtfyConfig {
     private boolean enabled = true;
     private boolean asyncEnabled = false;
     private int asyncQueueCapacity = 1024;
+    private boolean requireHttpsForCredentials = false;
     private boolean endpointFromClasspathFile = false;
 
     private Builder() {}
@@ -389,6 +403,16 @@ public final class NtfyConfig {
      */
     public Builder asyncQueueCapacity(int asyncQueueCapacity) {
       this.asyncQueueCapacity = asyncQueueCapacity;
+      return this;
+    }
+
+    /**
+     * Opt into refusing activation when credentials would traverse a cleartext {@code http://}
+     * endpoint. Off by default (warn-and-activate); see
+     * {@link NtfyConfig#isRequireHttpsForCredentials()}.
+     */
+    public Builder requireHttpsForCredentials(boolean requireHttpsForCredentials) {
+      this.requireHttpsForCredentials = requireHttpsForCredentials;
       return this;
     }
 

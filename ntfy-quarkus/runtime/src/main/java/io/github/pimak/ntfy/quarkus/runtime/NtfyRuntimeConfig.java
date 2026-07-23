@@ -108,4 +108,11 @@ public interface NtfyRuntimeConfig {
   /** Bounded async delivery queue capacity; only consulted when {@link #async()} is {@code true}. */
   @WithDefault("1024")
   int asyncQueueCapacity();
+
+  /**
+   * Strict mode: refuse engine activation (rather than only warn) when credentials would be sent
+   * over a cleartext {@code http://} endpoint. Off by default (warn-and-activate).
+   */
+  @WithDefault("false")
+  boolean requireHttpsForCredentials();
 }

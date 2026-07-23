@@ -197,10 +197,22 @@ public final class AlertEngine {
       // auth configuration is never a reason to block activation.
       diagnostics.warn(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
     }
-    if ((hasToken || hasBasic) && isPlainHttp(config.getUrl())) {
-      // Credentials over cleartext HTTP: the Authorization header is readable by any on-path
-      // observer. Warn loudly but still activate — a self-hosted plain-HTTP setup is the
-      // operator's deliberate (if risky) choice, and refusing would silence alerting.
+    // Credentials over cleartext HTTP: a configured token/basic pair (sent as an Authorization
+    // header) OR userinfo embedded in the URL itself (http://user:pass@host — a secret in the
+    // request target even when no separate credential is configured).
+    boolean credentialsOverPlainHttp =
+        (hasToken || hasBasic || urlHasUserinfo(config.getUrl())) && isPlainHttp(config.getUrl());
+    if (credentialsOverPlainHttp) {
+      if (config.isRequireHttpsForCredentials()) {
+        // Opt-in strict mode: refuse activation rather than transmit a secret readable by any
+        // on-path observer. Mirrors the invalid-url/invalid-topic refusals — no resource is
+        // acquired and `started` stays false.
+        diagnostics.warn(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+        return;
+      }
+      // Default mode: the Authorization header/userinfo is readable by any on-path observer.
+      // Warn loudly but still activate — a self-hosted plain-HTTP setup is the operator's
+      // deliberate (if risky) choice, and refusing would silence alerting.
       diagnostics.warn(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
     }
     if (!isSendableHeaderValue(config.getErrorPriority())
@@ -717,6 +729,35 @@ public final class AlertEngine {
   /** True when {@code url} uses the cleartext {@code http://} scheme. */
   private static boolean isPlainHttp(String url) {
     return url != null && url.trim().regionMatches(true, 0, "http://", 0, "http://".length());
+  }
+
+  /**
+   * True when the URL's authority component carries userinfo ({@code //user[:pass]@host...}) — an
+   * {@code @} after the {@code //} and before the authority terminator (the first {@code /},
+   * {@code ?}, or {@code #}). Bounding the authority at the query/fragment delimiters too means a
+   * later {@code @} in a query param (e.g. {@code ?email=a@b.com}) is not misread as embedded
+   * credentials. Any {@code @} genuinely inside the authority (including an unencoded {@code @} in
+   * the password) still marks embedded credentials.
+   */
+  private static boolean urlHasUserinfo(String url) {
+    if (url == null) {
+      return false;
+    }
+    String trimmed = url.trim();
+    int authorityStart = trimmed.indexOf("//");
+    if (authorityStart < 0) {
+      return false;
+    }
+    int authorityEnd = trimmed.length();
+    for (int i = authorityStart + 2; i < trimmed.length(); i++) {
+      char c = trimmed.charAt(i);
+      if (c == '/' || c == '?' || c == '#') {
+        authorityEnd = i;
+        break;
+      }
+    }
+    String authority = trimmed.substring(authorityStart + 2, authorityEnd);
+    return authority.indexOf('@') >= 0;
   }
 
   /**

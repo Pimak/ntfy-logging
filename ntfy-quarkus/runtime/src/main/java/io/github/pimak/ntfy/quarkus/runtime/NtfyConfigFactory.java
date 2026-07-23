@@ -28,7 +28,8 @@ final class NtfyConfigFactory {
             .digestTags(config.digestTags())
             .enabled(config.enabled())
             .asyncEnabled(config.async())
-            .asyncQueueCapacity(config.asyncQueueCapacity());
+            .asyncQueueCapacity(config.asyncQueueCapacity())
+            .requireHttpsForCredentials(config.requireHttpsForCredentials());
 
     config.url().ifPresent(b::url);
     config.topic().ifPresent(b::topic);
