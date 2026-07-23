@@ -88,8 +88,13 @@ echo "==> Bumping reactor version to ${VERSION}"
 # 2) Release-time docs pass (D-06), folded into the SAME commit as the bump so the tagged
 #    tree is fully consistent and nothing commits back after the tag.
 echo "==> Stamping CHANGELOG [${VERSION}] date"
-#    Stamp the CHANGELOG heading date (the real action for v0.1.0).
-sed -i "s/^## \[${VERSION}\] - Unreleased/## [${VERSION}] - ${TODAY}/" CHANGELOG.md
+#    The permanent `## [Unreleased]` heading is NEVER removed — it stays at the top as the
+#    landing zone for the next cycle's entries. Instead we insert a new dated release section
+#    immediately below it (separated by one blank line), which claims everything currently
+#    accumulated under Unreleased for ${VERSION}. Fail loudly if the anchor heading is gone.
+grep -qxF '## [Unreleased]' CHANGELOG.md \
+  || { echo "ERROR: '## [Unreleased]' heading not found in CHANGELOG.md." >&2; exit 1; }
+sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n## [${VERSION}] - ${TODAY}/" CHANGELOG.md
 
 #    Coordinate stamping across EVERY documentation file — the README plus each per-library
 #    guide under docs/ — so no install snippet is ever left pointing at the previous release.
