@@ -19,7 +19,10 @@ import io.github.pimak.ntfy.core.NtfyConfig;
  * <p>Config is loaded via {@link ConfigLoader#load()} (system properties &gt; env &gt; classpath
  * {@code ntfy.properties} &gt; defaults). If the resolved config is not {@link
  * NtfyConfig#isActive() active}, this configurator does nothing beyond an info status and hands off
- * to the next configurator; otherwise it builds a {@link LogbackAlertAppender} (injecting the config
+ * to the next configurator. If the endpoint URL was supplied only by a classpath {@code
+ * ntfy.properties} and the operator has not opted in via {@code ntfy.allow-classpath-endpoint} /
+ * {@code NTFY_ALLOW_CLASSPATH_ENDPOINT}, installation is refused with a warn status (any jar on the
+ * classpath can carry such a file). Otherwise it builds a {@link LogbackAlertAppender} (injecting the config
  * directly), attaches it to the root logger, and registers a reset-resistant {@link
  * NtfyLogbackReattachListener} so a later application {@code JoranConfigurator} run cannot silently
  * detach it.
@@ -38,10 +41,22 @@ public class NtfyLogbackConfigurator extends ContextAwareBase implements Configu
     }
 
     if (cfg.isEndpointFromClasspathFile()) {
-      // WARN (not info): any jar on the classpath can carry a ntfy.properties, so activation from
-      // classpath content alone must be visible by default — Logback prints WARN-level status on
-      // the console — naming the destination so an unexpected endpoint is caught immediately.
-      // Same userinfo-strip as the engine's ACTIVE line: never echo embedded credentials.
+      if (!cfg.isAllowClasspathEndpoint()) {
+        // REFUSE, don't just warn: any jar on the classpath can carry a ntfy.properties, so a
+        // classpath-only endpoint would let a compromised transitive dependency silently exfiltrate
+        // error logs (messages + stack traces) to a server the operator never chose. Same
+        // userinfo-strip as the engine's ACTIVE line: never echo embedded credentials.
+        addWarn(
+            "ntfy: endpoint URL comes ONLY from a classpath ntfy.properties (no NTFY_URL env var "
+                + "or ntfy.url system property set) — refusing to auto-install alerting to '"
+                + cfg.getUrl().replaceFirst("//[^/]*@", "//")
+                + "' for supply-chain safety. If that file is yours and you trust it, opt in with "
+                + "-Dntfy.allow-classpath-endpoint=true or NTFY_ALLOW_CLASSPATH_ENDPOINT=true, or "
+                + "set the URL yourself via NTFY_URL / -Dntfy.url");
+        return ExecutionStatus.INVOKE_NEXT_IF_ANY;
+      }
+      // Opted in: still WARN (not info) — Logback prints WARN-level status on the console — naming
+      // the destination so an unexpected endpoint is caught immediately.
       addWarn(
           "ntfy: endpoint URL comes from a classpath ntfy.properties (no NTFY_URL env var or "
               + "ntfy.url system property set) — alerts will be published to '"
