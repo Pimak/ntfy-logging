@@ -400,6 +400,106 @@ class AlertEngineStartValidationTest {
   }
 
   @Test
+  void usernameOnly_warnsIncompleteBasicAuthAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .username("alice")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void passwordOnly_warnsIncompleteBasicAuthAndStillActivates() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .password("s3cret")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void completeBasicAuthPair_doesNotWarnIncomplete() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .username("alice")
+                .password("s3cret")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void tokenWithOnlyOneBasicHalf_doesNotWarnIncomplete() {
+    // A usable token supersedes basic auth entirely, so the half-configured pair is not a silent
+    // downgrade to None — the incomplete-basic warning would only add noise.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .token("tk_secret")
+                .username("alice")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void incompleteBasicAuthWarning_isFixedTextAndNeverEmbedsCredentials() {
+    // No-leak discipline: the message is a fixed constant and never interpolates the configured
+    // username or password, matching the neighboring status constants.
+    assertThat(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH)
+        .isEqualTo(
+            "username or password set but not both — basic auth is incomplete; publishing "
+                + "WITHOUT an Authorization header")
+        .doesNotContain("alice")
+        .doesNotContain("s3cret");
+  }
+
+  @Test
   void invalidTimeoutWarnings_neverEmbedTheOffendingValue() {
     // Locks in the credential-safety convention: the fixed messages must never interpolate the
     // user-supplied value (e.g. the raw "-1"), matching the neighboring status constants.

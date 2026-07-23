@@ -183,9 +183,19 @@ public final class AlertEngine {
     }
 
     boolean hasToken = !isBlank(config.getToken());
-    boolean hasBasic = !isBlank(config.getUsername()) && !isBlank(config.getPassword());
+    boolean hasUsername = !isBlank(config.getUsername());
+    boolean hasPassword = !isBlank(config.getPassword());
+    boolean hasBasic = hasUsername && hasPassword;
     if (hasToken && hasBasic) {
       diagnostics.warn(AlertMessages.STATUS_TOKEN_AND_BASIC_BOTH_SET);
+    }
+    if (!hasToken && (hasUsername != hasPassword)) {
+      // Exactly one half of the basic-auth pair is set and no token supersedes it:
+      // AuthMode.fromCredentials silently ignores the incomplete pair and falls back to None, so
+      // every publish would go out with NO Authorization header while the operator believes auth
+      // is in effect. Warn loudly but still activate — same policy as the overlap warning above,
+      // auth configuration is never a reason to block activation.
+      diagnostics.warn(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
     }
     if ((hasToken || hasBasic) && isPlainHttp(config.getUrl())) {
       // Credentials over cleartext HTTP: the Authorization header is readable by any on-path

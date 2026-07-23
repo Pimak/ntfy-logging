@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Security
+- **Startup warning for a half-configured basic-auth pair.** When exactly one of
+  `username`/`password` is set (and no `token` supersedes the pair), the engine used to silently
+  fall back to `None` auth mode — every publish went out with no `Authorization` header while the
+  operator believed auth was in effect (a common misconfig, e.g. a `${VAR}` that resolves empty).
+  `start()` now emits a one-time, credential-safe warning: `username or password set but not both —
+  basic auth is incomplete; publishing WITHOUT an Authorization header`. Activation still proceeds
+  (same policy as the token-plus-basic overlap warning), and `AuthMode` derivation is unchanged.
 
 ## [1.1.0] - 2026-07-22
 ### Added
