@@ -93,6 +93,12 @@ public interface NtfyRuntimeConfig {
   /** Comma-separated logger-name prefixes excluded from alerting. */
   Optional<String> excludedLoggers();
 
+  /**
+   * Language of notification bodies and diagnostics as a BCP 47 tag (e.g. {@code fr}, {@code
+   * de-DE}). Defaults to English when unset; an unknown/unshipped locale silently uses English.
+   */
+  Optional<String> locale();
+
   /** Master switch; when {@code false} the handler is never installed. */
   @WithDefault("true")
   boolean enabled();

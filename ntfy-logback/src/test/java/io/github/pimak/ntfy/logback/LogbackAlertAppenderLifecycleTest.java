@@ -125,6 +125,21 @@ class LogbackAlertAppenderLifecycleTest {
   }
 
   @Test
+  void setLocale_isAcceptedAndAppenderStillActivates() {
+    LogbackAlertAppender appender = newAppender();
+    appender.setUrl("http://localhost:9999");
+    appender.setTopic("alerts");
+    appender.setLocale("fr");
+
+    appender.start();
+
+    assertThat(appender.isStarted()).isTrue();
+    // English-default status text is not asserted here; this only proves the <locale> Joran setter
+    // is wired and never blocks activation. A bad/unknown tag would simply fall back to English.
+    appender.stop();
+  }
+
+  @Test
   void timeoutSetters_acceptDurationStrings() {
     LogbackAlertAppender appender = newAppender();
 

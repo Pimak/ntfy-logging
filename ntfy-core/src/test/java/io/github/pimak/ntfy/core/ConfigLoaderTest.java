@@ -327,6 +327,53 @@ class ConfigLoaderTest {
     assertThat(ConfigLoader.load(env, null, null).getErrorPriority()).isEqualTo("max");
   }
 
+  // --- Locale -----------------------------------------------------------------------------------
+
+  @Test
+  void locale_fromEnv_isParsedToLocale() {
+    Function<String, String> env = env(Map.of("NTFY_LOCALE", "fr"));
+
+    assertThat(ConfigLoader.load(env, null, null).getLocale())
+        .isEqualTo(java.util.Locale.FRENCH);
+  }
+
+  @Test
+  void locale_fromSysprop_winsOverEnv() {
+    Function<String, String> env = env(Map.of("NTFY_LOCALE", "de"));
+    Properties sys = props("ntfy.locale", "fr");
+
+    assertThat(ConfigLoader.load(env, null, sys).getLocale())
+        .isEqualTo(java.util.Locale.FRENCH);
+  }
+
+  @Test
+  void locale_absent_defaultsToEnglish() {
+    assertThat(ConfigLoader.load(null, null, null).getLocale())
+        .isEqualTo(java.util.Locale.ENGLISH);
+  }
+
+  @Test
+  void locale_garbageTag_keepsEnglishDefault() {
+    Function<String, String> env = env(Map.of("NTFY_LOCALE", "!!!"));
+
+    assertThat(ConfigLoader.load(env, null, null).getLocale())
+        .isEqualTo(java.util.Locale.ENGLISH);
+  }
+
+  @Test
+  void locale_undeterminedLanguageTags_keepEnglishDefault() {
+    // "und-Latn"/"und-US" carry a script/region but no language ("und" language subtag parses to an
+    // empty Locale.getLanguage()), and "x-private" is private-use only — none selects a language,
+    // so all must keep the English default rather than an undetermined locale.
+    for (String tag : new String[] {"und", "und-Latn", "und-US", "x-private"}) {
+      Function<String, String> env = env(Map.of("NTFY_LOCALE", tag));
+
+      assertThat(ConfigLoader.load(env, null, null).getLocale())
+          .as("tag: %s", tag)
+          .isEqualTo(java.util.Locale.ENGLISH);
+    }
+  }
+
   @Test
   void requireHttpsForCredentials_defaultsToFalse() {
     assertThat(ConfigLoader.load(k -> null, null, null).isRequireHttpsForCredentials()).isFalse();

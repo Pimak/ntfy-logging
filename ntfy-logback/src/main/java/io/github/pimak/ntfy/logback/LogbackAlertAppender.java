@@ -50,6 +50,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String digestTags;
   private String clickUrl;
   private String actions;
+  private String locale;
   private Integer maxStackFrames;
   private Integer maxAlertsPerWindow;
   private Boolean enabled;
@@ -153,6 +154,15 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     this.excludedLoggers = excludedLoggers;
   }
 
+  /**
+   * Language of notification bodies and diagnostics as a BCP 47 tag (e.g. {@code fr}, {@code de-DE}).
+   * Defaults to English; an unknown/unshipped locale silently uses English. XML: {@code
+   * <locale>fr</locale>}.
+   */
+  public void setLocale(String locale) {
+    this.locale = locale;
+  }
+
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
   }
@@ -252,6 +262,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (actions != null) {
       builder.actionsHeader(actions);
+    }
+    if (locale != null) {
+      builder.locale(locale);
     }
     if (enabled != null) {
       builder.enabled(enabled);

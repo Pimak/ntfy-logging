@@ -40,6 +40,7 @@ final class NtfyConfigFactory {
     config.appName().ifPresent(b::appName);
     config.clickUrl().ifPresent(b::clickUrl);
     config.actions().ifPresent(b::actionsHeader);
+    config.locale().ifPresent(b::locale);
     config.excludedLoggers().ifPresent(b::excludedLoggers);
 
     return b.build();

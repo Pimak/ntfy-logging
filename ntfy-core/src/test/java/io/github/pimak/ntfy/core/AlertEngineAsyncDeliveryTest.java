@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.Test;
  */
 @WireMockTest
 class AlertEngineAsyncDeliveryTest {
+
+  private final AlertMessages messages = AlertMessages.forLocale(Locale.ENGLISH);
 
   private static final class CapturingDiagnostics implements Diagnostics {
     final List<String> infos = new CopyOnWriteArrayList<>();
@@ -165,7 +168,7 @@ class AlertEngineAsyncDeliveryTest {
 
       assertThat(diagnostics.warns)
           .as("a queue-overflow warning must fire")
-          .contains(AlertMessages.STATUS_ASYNC_QUEUE_OVERFLOW);
+          .contains(messages.statusAsyncQueueOverflow());
     } finally {
       // Re-point nothing; the digest publishes to /alerts. Give a fresh fast stub for the flush.
       stubFor(post(urlEqualTo("/alerts")).willReturn(aResponse().withStatus(200)));
@@ -286,7 +289,7 @@ class AlertEngineAsyncDeliveryTest {
     engine.start();
     try {
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_ASYNC_QUEUE_CAPACITY);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidAsyncQueueCapacity());
     } finally {
       engine.stop();
     }

@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Immutable, framework-neutral configuration for the ntfy engine and client. Built exclusively
@@ -42,6 +43,7 @@ public final class NtfyConfig {
   private final boolean requireHttpsForCredentials;
   private final boolean endpointFromClasspathFile;
   private final boolean allowClasspathEndpoint;
+  private final Locale locale;
 
   private NtfyConfig(Builder b) {
     this.url = b.url;
@@ -70,6 +72,7 @@ public final class NtfyConfig {
     this.requireHttpsForCredentials = b.requireHttpsForCredentials;
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
     this.allowClasspathEndpoint = b.allowClasspathEndpoint;
+    this.locale = b.locale;
   }
 
   /** Returns a fresh {@link Builder} pre-loaded with every default. */
@@ -224,6 +227,17 @@ public final class NtfyConfig {
   }
 
   /**
+   * Language of the notification bodies and self-diagnostic messages the engine produces. Defaults
+   * to {@link Locale#ENGLISH} and, deliberately, never follows the host JVM's default locale, so the
+   * language of alerts is deterministic regardless of where the process runs. A locale with no
+   * shipped translation falls back wholesale to English; a partial translation degrades to English
+   * per missing key. Never {@code null}.
+   */
+  public Locale getLocale() {
+    return locale;
+  }
+
+  /**
    * True when this config should actually deliver alerts: it is {@link #enabled}, and both {@link
    * #getUrl()} and {@link #getTopic()} are non-blank. A config that is disabled or missing either
    * endpoint half is inactive (the engine reports why via {@link Diagnostics} at start).
@@ -263,6 +277,9 @@ public final class NtfyConfig {
     private boolean requireHttpsForCredentials = false;
     private boolean endpointFromClasspathFile = false;
     private boolean allowClasspathEndpoint = false;
+    // Default English, NOT Locale.getDefault(): alert language must be deterministic and never
+    // silently inherit whatever locale the host JVM happens to run under.
+    private Locale locale = Locale.ENGLISH;
 
     private Builder() {}
 
@@ -444,6 +461,34 @@ public final class NtfyConfig {
      */
     public Builder allowClasspathEndpoint(boolean allowClasspathEndpoint) {
       this.allowClasspathEndpoint = allowClasspathEndpoint;
+      return this;
+    }
+
+    /**
+     * Sets the language of notification bodies and diagnostics (see {@link NtfyConfig#getLocale()}).
+     * A {@code null} argument resets to the {@link Locale#ENGLISH} default.
+     */
+    public Builder locale(Locale locale) {
+      this.locale = locale == null ? Locale.ENGLISH : locale;
+      return this;
+    }
+
+    /**
+     * Convenience overload that parses a BCP 47 language tag (e.g. {@code "fr"}, {@code "de-DE"})
+     * via {@link Locale#forLanguageTag(String)}. A {@code null}/blank tag, or one whose language
+     * subtag is undetermined (garbage input, bare {@code "und"}, {@code "und-Latn"}, private-use
+     * {@code "x-..."} — all of which parse to an empty {@link Locale#getLanguage()}), keeps the
+     * {@link Locale#ENGLISH} default rather than silently selecting the undetermined locale.
+     */
+    public Builder locale(String languageTag) {
+      if (languageTag == null || languageTag.isBlank()) {
+        return this;
+      }
+      Locale parsed = Locale.forLanguageTag(languageTag.trim());
+      if (parsed.getLanguage().isEmpty()) {
+        return this;
+      }
+      this.locale = parsed;
       return this;
     }
 

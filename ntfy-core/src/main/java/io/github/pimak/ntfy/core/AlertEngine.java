@@ -4,6 +4,7 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,6 +103,15 @@ public final class AlertEngine {
   // suppression accounting still happens on every rejection.
   private final AtomicLong lastAsyncOverflowWarnMillis = new AtomicLong(0L);
 
+  // The locale-bound message catalog. Eagerly initialized to English so it is NEVER null on any
+  // path (early start() diagnostics, and late async/stop-race calls after stop()), removing the need
+  // for null guards. Reassigned to the configured locale as the FIRST statement of start(), before
+  // the earliest diagnostic is emitted. volatile: start() writes it on the config thread while
+  // submit()/deliver()/emitDigest() read it on application/worker threads — the same publication
+  // model as publisher/rateLimiter. It is immutable and stateless, so stop() deliberately does NOT
+  // null it: a late async-path call after stop() must render a message rather than NPE.
+  private volatile AlertMessages messages = AlertMessages.forLocale(Locale.ENGLISH);
+
   public AlertEngine(NtfyConfig config, Diagnostics diagnostics) {
     this(config, diagnostics, new PipelineCounters());
   }
@@ -151,15 +161,18 @@ public final class AlertEngine {
     if (isStarted()) {
       return;
     }
+    // Bind the message catalog to the configured locale BEFORE the earliest diagnostic below. Every
+    // diagnostics.warn/info from here on renders through this instance.
+    this.messages = AlertMessages.forLocale(config.getLocale());
     boolean urlSet = !isBlank(config.getUrl());
     boolean topicSet = !isBlank(config.getTopic());
     if (!config.isActive()) {
       // Fold the partial-config diagnostic into start(): exactly one endpoint half present is a
       // likely typo and warrants a loud warn; otherwise the engine is simply unconfigured/disabled.
       if (urlSet != topicSet) {
-        diagnostics.warn(AlertMessages.STATUS_DISABLED_PARTIAL_CONFIG);
+        diagnostics.warn(messages.statusDisabledPartialConfig());
       } else {
-        diagnostics.info(AlertMessages.STATUS_DISABLED_UNCONFIGURED);
+        diagnostics.info(messages.statusDisabledUnconfigured());
       }
       return;
     }
@@ -170,7 +183,7 @@ public final class AlertEngine {
     // into a generic no-leak message inside publish(), so the operator would otherwise see only
     // opaque repeated failures. Refuse activation loudly with a specific diagnostic instead.
     if (!NtfyPublisher.isValidEndpointUrl(config.getUrl())) {
-      diagnostics.warn(AlertMessages.STATUS_INVALID_URL);
+      diagnostics.warn(messages.statusInvalidUrl());
       return;
     }
 
@@ -178,7 +191,7 @@ public final class AlertEngine {
     // reject ('/', '?', '#', dot segments, over-long) can only ever fail — or worse, rewrite the
     // request target — so refuse activation loudly rather than fail every publish quietly.
     if (!NtfyPublisher.isValidTopic(config.getTopic())) {
-      diagnostics.warn(AlertMessages.STATUS_INVALID_TOPIC);
+      diagnostics.warn(messages.statusInvalidTopic());
       return;
     }
 
@@ -187,7 +200,7 @@ public final class AlertEngine {
     boolean hasPassword = !isBlank(config.getPassword());
     boolean hasBasic = hasUsername && hasPassword;
     if (hasToken && hasBasic) {
-      diagnostics.warn(AlertMessages.STATUS_TOKEN_AND_BASIC_BOTH_SET);
+      diagnostics.warn(messages.statusTokenAndBasicBothSet());
     }
     if (!hasToken && (hasUsername != hasPassword)) {
       // Exactly one half of the basic-auth pair is set and no token supersedes it:
@@ -195,7 +208,7 @@ public final class AlertEngine {
       // every publish would go out with NO Authorization header while the operator believes auth
       // is in effect. Warn loudly but still activate — same policy as the overlap warning above,
       // auth configuration is never a reason to block activation.
-      diagnostics.warn(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+      diagnostics.warn(messages.statusIncompleteBasicAuth());
     }
     // Credentials over cleartext HTTP: a configured token/basic pair (sent as an Authorization
     // header) OR userinfo embedded in the URL itself (http://user:pass@host — a secret in the
@@ -207,13 +220,13 @@ public final class AlertEngine {
         // Opt-in strict mode: refuse activation rather than transmit a secret readable by any
         // on-path observer. Mirrors the invalid-url/invalid-topic refusals — no resource is
         // acquired and `started` stays false.
-        diagnostics.warn(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+        diagnostics.warn(messages.statusCredentialsOverPlainHttpRefused());
         return;
       }
       // Default mode: the Authorization header/userinfo is readable by any on-path observer.
       // Warn loudly but still activate — a self-hosted plain-HTTP setup is the operator's
       // deliberate (if risky) choice, and refusing would silence alerting.
-      diagnostics.warn(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+      diagnostics.warn(messages.statusCredentialsOverPlainHttp());
     }
     if (!isSendableHeaderValue(config.getErrorPriority())
         || !isSendableHeaderValue(config.getDigestPriority())
@@ -224,7 +237,7 @@ public final class AlertEngine {
       // One-time, specific diagnostic: the publisher silently omits such headers, and without
       // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
       // invisible.
-      diagnostics.warn(AlertMessages.STATUS_INVALID_PRIORITY_OR_TAGS);
+      diagnostics.warn(messages.statusInvalidPriorityOrTags());
     }
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());
@@ -239,7 +252,7 @@ public final class AlertEngine {
         config.getSuppressionWindow() == null ? 0L : config.getSuppressionWindow().toMillis();
     if (windowMillis <= 0) {
       windowMillis = DEFAULT_SUPPRESSION_WINDOW.toMillis();
-      diagnostics.warn(AlertMessages.STATUS_INVALID_SUPPRESSION_WINDOW);
+      diagnostics.warn(messages.statusInvalidSuppressionWindow());
     }
 
     // Validate both HTTP timeouts BEFORE acquiring any resource, for the same reason as the
@@ -254,14 +267,14 @@ public final class AlertEngine {
         || effectiveConnectTimeout.isZero()
         || effectiveConnectTimeout.isNegative()) {
       effectiveConnectTimeout = DEFAULT_CONNECT_TIMEOUT;
-      diagnostics.warn(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+      diagnostics.warn(messages.statusInvalidConnectTimeout());
     }
     Duration effectiveRequestTimeout = config.getRequestTimeout();
     if (effectiveRequestTimeout == null
         || effectiveRequestTimeout.isZero()
         || effectiveRequestTimeout.isNegative()) {
       effectiveRequestTimeout = DEFAULT_REQUEST_TIMEOUT;
-      diagnostics.warn(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+      diagnostics.warn(messages.statusInvalidRequestTimeout());
     }
 
     this.executor =
@@ -297,7 +310,7 @@ public final class AlertEngine {
           try {
             emitDigest();
           } catch (RuntimeException e) {
-            diagnostics.error(AlertMessages.PUBLISH_UNEXPECTED_ERROR, e);
+            diagnostics.error(messages.publishUnexpectedError(), e);
           }
         },
         windowMillis,
@@ -314,7 +327,7 @@ public final class AlertEngine {
       int capacity = config.getAsyncQueueCapacity();
       if (capacity < MIN_ASYNC_QUEUE_CAPACITY) {
         capacity = MIN_ASYNC_QUEUE_CAPACITY;
-        diagnostics.warn(AlertMessages.STATUS_INVALID_ASYNC_QUEUE_CAPACITY);
+        diagnostics.warn(messages.statusInvalidAsyncQueueCapacity());
       }
       long overflowWarnWindowMillis = windowMillis;
       this.deliveryExecutor =
@@ -332,9 +345,9 @@ public final class AlertEngine {
               asyncOverflowHandler(overflowWarnWindowMillis));
     }
 
-    diagnostics.info(AlertMessages.statusActive(config.getUrl(), config.getTopic())); // never token
+    diagnostics.info(messages.statusActive(config.getUrl(), config.getTopic())); // never token
     diagnostics.info(
-        AlertMessages.statusExclusions(config.getExcludedLoggerPrefixes())); // exactly once
+        messages.statusExclusions(config.getExcludedLoggerPrefixes())); // exactly once
     this.started = true;
   }
 
@@ -464,7 +477,7 @@ public final class AlertEngine {
       }
     } catch (RuntimeException e) {
       // Fixed generic message — never e.getMessage() here, it could embed a credential.
-      diagnostics.error(AlertMessages.PUBLISH_UNEXPECTED_ERROR, e);
+      diagnostics.error(messages.publishUnexpectedError(), e);
     }
   }
 
@@ -499,7 +512,7 @@ public final class AlertEngine {
         counters.incrementPublished();
       } else {
         counters.incrementFailed();
-        diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), result.httpStatus()));
+        diagnostics.warn(messages.publishFailed(config.getTopic(), result.httpStatus()));
         // A failed individual publish folds into the suppression count instead of being
         // lost — it will surface in the next digest. This digest-accounting fold is separate from
         // the observability counters: the event is counted `failed` (above), never `suppressed`.
@@ -508,7 +521,7 @@ public final class AlertEngine {
     } catch (RuntimeException e) {
       counters.incrementFailed();
       // Fixed generic message — never e.getMessage() here, it could embed a credential.
-      diagnostics.error(AlertMessages.PUBLISH_UNEXPECTED_ERROR, e);
+      diagnostics.error(messages.publishUnexpectedError(), e);
     }
   }
 
@@ -562,7 +575,7 @@ public final class AlertEngine {
       long last = lastAsyncOverflowWarnMillis.get();
       if (now - last >= warnWindowMillis
           && lastAsyncOverflowWarnMillis.compareAndSet(last, now)) {
-        diagnostics.warn(AlertMessages.STATUS_ASYNC_QUEUE_OVERFLOW);
+        diagnostics.warn(messages.statusAsyncQueueOverflow());
       }
     };
   }
@@ -605,12 +618,12 @@ public final class AlertEngine {
    */
   private String buildBody(AlertEvent event, AlertEvent.Cause rootCause) {
     StringBuilder sb = new StringBuilder();
-    sb.append(AlertMessages.LABEL_MESSAGE).append(event.formattedMessage()).append('\n');
-    sb.append(AlertMessages.LABEL_LOGGER).append(event.loggerName()).append('\n');
+    sb.append(messages.labelMessage()).append(event.formattedMessage()).append('\n');
+    sb.append(messages.labelLogger()).append(event.loggerName()).append('\n');
 
     if (!event.causeChain().isEmpty()) {
       for (AlertEvent.Cause cause : event.causeChain()) {
-        sb.append(AlertMessages.LABEL_CAUSE)
+        sb.append(messages.labelCause())
             .append(cause.className())
             .append(": ")
             .append(cause.message())
@@ -624,7 +637,7 @@ public final class AlertEngine {
       }
     }
 
-    sb.append(AlertMessages.LABEL_TIMESTAMP).append(Instant.ofEpochMilli(event.timestampMillis()));
+    sb.append(messages.labelTimestamp()).append(Instant.ofEpochMilli(event.timestampMillis()));
     return sb.toString();
   }
 
@@ -648,11 +661,13 @@ public final class AlertEngine {
       return;
     }
     String digestTitleText =
-        AlertMessages.digestTitle(
+        messages.digestTitle(
             config.getTitle() != null ? config.getTitle() : config.getAppName(), snap.count());
     String body =
-        AlertMessages.digestBody(
-            snap.count(), snap.perLoggerTally(), describeWindow(config.getSuppressionWindow()));
+        messages.digestBody(
+            snap.count(),
+            snap.perLoggerTally(),
+            messages.describeWindow(config.getSuppressionWindow(), DEFAULT_SUPPRESSION_WINDOW));
     String truncatedBody = PayloadTruncator.truncate(body, PayloadTruncator.NTFY_MAX_BYTES);
     PublishResult r =
         p.publish(
@@ -675,24 +690,13 @@ public final class AlertEngine {
     // Mirror the submit() path — a persistently failing digest (auth revoked, topic
     // ACL change, sustained 429) must be visible in the engine's own diagnostics.
     // Composer interpolates only topic + HTTP status, never a credential.
-    diagnostics.warn(AlertMessages.publishFailed(config.getTopic(), r.httpStatus()));
+    diagnostics.warn(messages.publishFailed(config.getTopic(), r.httpStatus()));
     // Carry the lost count forward instead of dropping it — one atomic bulk
     // merge restores the global count from the snapshot's own count() (single source of truth)
     // and the per-logger breakdown, so the next window's digest stays accurate. This affects only
     // the digest tally, never the observability counters, so the restored count is not re-counted
     // as `failed` on the next window.
     rl.restore(snap);
-  }
-
-  /** Human-readable window description for the digest body (e.g. {@code "3 minutes"}). */
-  private static String describeWindow(Duration duration) {
-    long ms = duration == null ? DEFAULT_SUPPRESSION_WINDOW.toMillis() : duration.toMillis();
-    long minutes = ms / 60_000L;
-    if (minutes >= 1) {
-      return minutes + (minutes == 1 ? " minute" : " minutes");
-    }
-    long seconds = Math.max(ms / 1_000L, 1L);
-    return seconds + (seconds == 1 ? " second" : " seconds");
   }
 
   /**

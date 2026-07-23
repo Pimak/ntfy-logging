@@ -1,7 +1,14 @@
 {
   "resources": {
     "includes": [
-      { "pattern": "\\Qntfy.properties\\E" }
+      { "pattern": "\\Qntfy.properties\\E" },
+      { "pattern": "io/github/pimak/ntfy/core/AlertMessages(_[a-zA-Z0-9_]+)?\\.properties" }
     ]
-  }
+  },
+  "bundles": [
+    {
+      "name": "io.github.pimak.ntfy.core.AlertMessages",
+      "locales": ["", "en", "fr"]
+    }
+  ]
 }

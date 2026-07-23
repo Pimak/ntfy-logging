@@ -101,6 +101,11 @@ public final class ConfigLoader {
       builder.allowClasspathEndpoint(Boolean.parseBoolean(allowClasspathEndpoint.trim()));
     }
 
+    String locale = resolve("locale", envLookup, fileProps, sysProps);
+    if (locale != null) {
+      builder.locale(locale);
+    }
+
     String async = resolve("async", envLookup, fileProps, sysProps);
     if (async != null) {
       builder.asyncEnabled(Boolean.parseBoolean(async.trim()));

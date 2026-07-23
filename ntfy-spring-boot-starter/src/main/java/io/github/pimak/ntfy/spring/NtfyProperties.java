@@ -30,6 +30,7 @@ public class NtfyProperties {
   private String digestTags = "fire";
   private String clickUrl;
   private String actions;
+  private String locale;
   private String excludedLoggers;
   private boolean enabled = true;
   private boolean async = false;
@@ -178,6 +179,18 @@ public class NtfyProperties {
 
   public void setActions(String actions) {
     this.actions = actions;
+  }
+
+  /**
+   * Language of notification bodies and diagnostics as a BCP 47 tag (e.g. {@code fr}, {@code
+   * de-DE}). Defaults to English; an unknown/unshipped locale silently uses English.
+   */
+  public String getLocale() {
+    return locale;
+  }
+
+  public void setLocale(String locale) {
+    this.locale = locale;
   }
 
   public String getExcludedLoggers() {

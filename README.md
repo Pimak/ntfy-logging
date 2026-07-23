@@ -70,6 +70,17 @@ attach the appender to that specific logger rather than to `root`. See
 [docs/filtering.md](docs/filtering.md), including the Logback-only `NO_ALERT` marker and the
 always-on self-exclusion of the library's own package.
 
+## Notification language
+
+Alert bodies and the engine's own diagnostics default to English but can be produced in another
+language with a single `locale` setting (`ntfy.locale` / `NTFY_LOCALE` / `quarkus.ntfy.locale` /
+`<locale>` / `NtfyConfig.builder().locale(...)`). The language is deterministic — it never follows
+the host JVM's default locale — and an unknown or unshipped locale silently falls back to English.
+Shipped languages: English (base) and French; adding one is a pure additive drop of an
+`AlertMessages_<lang>.properties` file. Credentials can never be interpolated into a translated
+string (a build-time invariant test enforces this). See
+[docs/configuration.md](docs/configuration.md#notification-language-translations).
+
 ## Compatibility
 
 Java 21+ · Logback 1.5.x · Spring Boot 3.4.x · Quarkus 3.15.x · GraalVM native (via the Quarkus
