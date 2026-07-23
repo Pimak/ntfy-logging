@@ -34,6 +34,7 @@ public class NtfyProperties {
   private boolean enabled = true;
   private boolean async = false;
   private int asyncQueueCapacity = 1024;
+  private boolean requireHttpsForCredentials = false;
 
   public String getUrl() {
     return url;
@@ -209,5 +210,13 @@ public class NtfyProperties {
 
   public void setAsyncQueueCapacity(int asyncQueueCapacity) {
     this.asyncQueueCapacity = asyncQueueCapacity;
+  }
+
+  public boolean isRequireHttpsForCredentials() {
+    return requireHttpsForCredentials;
+  }
+
+  public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
+    this.requireHttpsForCredentials = requireHttpsForCredentials;
   }
 }

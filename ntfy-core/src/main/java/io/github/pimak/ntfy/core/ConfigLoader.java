@@ -95,6 +95,12 @@ public final class ConfigLoader {
         builder::asyncQueueCapacity,
         resolve("async-queue-capacity", envLookup, fileProps, sysProps));
 
+    String requireHttps =
+        resolve("require-https-for-credentials", envLookup, fileProps, sysProps);
+    if (requireHttps != null) {
+      builder.requireHttpsForCredentials(Boolean.parseBoolean(requireHttps.trim()));
+    }
+
     return builder.build();
   }
 

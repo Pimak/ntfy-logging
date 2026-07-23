@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Security
+- **Broadened cleartext-credential detection at startup.** The existing warning for credentials
+  over a plain `http://` URL now also fires when the URL itself embeds userinfo
+  (`http://user:pass@host`), even when no separate `token` or `username`/`password` is configured —
+  previously this case transmitted a secret in the request target with no warning at all.
+- **New opt-in `require-https-for-credentials` flag** (default `false`), wired through every
+  configuration surface: env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop
+  `ntfy.require-https-for-credentials`, `NtfyConfig.Builder.requireHttpsForCredentials(...)`,
+  Logback XML `<requireHttpsForCredentials>`, Spring `ntfy.require-https-for-credentials`, and
+  Quarkus `quarkus.ntfy.require-https-for-credentials`. When enabled and credentials would traverse
+  a cleartext `http://` endpoint (configured token/basic pair, or userinfo embedded in the URL), the
+  engine refuses activation with a fixed, credential-safe diagnostic instead of merely warning.
+  Default behavior is unchanged: with the flag off, the engine warns loudly and still activates.
 - **Startup warning for a half-configured basic-auth pair.** When exactly one of
   `username`/`password` is set (and no `token` supersedes the pair), the engine used to silently
   fall back to `None` auth mode — every publish went out with no `Authorization` header while the

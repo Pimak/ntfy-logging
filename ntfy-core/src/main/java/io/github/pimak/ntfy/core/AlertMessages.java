@@ -35,13 +35,25 @@ final class AlertMessages {
           + "Authorization header";
 
   /**
-   * Fixed warning emitted from {@code start()} when credentials are configured but the URL scheme
-   * is plain {@code http://} — the Authorization header (token or basic credentials) and every
-   * alert body would travel in cleartext, readable by any on-path observer.
+   * Fixed warning emitted from {@code start()} when credentials would traverse a plain {@code
+   * http://} URL — a configured token, a username/password pair, or userinfo embedded in the URL
+   * itself ({@code http://user:pass@host}). The Authorization header (or URL userinfo) and every
+   * alert body would travel in cleartext, readable by any on-path observer. Credential-safe: fixed
+   * text only, never interpolating the credential or the URL.
    */
   static final String STATUS_CREDENTIALS_OVER_PLAIN_HTTP =
       "credentials configured with a plain http:// URL — the token/password and alert content "
           + "are sent unencrypted; use https://";
+
+  /**
+   * Fixed warning emitted from {@code start()} when {@code requireHttpsForCredentials} is enabled
+   * and credentials would traverse a plain {@code http://} URL — the engine refuses activation
+   * instead of transmitting a secret in cleartext. Credential-safe: fixed text only, never
+   * interpolating the credential or the URL.
+   */
+  static final String STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED =
+      "credentials configured with a plain http:// URL and require-https-for-credentials is "
+          + "enabled — refusing to send credentials unencrypted; use https:// — engine disabled";
 
   /**
    * Fixed message emitted from {@code start()} when the configured topic is not a valid ntfy topic
@@ -129,10 +141,12 @@ final class AlertMessages {
    * into diagnostic output.
    */
   static String statusActive(String url, String topic) {
-    // Greedy [^/]* strips up to the LAST '@' before the first path slash: a raw unencoded '@'
-    // inside the password ("//user:p@ss@host") must not leave a password tail in the output,
-    // which the previous non-greedy-equivalent [^/@]+ form did.
-    String safeUrl = url == null ? null : url.replaceFirst("//[^/]*@", "//");
+    // Greedy [^/?#]* strips up to the LAST '@' inside the authority (bounded by the first '/', '?',
+    // or '#'): a raw unencoded '@' inside the password ("//user:p@ss@host") must not leave a
+    // password tail, while a later '@' in a query/fragment ("//host?email=a@b.com") must not be
+    // mistaken for userinfo and over-strip the authority to "//b.com". Terminating on '?'/'#' as
+    // well as '/' matches the authority rule in AlertEngine.urlHasUserinfo.
+    String safeUrl = url == null ? null : url.replaceFirst("//[^/?#]*@", "//");
     return "ntfy alert engine ACTIVE (url=" + safeUrl + ", topic=" + topic + ")";
   }
 

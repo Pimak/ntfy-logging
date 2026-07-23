@@ -275,6 +275,29 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void requireHttpsForCredentials_defaultsToFalse() {
+    assertThat(ConfigLoader.load(k -> null, null, null).isRequireHttpsForCredentials()).isFalse();
+  }
+
+  @Test
+  void requireHttpsForCredentials_isWiredThroughFromEnv() {
+    Function<String, String> env =
+        env(Map.of("NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS", "true"));
+
+    assertThat(ConfigLoader.load(env, null, null).isRequireHttpsForCredentials()).isTrue();
+  }
+
+  @Test
+  void requireHttpsForCredentials_isWiredThroughFromSystemProperty() {
+    Properties sys = new Properties();
+    sys.setProperty("ntfy.require-https-for-credentials", "true");
+
+    assertThat(
+            ConfigLoader.load(k -> null, null, sys).isRequireHttpsForCredentials())
+        .isTrue();
+  }
+
+  @Test
   void allNullLayers_yieldAllDefaultsWithoutNpe() {
     NtfyConfig defaults = NtfyConfig.builder().build();
 
