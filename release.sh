@@ -96,6 +96,39 @@ grep -qxF '## [Unreleased]' CHANGELOG.md \
   || { echo "ERROR: '## [Unreleased]' heading not found in CHANGELOG.md." >&2; exit 1; }
 sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n## [${VERSION}] - ${TODAY}/" CHANGELOG.md
 
+#    Regenerate the reference-link block at the very bottom of the CHANGELOG from the version
+#    headings now present in the file (the new ${VERSION} section included). This rewrites the
+#    whole block in one pass, so it both refreshes the [Unreleased] link (now anchored at the
+#    freshly released version) and repairs any stale/missing per-tag links, rather than only
+#    touching the new entry. Links are derived, never hand-maintained:
+#      - [Unreleased] -> compare/v<newest>...HEAD
+#      - [X.Y.Z]      -> compare/v<previous>...vX.Y.Z
+#      - the oldest   -> releases/tag/v<oldest>
+#    The repo base URL is derived from the existing [Unreleased] link so nothing is hardcoded.
+echo "==> Regenerating CHANGELOG compare links"
+CL_BASE="$(sed -n 's#^\[Unreleased\]: \(https\{0,1\}://[^ ]*\)/compare/.*#\1#p' CHANGELOG.md | head -n1)"
+[[ -n "${CL_BASE}" ]] \
+  || { echo "ERROR: could not derive the repo base URL from the [Unreleased] link in CHANGELOG.md." >&2; exit 1; }
+mapfile -t CL_VERSIONS < <(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | sed -E 's/^## \[(.*)\]/\1/')
+[[ ${#CL_VERSIONS[@]} -gt 0 ]] \
+  || { echo "ERROR: no versioned section headings found in CHANGELOG.md." >&2; exit 1; }
+CL_LINKS="$(
+  printf '[Unreleased]: %s/compare/v%s...HEAD\n' "${CL_BASE}" "${CL_VERSIONS[0]}"
+  n=${#CL_VERSIONS[@]}
+  for ((i = 0; i < n; i++)); do
+    if (( i + 1 < n )); then
+      printf '[%s]: %s/compare/v%s...v%s\n' "${CL_VERSIONS[i]}" "${CL_BASE}" "${CL_VERSIONS[i+1]}" "${CL_VERSIONS[i]}"
+    else
+      printf '[%s]: %s/releases/tag/v%s\n' "${CL_VERSIONS[i]}" "${CL_BASE}" "${CL_VERSIONS[i]}"
+    fi
+  done
+)"
+#    Drop the old link definitions, then re-append the fresh block separated by one blank line.
+#    The command substitution strips the file's trailing blank lines, so spacing stays exact.
+sed -i -E '/^\[[^]]+\]: https?:\/\//d' CHANGELOG.md
+{ printf '%s\n\n' "$(< CHANGELOG.md)"; printf '%s\n' "${CL_LINKS}"; } > CHANGELOG.md.tmp
+mv CHANGELOG.md.tmp CHANGELOG.md
+
 #    Coordinate stamping across EVERY documentation file — the README plus each per-library
 #    guide under docs/ — so no install snippet is ever left pointing at the previous release.
 #    The README and each docs/*.md guide carry install snippets, so both seds are global:
