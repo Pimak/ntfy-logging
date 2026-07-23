@@ -34,7 +34,7 @@ The engine is:
 | Artifact | Guide | Purpose | Use when |
 |---|---|---|---|
 | **`ntfy-spring-boot-starter`** | [Spring Boot](docs/spring-boot.md) | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. |
-| **`ntfy-quarkus-runtime`** | [Quarkus](docs/quarkus.md) | Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
+| **`ntfy-quarkus-runtime`** | [Quarkus](docs/quarkus.md) | Quarkus 3.37 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
 | **`ntfy-logback`** | [Plain Logback](docs/logback.md) | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. |
 | **`ntfy-core`** | [Core](docs/core.md) | Framework-neutral ntfy engine + `NtfyClient`; no logging-framework dependency. | You want to send ntfy notifications programmatically from any JVM app, or you're building your own adapter. |
 
@@ -83,7 +83,7 @@ string (a build-time invariant test enforces this). See
 
 ## Compatibility
 
-Java 21+ · Logback 1.5.x · Spring Boot 3.4.x · Quarkus 3.15.x · GraalVM native (via the Quarkus
+Java 21+ · Logback 1.5.x · Spring Boot 3.4.x · Quarkus 3.37.x · GraalVM native (via the Quarkus
 extension). See [docs/compatibility.md](docs/compatibility.md) for the full matrix.
 
 ## Documentation

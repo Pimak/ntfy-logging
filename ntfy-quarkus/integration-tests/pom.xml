@@ -50,7 +50,7 @@
         </dependency>
 
         <!-- A trivial REST endpoint (/boom) to trigger an error log. quarkus-rest is the Quarkus
-             3.15 artifact id (the former quarkus-resteasy-reactive); version from quarkus-bom. -->
+             3.37 artifact id (the former quarkus-resteasy-reactive); version from quarkus-bom. -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest</artifactId>
@@ -128,7 +128,7 @@
         <!--
             Native leg. Activated by `-Dnative` (or the standard `native` property). Flips the
             Quarkus build to produce a native binary (quarkus.native.enabled=true is the Quarkus
-            3.15 idiom; the legacy quarkus.package.type=native is deprecated). The @QuarkusIntegrationTest
+            3.37 idiom; the legacy quarkus.package.type=native is deprecated). The @QuarkusIntegrationTest
             then launches ./…-runner and runs the same assertions against the native image.
         -->
         <profile>

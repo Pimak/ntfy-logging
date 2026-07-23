@@ -3,7 +3,7 @@
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-quarkus-runtime%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-quarkus-runtime)
 [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime)
 
-A Quarkus 3.15 extension: a JUL log handler bound to `quarkus.ntfy.*` that publishes your error logs,
+A Quarkus 3.37 extension: a JUL log handler bound to `quarkus.ntfy.*` that publishes your error logs,
 plus an injectable `NtfyClient`. It is GraalVM-native ready — the HTTP client is created at
 runtime-init — so it works in both JVM and native builds.
 

@@ -35,7 +35,7 @@ Spring Boot must be running on Logback (the default) — the starter installs a 
 
 | Version | Status |
 |---------|--------|
-| 3.15.x (LTS) | Tested — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
+| 3.37.x | Tested — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
 | 3.x (other) | Expected to work within the stable extension-API surface used (`LogHandlerBuildItem`, `@ConfigMapping @ConfigRoot(RUN_TIME)`, `@Recorder`) |
 
 ## GraalVM native image
