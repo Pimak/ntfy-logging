@@ -83,7 +83,7 @@ string (a build-time invariant test enforces this). See
 
 ## Compatibility
 
-Java 21+ · Logback 1.5.x · Spring Boot 3.4.x · Quarkus 3.37.x · GraalVM native (via the Quarkus
+Java 21+ · Logback 1.5.x · Spring Boot 4.1.x · Quarkus 3.37.x · GraalVM native (via the Quarkus
 extension). See [docs/compatibility.md](docs/compatibility.md) for the full matrix.
 
 ## Documentation

@@ -26,8 +26,8 @@ Minimum supported JDK: **21** (`<maven.compiler.release>21</maven.compiler.relea
 
 | Version | Status |
 |---------|--------|
-| 3.4.x   | Tested — the version pinned in this repo (`spring-boot.version` in `pom.xml`) |
-| 3.x (other, on Logback) | Expected to work — the starter uses stable `@AutoConfiguration` + `@ConfigurationProperties` binding and installs the Logback `ntfy-auto` appender |
+| 4.1.x   | Tested — the version pinned in this repo (`spring-boot.version` in `pom.xml`) |
+| 3.x / 4.x (other, on Logback) | Expected to work — the starter uses stable `@AutoConfiguration` + `@ConfigurationProperties` binding and installs the Logback `ntfy-auto` appender |
 
 Spring Boot must be running on Logback (the default) — the starter installs a Logback appender.
 
