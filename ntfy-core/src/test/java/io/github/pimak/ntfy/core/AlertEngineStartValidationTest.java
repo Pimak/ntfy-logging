@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -14,6 +15,10 @@ import org.junit.jupiter.api.Test;
  * to the default (loudly) instead of throwing out of {@code start()} with resources half-acquired.
  */
 class AlertEngineStartValidationTest {
+
+  // English-locale catalog: the emitted diagnostics use the default English locale, so the expected
+  // text is byte-for-byte identical to the pre-translation constants.
+  private final AlertMessages messages = AlertMessages.forLocale(Locale.ENGLISH);
 
   private static final class CapturingDiagnostics implements Diagnostics {
     final List<String> infos = new ArrayList<>();
@@ -44,7 +49,7 @@ class AlertEngineStartValidationTest {
     engine.start();
 
     assertThat(engine.isStarted()).isFalse();
-    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_TOPIC);
+    assertThat(diagnostics.warns).contains(messages.statusInvalidTopic());
   }
 
   @Test
@@ -57,7 +62,7 @@ class AlertEngineStartValidationTest {
     engine.start();
 
     assertThat(engine.isStarted()).isFalse();
-    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+    assertThat(diagnostics.warns).contains(messages.statusInvalidUrl());
   }
 
   @Test
@@ -71,7 +76,7 @@ class AlertEngineStartValidationTest {
     engine.start();
 
     assertThat(engine.isStarted()).isFalse();
-    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+    assertThat(diagnostics.warns).contains(messages.statusInvalidUrl());
   }
 
   @Test
@@ -84,7 +89,7 @@ class AlertEngineStartValidationTest {
     engine.start();
 
     assertThat(engine.isStarted()).isFalse();
-    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+    assertThat(diagnostics.warns).contains(messages.statusInvalidUrl());
   }
 
   @Test
@@ -101,7 +106,7 @@ class AlertEngineStartValidationTest {
     engine.start();
 
     assertThat(engine.isStarted()).isFalse();
-    assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_URL);
+    assertThat(diagnostics.warns).contains(messages.statusInvalidUrl());
   }
 
   @Test
@@ -115,7 +120,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidUrl());
     } finally {
       engine.stop();
     }
@@ -132,7 +137,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidUrl());
     } finally {
       engine.stop();
     }
@@ -148,7 +153,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidUrl());
     } finally {
       engine.stop();
     }
@@ -172,9 +177,9 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INVALID_URL);
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidUrl());
       assertThat(diagnostics.warns)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+          .doesNotContain(messages.statusCredentialsOverPlainHttp());
     } finally {
       engine.stop();
     }
@@ -184,7 +189,7 @@ class AlertEngineStartValidationTest {
   void statusInvalidUrl_isFixedTextAndNeverEchoesTheRejectedUrl() {
     // No-leak discipline: the message is a fixed constant and never interpolates the rejected URL
     // (which could carry a credential in a user:pass@host form).
-    assertThat(AlertMessages.STATUS_INVALID_URL)
+    assertThat(messages.statusInvalidUrl())
         .isEqualTo(
             "url is not a valid http(s) endpoint (expected http:// or https:// with a host) "
                 + "— engine disabled");
@@ -205,7 +210,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+      assertThat(diagnostics.warns).contains(messages.statusCredentialsOverPlainHttp());
     } finally {
       engine.stop();
     }
@@ -228,7 +233,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+      assertThat(diagnostics.warns).contains(messages.statusCredentialsOverPlainHttp());
     } finally {
       engine.stop();
     }
@@ -252,7 +257,7 @@ class AlertEngineStartValidationTest {
 
       assertThat(engine.isStarted()).isTrue();
       assertThat(diagnostics.warns)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+          .doesNotContain(messages.statusCredentialsOverPlainHttp());
     } finally {
       engine.stop();
     }
@@ -275,7 +280,7 @@ class AlertEngineStartValidationTest {
 
     assertThat(engine.isStarted()).isFalse();
     assertThat(diagnostics.warns)
-        .contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+        .contains(messages.statusCredentialsOverPlainHttpRefused());
   }
 
   @Test
@@ -294,7 +299,7 @@ class AlertEngineStartValidationTest {
 
     assertThat(engine.isStarted()).isFalse();
     assertThat(diagnostics.warns)
-        .contains(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+        .contains(messages.statusCredentialsOverPlainHttpRefused());
   }
 
   @Test
@@ -314,8 +319,8 @@ class AlertEngineStartValidationTest {
 
       assertThat(engine.isStarted()).isTrue();
       assertThat(diagnostics.warns)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+          .doesNotContain(messages.statusCredentialsOverPlainHttp())
+          .doesNotContain(messages.statusCredentialsOverPlainHttpRefused());
     } finally {
       engine.stop();
     }
@@ -339,8 +344,8 @@ class AlertEngineStartValidationTest {
 
       assertThat(engine.isStarted()).isTrue();
       assertThat(diagnostics.warns)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED);
+          .doesNotContain(messages.statusCredentialsOverPlainHttp())
+          .doesNotContain(messages.statusCredentialsOverPlainHttpRefused());
     } finally {
       engine.stop();
     }
@@ -348,13 +353,13 @@ class AlertEngineStartValidationTest {
 
   @Test
   void cleartextCredentialWarnings_areFixedTextWithoutSampleCredentials() {
-    // No-leak pin: both cleartext-credential messages are fixed constants that never interpolate
-    // (or even resemble) a credential or the offending URL.
-    assertThat(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP)
+    // No-leak pin: both cleartext-credential messages are fixed, argument-less bundle keys that
+    // never interpolate (or even resemble) a credential or the offending URL.
+    assertThat(messages.statusCredentialsOverPlainHttp())
         .doesNotContain("tk_")
         .doesNotContain("user:pass")
         .doesNotContain("@");
-    assertThat(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP_REFUSED)
+    assertThat(messages.statusCredentialsOverPlainHttpRefused())
         .doesNotContain("tk_")
         .doesNotContain("user:pass")
         .doesNotContain("@")
@@ -377,7 +382,7 @@ class AlertEngineStartValidationTest {
 
       assertThat(engine.isStarted()).isTrue();
       assertThat(diagnostics.warns)
-          .doesNotContain(AlertMessages.STATUS_CREDENTIALS_OVER_PLAIN_HTTP);
+          .doesNotContain(messages.statusCredentialsOverPlainHttp());
     } finally {
       engine.stop();
     }
@@ -398,7 +403,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_PRIORITY_OR_TAGS);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidPriorityOrTags());
     } finally {
       engine.stop();
     }
@@ -419,7 +424,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidConnectTimeout());
     } finally {
       engine.stop();
     }
@@ -440,7 +445,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidConnectTimeout());
     } finally {
       engine.stop();
     }
@@ -461,7 +466,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidConnectTimeout());
     } finally {
       engine.stop();
     }
@@ -482,7 +487,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidRequestTimeout());
     } finally {
       engine.stop();
     }
@@ -503,7 +508,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidRequestTimeout());
     } finally {
       engine.stop();
     }
@@ -524,7 +529,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+      assertThat(diagnostics.warns).contains(messages.statusInvalidRequestTimeout());
     } finally {
       engine.stop();
     }
@@ -542,8 +547,8 @@ class AlertEngineStartValidationTest {
 
       assertThat(engine.isStarted()).isTrue();
       assertThat(diagnostics.warns)
-          .doesNotContain(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT)
-          .doesNotContain(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT);
+          .doesNotContain(messages.statusInvalidConnectTimeout())
+          .doesNotContain(messages.statusInvalidRequestTimeout());
     } finally {
       engine.stop();
     }
@@ -564,7 +569,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+      assertThat(diagnostics.warns).contains(messages.statusIncompleteBasicAuth());
     } finally {
       engine.stop();
     }
@@ -585,7 +590,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).contains(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+      assertThat(diagnostics.warns).contains(messages.statusIncompleteBasicAuth());
     } finally {
       engine.stop();
     }
@@ -607,7 +612,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+      assertThat(diagnostics.warns).doesNotContain(messages.statusIncompleteBasicAuth());
     } finally {
       engine.stop();
     }
@@ -631,7 +636,7 @@ class AlertEngineStartValidationTest {
       engine.start();
 
       assertThat(engine.isStarted()).isTrue();
-      assertThat(diagnostics.warns).doesNotContain(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH);
+      assertThat(diagnostics.warns).doesNotContain(messages.statusIncompleteBasicAuth());
     } finally {
       engine.stop();
     }
@@ -641,7 +646,7 @@ class AlertEngineStartValidationTest {
   void incompleteBasicAuthWarning_isFixedTextAndNeverEmbedsCredentials() {
     // No-leak discipline: the message is a fixed constant and never interpolates the configured
     // username or password, matching the neighboring status constants.
-    assertThat(AlertMessages.STATUS_INCOMPLETE_BASIC_AUTH)
+    assertThat(messages.statusIncompleteBasicAuth())
         .isEqualTo(
             "username or password set but not both — basic auth is incomplete; publishing "
                 + "WITHOUT an Authorization header")
@@ -653,17 +658,17 @@ class AlertEngineStartValidationTest {
   void invalidTimeoutWarnings_neverEmbedTheOffendingValue() {
     // Locks in the credential-safety convention: the fixed messages must never interpolate the
     // user-supplied value (e.g. the raw "-1"), matching the neighboring status constants.
-    assertThat(AlertMessages.STATUS_INVALID_CONNECT_TIMEOUT).doesNotContain("-1");
-    assertThat(AlertMessages.STATUS_INVALID_REQUEST_TIMEOUT).doesNotContain("-1");
+    assertThat(messages.statusInvalidConnectTimeout()).doesNotContain("-1");
+    assertThat(messages.statusInvalidRequestTimeout()).doesNotContain("-1");
   }
 
   @Test
   void statusActive_stripsUserinfoIncludingUnencodedAtInPassword() {
-    assertThat(AlertMessages.statusActive("https://user:pass@ntfy.example.com/x", "t"))
+    assertThat(messages.statusActive("https://user:pass@ntfy.example.com/x", "t"))
         .isEqualTo("ntfy alert engine ACTIVE (url=https://ntfy.example.com/x, topic=t)");
     // Unencoded '@' inside the password: the strip must consume up to the LAST '@' before the
     // path, never leaving a password tail ("ss@host") in diagnostic output.
-    assertThat(AlertMessages.statusActive("https://user:p@ss@ntfy.example.com/x", "t"))
+    assertThat(messages.statusActive("https://user:p@ss@ntfy.example.com/x", "t"))
         .isEqualTo("ntfy alert engine ACTIVE (url=https://ntfy.example.com/x, topic=t)");
   }
 
@@ -672,11 +677,11 @@ class AlertEngineStartValidationTest {
     // A '@' in a query (not userinfo) must not be mistaken for credentials: with no path slash, the
     // strip must still terminate the authority at '?'/'#' and leave the URL intact rather than
     // mangling it to "http://b.com".
-    assertThat(AlertMessages.statusActive("http://ntfy.internal:8080?email=a@b.com", "t"))
+    assertThat(messages.statusActive("http://ntfy.internal:8080?email=a@b.com", "t"))
         .isEqualTo(
             "ntfy alert engine ACTIVE (url=http://ntfy.internal:8080?email=a@b.com, topic=t)");
     // Real userinfo alongside a later query '@' is still stripped, and the query is preserved.
-    assertThat(AlertMessages.statusActive("http://user:pass@ntfy.internal:8080?email=a@b.com", "t"))
+    assertThat(messages.statusActive("http://user:pass@ntfy.internal:8080?email=a@b.com", "t"))
         .isEqualTo(
             "ntfy alert engine ACTIVE (url=http://ntfy.internal:8080?email=a@b.com, topic=t)");
   }

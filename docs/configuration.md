@@ -48,6 +48,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `click-url` | String | *(none)* | URL ntfy opens when the notification is tapped (ntfy `Click` header). Applies to both error alerts and digests; sent as-is (no header when unset). |
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
+| `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
 | `allow-classpath-endpoint` | boolean | `false` | Opt-in for the Logback zero-code auto-install to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
 | `async` | boolean | `false` | Offload delivery to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. Off by default (synchronous, inline delivery). See [alert-behavior.md](alert-behavior.md). |
@@ -72,6 +73,52 @@ An unparseable value throws `IllegalArgumentException` at startup rather than si
 In **Spring Boot**, these bind as native `java.time.Duration` values using Spring's own duration
 syntax (`5s`, `3m`, `PT5S`, or a bare number of milliseconds), so you get the same spellings through
 Spring's converter.
+
+## Notification language (translations)
+
+Every visible string the engine produces — the body labels (`Message:`, `Logger:`, `Caused by:`,
+`Time:`), the storm-digest title/body, and the self-diagnostic status/warning lines — can be
+rendered in a language other than English. Select it with the `locale` setting, spelled the same way
+as every other key on each surface:
+
+| Surface | How to set it |
+|---|---|
+| Core / plain Logback | `-Dntfy.locale=fr`, `NTFY_LOCALE=fr`, or `ntfy.locale=fr` in `ntfy.properties`; XML `<locale>fr</locale>`; `NtfyConfig.builder().locale("fr")` (or `.locale(Locale.FRENCH)`) |
+| Spring Boot | `ntfy.locale: fr` |
+| Quarkus | `quarkus.ntfy.locale=fr` |
+
+**Semantics**
+
+- **Default is `en`.** The language is deterministic and, deliberately, never inherits
+  `Locale.getDefault()` from the host JVM.
+- **Fallback is per-key.** A locale with no shipped bundle falls back wholesale to English; a partial
+  translation falls back to English for each individual missing key. An unknown/garbage tag keeps
+  English rather than throwing.
+- **Credentials are never translated in.** The fixed status/warning strings take no arguments at all,
+  and the composed lines (ACTIVE line, publish-failure line, digest) keep their URL/credential
+  scrubbing in Java — a translation may move the already-safe `{0}`/`{1}` placeholders around in the
+  text but must keep exactly that placeholder set, never adding or removing one. This is enforced by
+  `AlertMessagesBundleSafetyTest`.
+
+**Shipped languages:** English (`en`, base) and French (`fr`).
+
+**Contributing a translation**
+
+1. Copy `ntfy-core/src/main/resources/io/github/pimak/ntfy/core/AlertMessages.properties` to
+   `AlertMessages_<lang>.properties` (e.g. `AlertMessages_de.properties`) and translate every value.
+2. In the **MessageFormat pattern keys** (`status.active`, `publish.failed.*`,
+   `status.exclusions.list`, `digest.*`, `window.*`) **double every literal single quote** (`''`) —
+   French `l'`/`d'` need this — and keep the same `{0}`/`{1}` argument set. **Never** add a `{`
+   placeholder to a no-placeholder key (the labels and fixed status strings); the safety test fails
+   the build if you do.
+3. Add the locale to `ntfy-core/.../META-INF/native-image/.../resource-config.json` (`bundles[0].locales`)
+   so GraalVM native images ship the bundle — otherwise native builds silently keep only English.
+4. Extend `AlertMessagesBundleSafetyTest.TRANSLATION_RESOURCES` with the new file so it is checked.
+
+*Limitation:* `MessageFormat` has no CLDR plural categories, so the "N errors suppressed" phrasing
+uses one form (with a simple singular/plural split only for the window unit). This is acceptable for
+diagnostic strings; languages with richer plural rules (Polish, Russian, Arabic) can only approximate
+it.
 
 ## Per-framework examples
 

@@ -7,8 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-07-23
+### Added
+- **Translatable notification language, selectable via a new `locale` setting.** Every visible
+  string the engine produces — body labels, the storm-digest title/body, and the self-diagnostic
+  status/warning lines — is now backed by a JDK `ResourceBundle` + `MessageFormat` catalog and can be
+  rendered in a language other than English. Set it with `ntfy.locale` / `NTFY_LOCALE` /
+  `ntfy.properties` `ntfy.locale` (core/Logback), the Logback `<locale>` XML setter, Spring
+  `ntfy.locale`, Quarkus `quarkus.ntfy.locale`, or `NtfyConfig.Builder.locale(Locale)` /
+  `.locale(String)` for programmatic core users. The default is English and is **deterministic** — it
+  never follows the host JVM's `Locale.getDefault()`. A locale with no shipped bundle falls back
+  wholesale to English; a partial translation falls back per missing key; an unknown/garbage tag
+  keeps English. Shipped languages: English (base) and French (`fr`); adding a language is a pure
+  additive drop of an `AlertMessages_<lang>.properties` file (plus one native-image bundle entry).
+  Default-locale output is byte-for-byte identical to before. Credential safety is preserved
+  structurally and locked by a new invariant test: the fixed status strings take no arguments (so no
+  translation can interpolate a token/username/password), and the composed lines keep their
+  URL/credential scrubbing in Java — a translation can only reorder or drop the already-safe
+  arguments, never widen the set. `ntfy-core` stays pure-JDK: `ResourceBundle`/`MessageFormat` live
+  in `java.base`, so the maven-enforcer dependency allowlist is unchanged. See
+  [docs/configuration.md](docs/configuration.md#notification-language-translations).
 
+## [1.1.1] - 2026-07-23
 ### Security
 - **The Logback zero-code auto-install now refuses a classpath-only endpoint URL unless explicitly
   opted in.** Previously, a `ntfy.properties` shipped inside ANY jar on the classpath (e.g. a

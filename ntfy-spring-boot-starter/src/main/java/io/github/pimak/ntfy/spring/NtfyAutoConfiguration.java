@@ -103,6 +103,7 @@ public class NtfyAutoConfiguration implements DisposableBean {
     appender.setDigestTags(p.getDigestTags());
     appender.setClickUrl(p.getClickUrl());
     appender.setActions(p.getActions());
+    appender.setLocale(p.getLocale());
     appender.setExcludedLoggers(p.getExcludedLoggers());
     appender.setEnabled(p.isEnabled());
     appender.setAsync(p.isAsync());
@@ -142,6 +143,7 @@ public class NtfyAutoConfiguration implements DisposableBean {
         .digestTags(p.getDigestTags())
         .clickUrl(p.getClickUrl())
         .actionsHeader(p.getActions())
+        .locale(p.getLocale())
         .excludedLoggers(p.getExcludedLoggers())
         .enabled(p.isEnabled())
         .asyncEnabled(p.isAsync())

@@ -9,6 +9,7 @@ import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.LogHandlerBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBundleBuildItem;
 
 /**
  * Build-time wiring for the ntfy Quarkus extension.
@@ -36,6 +37,19 @@ class NtfyProcessor {
   @BuildStep
   AdditionalBeanBuildItem ntfyClientProducer() {
     return AdditionalBeanBuildItem.unremovableOf(NtfyClientProducer.class);
+  }
+
+  /**
+   * Registers the {@code AlertMessages} {@link java.util.ResourceBundle} so a native image ships the
+   * translated {@code .properties} bundles. Without this, native builds silently keep only the
+   * English base (the bundle-loading reflection is invisible to the static analysis). This step
+   * registers only the bundle's base name and picks up every shipped locale automatically — adding a
+   * language never requires touching it; only {@code ntfy-core}'s {@code resource-config.json}
+   * {@code locales} list needs the new entry.
+   */
+  @BuildStep
+  NativeImageResourceBundleBuildItem alertMessagesBundle() {
+    return new NativeImageResourceBundleBuildItem("io.github.pimak.ntfy.core.AlertMessages");
   }
 
   @BuildStep
