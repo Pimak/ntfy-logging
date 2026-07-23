@@ -9,12 +9,68 @@
 #
 # This script handles NO credentials. It echoes no secret, sets no secret, reads no secret.
 #
-# Usage: ./release.sh   (run from the repo root, on a clean main working tree)
+# Usage: ./release.sh <VERSION>   (explicit version, e.g. ./release.sh 1.2.0)
+#        ./release.sh --patch | -p   (bump the patch component of the last tag)
+#        ./release.sh --minor | -m   (bump the minor component, reset patch)
+#        ./release.sh --major | -M   (bump the major component, reset minor+patch)
+#
+# For the three bump modes the next version is derived from the highest semver tag reachable
+# on the CURRENT branch (git tag --merged HEAD), incremented per semver. Run from the repo
+# root, on a clean main working tree.
 
 set -euo pipefail
 
-# --- single source of truth: change these two lines for a future release ---------------
-VERSION="1.1.0"
+usage() {
+  cat >&2 <<EOF
+Usage: $0 <VERSION>       explicit version, e.g. $0 1.2.0
+       $0 --patch | -p    bump patch of the last tag  (1.2.3 -> 1.2.4)
+       $0 --minor | -m    bump minor of the last tag  (1.2.3 -> 1.3.0)
+       $0 --major | -M    bump major of the last tag  (1.2.3 -> 2.0.0)
+EOF
+  exit 2
+}
+
+# Highest semver tag (vMAJOR.MINOR.PATCH) reachable on the current branch.
+last_version() {
+  local tag
+  tag="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
+  if [[ -z "${tag}" ]]; then
+    echo "ERROR: no vMAJOR.MINOR.PATCH tag found on the current branch to bump from." >&2
+    exit 1
+  fi
+  echo "${tag#v}"
+}
+
+# Increment BASE_VERSION ($1) by the requested component ($2: major|minor|patch).
+bump() {
+  local base="$1" part="$2"
+  if [[ ! "${base}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "ERROR: last tag version '${base}' is not a MAJOR.MINOR.PATCH semver." >&2
+    exit 1
+  fi
+  local major="${BASH_REMATCH[1]}" minor="${BASH_REMATCH[2]}" patch="${BASH_REMATCH[3]}"
+  case "${part}" in
+    major) echo "$((major + 1)).0.0" ;;
+    minor) echo "${major}.$((minor + 1)).0" ;;
+    patch) echo "${major}.${minor}.$((patch + 1))" ;;
+  esac
+}
+
+# --- resolve the target VERSION from exactly one CLI argument ---------------------------
+[[ $# -eq 1 ]] || usage
+
+case "$1" in
+  -p|--patch) VERSION="$(bump "$(last_version)" patch)" ;;
+  -m|--minor) VERSION="$(bump "$(last_version)" minor)" ;;
+  -M|--major) VERSION="$(bump "$(last_version)" major)" ;;
+  -*)         usage ;;
+  *)
+    VERSION="${1#v}"
+    [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+      || { echo "ERROR: '$1' is not a MAJOR.MINOR.PATCH version." >&2; exit 1; }
+    ;;
+esac
+
 TAG="v${VERSION}"
 # ---------------------------------------------------------------------------------------
 
