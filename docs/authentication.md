@@ -45,8 +45,8 @@ token.
 Both `username` and `password` must be non-blank. **If only one of the two is set, the pair is
 ignored and the engine falls back to `None` mode**: every publish goes out with no
 `Authorization` header. The engine emits a one-time startup warning for this half-configured state
-(`username or password set but not both — basic auth is incomplete; publishing WITHOUT an
-Authorization header`) — unless a `token` is also configured, in which case the token supersedes
+(`username or password set but not both — basic auth is incomplete; publishing WITHOUT an Authorization header`) —
+unless a `token` is also configured, in which case the token supersedes
 basic auth entirely and only the token-plus-basic overlap warning below can apply. Activation
 still proceeds. Against a protected server the observable
 symptom is `ntfy publish failed for topic '<topic>' (HTTP 401)` (or `403`) diagnostics — see
