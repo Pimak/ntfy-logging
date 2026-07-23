@@ -25,6 +25,16 @@ final class AlertMessages {
       "both token and username/password configured — token takes precedence";
 
   /**
+   * Fixed warning emitted from {@code start()} when exactly one of username/password is configured
+   * (and no token supersedes the pair) — {@code AuthMode.fromCredentials} ignores the incomplete
+   * pair and falls back to {@code None}, so every publish would silently go out unauthenticated.
+   * Credential-safe: fixed text only, never interpolating the configured username or password.
+   */
+  static final String STATUS_INCOMPLETE_BASIC_AUTH =
+      "username or password set but not both — basic auth is incomplete; publishing WITHOUT an "
+          + "Authorization header";
+
+  /**
    * Fixed warning emitted from {@code start()} when credentials are configured but the URL scheme
    * is plain {@code http://} — the Authorization header (token or basic credentials) and every
    * alert body would travel in cleartext, readable by any on-path observer.
