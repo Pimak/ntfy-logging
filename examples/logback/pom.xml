@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.2.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-example-logback</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-example-logback</name>
+    <description>
+        Runnable example for ntfy-logback that doubles as its functional test-bed: a plain SLF4J
+        application whose logback.xml wires the LogbackAlertAppender. The integration tests build a
+        LoggerContext from that very logback.xml against a loopback ntfy stand-in and prove the base
+        alert path, the synchronous-vs-asynchronous delivery difference, and the clean-shutdown
+        digest flush. This module is NEVER published to Central.
+    </description>
+
+    <properties>
+        <!-- Example/test harness, not a released artifact: keep it out of every publish and
+             static-analysis path that the released modules run. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
+        <enforcer.skip>true</enforcer.skip>
+        <pmd.skip>true</pmd.skip>
+        <cpd.skip>true</cpd.skip>
+    </properties>
+
+    <dependencies>
+        <!-- The library under example — exactly what a Logback consumer declares (it pulls
+             ntfy-core transitively). -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-logback</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- The app logs through the SLF4J API with Logback as the backend, like any Logback app.
+             Versions come from the parent's dependencyManagement. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-example-testkit</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- The *IT integration tests run at verify; version + executions inherited from the
+                 parent's pluginManagement — declaring the plugin activates them. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

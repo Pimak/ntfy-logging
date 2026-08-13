@@ -9,6 +9,10 @@ GraalVM native-image metadata for hand-rolled native builds.
 **Use this when** you want to send ntfy notifications programmatically from any JVM app, or you're
 building your own adapter. Every other module in this family depends on `ntfy-core`.
 
+**Runnable example:** [`examples/core`](../examples/core) — a plain-JVM app driving `NtfyClient` and
+`AlertEngine`, whose CI-run integration tests cover the base publish path, sync-vs-async delivery,
+and the clean-shutdown digest flush.
+
 ## Install
 
 - **Maven Central:** [io.github.pimak:ntfy-core](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)

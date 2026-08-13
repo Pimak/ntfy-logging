@@ -20,6 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `install(Logger)` for a programmatic one-liner scoped to the root logger or a subtree. A
   `reflect-config.json` under `META-INF/native-image/` covers the auto-handler's reflective
   instantiation in hand-rolled native builds. See [docs/jul.md](docs/jul.md).
+- **Runnable example applications that double as functional tests.** New (unpublished) reactor
+  modules under `examples/` — `examples/spring-boot`, `examples/logback`, `examples/jul`,
+  `examples/core`, plus a shared pure-JDK loopback ntfy stand-in in `examples/testkit` — each a
+  small, realistic app using one adapter exactly the way a consumer would (`application.yml`
+  `ntfy.*`, an explicit `logback.xml`, the `NtfyJulInstaller` one-liner with `-Dntfy.*`/env config,
+  programmatic `NtfyClient`/`AlertEngine`). Their integration tests run under plain
+  `./mvnw verify`, so the examples can never drift from the code, and each proves three behaviors
+  end-to-end: the base alert/notify path; the synchronous-vs-asynchronous delivery difference,
+  deterministically (the stand-in holds its HTTP response open, showing a sync error log blocked in
+  the calling thread while an async one has already returned); and the clean-shutdown contract
+  (context close / `LoggerContext` stop / `AlertEngine.stop()` flushes the pending storm digest,
+  folds queued-or-in-flight async alerts into it — count-never-lost — and leaves no engine thread
+  alive). The existing Quarkus integration-tests app plays the same role for the Quarkus extension
+  and gained an async-delivery smoke test (`quarkus.ntfy.async=true` keeps `/boom` non-blocking
+  while the ntfy response is held). See [examples/README.md](examples/README.md).
 
 ### Changed
 - **`ntfy-quarkus-runtime` now depends on `ntfy-jul` instead of carrying its own JUL classes.**

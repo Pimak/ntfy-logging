@@ -12,6 +12,10 @@ alert — declaratively via `logging.properties`, with one line of code, or full
 (On Quarkus, use the [extension](quarkus.md) instead: it installs this same handler with
 `quarkus.ntfy.*` config and native support.)
 
+**Runnable example:** [`examples/jul`](../examples/jul) — a plain JUL app using the
+`NtfyJulInstaller` one-liner, whose CI-run integration tests cover the base alert path,
+sync-vs-async delivery, and the clean-shutdown digest flush.
+
 ## Install
 
 - **Maven Central:** [io.github.pimak:ntfy-jul](https://central.sonatype.com/artifact/io.github.pimak/ntfy-jul)

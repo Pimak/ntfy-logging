@@ -11,6 +11,10 @@ runtime-init — so it works in both JVM and native builds.
 **Use this when** you run Quarkus (JVM or native) and want `quarkus.ntfy.*` config and an
 `@Inject NtfyClient`.
 
+**Runnable example:** [`ntfy-quarkus/integration-tests`](../ntfy-quarkus/integration-tests) — a real
+Quarkus app using this extension, exercised by CI in JVM, fast-jar, and native mode (including an
+async-delivery smoke test).
+
 ## Install
 
 - **Maven Central:** [io.github.pimak:ntfy-quarkus-runtime](https://central.sonatype.com/artifact/io.github.pimak/ntfy-quarkus-runtime)
