@@ -9,9 +9,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Proves the {@code <requireHttpsForCredentials>} XML setter reaches the built {@link
- * io.github.pimak.ntfy.core.NtfyConfig}: with strict mode on and a token over a plain {@code
- * http://} URL, the engine refuses activation (fixed refusal diagnostic, no publish attempt);
- * with the setter untouched the default warn-and-activate behavior holds.
+ * io.github.pimak.ntfy.core.NtfyConfig}: with the setter untouched, strict mode (the default since
+ * 2.0) refuses activation for a token over a plain {@code http://} URL (fixed refusal diagnostic,
+ * no publish attempt); with the explicit {@code false} opt-out the pre-2.0 warn-and-activate
+ * behavior holds.
  */
 class LogbackAlertAppenderRequireHttpsTest {
 
@@ -27,10 +28,10 @@ class LogbackAlertAppenderRequireHttpsTest {
   }
 
   @Test
-  void strictMode_tokenOverPlainHttp_refusesActivation() {
+  void defaultStrictMode_tokenOverPlainHttp_refusesActivation() {
+    // The setter is deliberately untouched: refusal must be the default since 2.0.
     LoggerContext context = new LoggerContext();
     LogbackAlertAppender appender = appender(context);
-    appender.setRequireHttpsForCredentials(true);
 
     appender.start();
     appender.stop();
@@ -42,9 +43,10 @@ class LogbackAlertAppenderRequireHttpsTest {
   }
 
   @Test
-  void defaultMode_tokenOverPlainHttp_warnsButActivates() {
+  void explicitOptOut_tokenOverPlainHttp_warnsButActivates() {
     LoggerContext context = new LoggerContext();
     LogbackAlertAppender appender = appender(context);
+    appender.setRequireHttpsForCredentials(false);
 
     appender.start();
     appender.stop();

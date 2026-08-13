@@ -375,26 +375,28 @@ class ConfigLoaderTest {
   }
 
   @Test
-  void requireHttpsForCredentials_defaultsToFalse() {
-    assertThat(ConfigLoader.load(k -> null, null, null).isRequireHttpsForCredentials()).isFalse();
+  void requireHttpsForCredentials_defaultsToTrue() {
+    assertThat(ConfigLoader.load(k -> null, null, null).isRequireHttpsForCredentials()).isTrue();
   }
 
+  // Both wiring tests opt OUT ("false") — the non-default value since 2.0 — so a passing assertion
+  // can only come from the key actually reaching the builder, never from the default standing.
   @Test
   void requireHttpsForCredentials_isWiredThroughFromEnv() {
     Function<String, String> env =
-        env(Map.of("NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS", "true"));
+        env(Map.of("NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS", "false"));
 
-    assertThat(ConfigLoader.load(env, null, null).isRequireHttpsForCredentials()).isTrue();
+    assertThat(ConfigLoader.load(env, null, null).isRequireHttpsForCredentials()).isFalse();
   }
 
   @Test
   void requireHttpsForCredentials_isWiredThroughFromSystemProperty() {
     Properties sys = new Properties();
-    sys.setProperty("ntfy.require-https-for-credentials", "true");
+    sys.setProperty("ntfy.require-https-for-credentials", "false");
 
     assertThat(
             ConfigLoader.load(k -> null, null, sys).isRequireHttpsForCredentials())
-        .isTrue();
+        .isFalse();
   }
 
   @Test

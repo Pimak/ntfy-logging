@@ -32,6 +32,8 @@ class CoreEngineCleanShutdownIT {
               .topic("alerts")
               .appName("core-example")
               .maxAlertsPerWindow(1)
+              // Explicit 2.0 opt-out: this leg proves the synchronous shutdown contract.
+              .asyncEnabled(false)
               // Long window: the digest below can only come from the stop() flush, never the timer.
               .suppressionWindow(Duration.ofSeconds(60))
               .build();

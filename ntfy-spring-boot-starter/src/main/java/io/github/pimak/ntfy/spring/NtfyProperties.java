@@ -33,9 +33,9 @@ public class NtfyProperties {
   private String locale;
   private String excludedLoggers;
   private boolean enabled = true;
-  private boolean async = false;
+  private boolean async = true;
   private int asyncQueueCapacity = 1024;
-  private boolean requireHttpsForCredentials = false;
+  private boolean requireHttpsForCredentials = true;
 
   public String getUrl() {
     return url;

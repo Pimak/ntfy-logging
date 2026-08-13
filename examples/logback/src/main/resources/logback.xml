@@ -22,10 +22,12 @@
     <topic>${NTFY_TOPIC:-my-app-alerts}</topic>
     <!-- For an auth-protected topic: <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token> -->
 
-    <!-- Built-in async delivery: with true, each error alert is handed to a bounded queue drained
-         by a daemon worker, so a slow or unreachable ntfy server never blocks the logging thread.
-         With false (the default), delivery is synchronous and inline. -->
-    <async>${NTFY_ASYNC:-false}</async>
+    <!-- Built-in async delivery (the default since 2.0): each error alert is handed to a bounded
+         queue drained by a daemon worker, so a slow or unreachable ntfy server never blocks the
+         logging thread. Set false for pre-2.0 synchronous, inline delivery — the guarantee a
+         short-lived process may prefer, since the publish completes before the logging call
+         returns. -->
+    <async>${NTFY_ASYNC:-true}</async>
 
     <!-- Storm suppression: at most maxAlertsPerWindow individual alerts per suppressionWindow
          (milliseconds); the overflow is reported as one aggregated digest — also flushed on a

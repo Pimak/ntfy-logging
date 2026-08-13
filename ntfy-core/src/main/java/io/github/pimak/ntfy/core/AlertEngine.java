@@ -25,16 +25,16 @@ import java.util.concurrent.atomic.AtomicLong;
  * engine owns exclusion/marker gating, storm rate-limiting, payload assembly, HTTP publishing, and
  * the periodic storm digest.
  *
- * <p>Delivery is synchronous by default: {@code HttpClient.send()} blocks the calling (logging)
- * thread for up to connectTimeout + requestTimeout per event, and the HTTP executor only services
- * the client's internal async tasks. For a first-class non-blocking option, enable {@linkplain
- * NtfyConfig#isAsyncEnabled() async delivery}: individual error publishes are then handed to a
+ * <p>Delivery is asynchronous by default (since 2.0): individual error publishes are handed to a
  * bounded work queue drained by a single daemon worker thread ({@code ntfy-alert-delivery}), so a
  * slow or unreachable ntfy server can never back-pressure application threads during an error
  * storm. When the queue is full an alert is dropped but folded into the storm digest's suppression
  * count (never lost silently), and {@link #stop()} drains any queued-but-unsent events into that
- * same count before the final synchronous flush. Async is opt-in; with it off, delivery is inline
- * and identical to before the flag existed.
+ * same count before the final synchronous flush. Disabling {@linkplain
+ * NtfyConfig#isAsyncEnabled() async delivery} restores inline synchronous publishing: {@code
+ * HttpClient.send()} then blocks the calling (logging) thread for up to connectTimeout +
+ * requestTimeout per event — the guarantee short-lived processes may prefer, since a queued alert
+ * that never reaches the worker before the JVM exits is not delivered.
  */
 public final class AlertEngine {
 
@@ -217,13 +217,13 @@ public final class AlertEngine {
         (hasToken || hasBasic || urlHasUserinfo(config.getUrl())) && isPlainHttp(config.getUrl());
     if (credentialsOverPlainHttp) {
       if (config.isRequireHttpsForCredentials()) {
-        // Opt-in strict mode: refuse activation rather than transmit a secret readable by any
-        // on-path observer. Mirrors the invalid-url/invalid-topic refusals — no resource is
-        // acquired and `started` stays false.
+        // Strict mode (the default since 2.0): refuse activation rather than transmit a secret
+        // readable by any on-path observer. Mirrors the invalid-url/invalid-topic refusals — no
+        // resource is acquired and `started` stays false.
         diagnostics.warn(messages.statusCredentialsOverPlainHttpRefused());
         return;
       }
-      // Default mode: the Authorization header/userinfo is readable by any on-path observer.
+      // Explicit opt-out: the Authorization header/userinfo is readable by any on-path observer.
       // Warn loudly but still activate — a self-hosted plain-HTTP setup is the operator's
       // deliberate (if risky) choice, and refusing would silence alerting.
       diagnostics.warn(messages.statusCredentialsOverPlainHttp());
@@ -317,9 +317,10 @@ public final class AlertEngine {
         windowMillis,
         TimeUnit.MILLISECONDS);
 
-    // Async delivery worker (opt-in): a single daemon thread draining a bounded queue, so a slow or
-    // unreachable ntfy server never back-pressures application threads. Built AFTER publisher and
-    // rateLimiter are assigned (the worker and the rejection handler read them) and BEFORE started
+    // Async delivery worker (the default since 2.0): a single daemon thread draining a bounded
+    // queue, so a slow or unreachable ntfy server never back-pressures application threads. Built
+    // AFTER publisher and rateLimiter are assigned (the worker and the rejection handler read
+    // them) and BEFORE started
     // is set. A ThreadPoolExecutor gives us two free primitives: shutdownNow() returns the list of
     // never-started queued tasks (what stop() must drain) and a RejectedExecutionHandler is the
     // natural overflow hook. GraalVM-native-safe: plain platform daemon threads, no reflection.
@@ -472,7 +473,7 @@ public final class AlertEngine {
         // + fold into the suppression count), never blocking the submitting thread.
         de.execute(new DeliveryTask(payload, event.loggerName()));
       } else {
-        // Sync (default): publish inline on the calling thread, exactly as before this flag existed.
+        // Sync (explicit opt-out): publish inline on the calling thread.
         deliver(payload, event.loggerName());
       }
     } catch (RuntimeException e) {

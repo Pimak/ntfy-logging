@@ -24,15 +24,16 @@ class ConfigLoaderAsyncTest {
   @Test
   void defaultsWhenUnset() {
     NtfyConfig config = ConfigLoader.load(k -> null, new Properties(), new Properties());
-    assertThat(config.isAsyncEnabled()).isFalse();
+    assertThat(config.isAsyncEnabled()).isTrue();
     assertThat(config.getAsyncQueueCapacity()).isEqualTo(1024);
   }
 
   @Test
-  void asyncEnabledFromSystemProperty() {
+  void asyncDisabledFromSystemProperty() {
+    // "false" is the non-default value since 2.0, so this proves the key is actually wired through.
     NtfyConfig config =
-        ConfigLoader.load(k -> null, new Properties(), sysProp("ntfy.async", "true"));
-    assertThat(config.isAsyncEnabled()).isTrue();
+        ConfigLoader.load(k -> null, new Properties(), sysProp("ntfy.async", "false"));
+    assertThat(config.isAsyncEnabled()).isFalse();
   }
 
   @Test
@@ -45,10 +46,12 @@ class ConfigLoaderAsyncTest {
 
   @Test
   void systemPropertyWinsOverFileForAsync() {
+    // The system property carries the non-default "false": only sysprop-wins precedence (not the
+    // builder default, not the file layer) can explain the resulting disabled state.
     Properties file = new Properties();
-    file.setProperty("ntfy.async", "false");
-    NtfyConfig config = ConfigLoader.load(k -> null, file, sysProp("ntfy.async", "true"));
-    assertThat(config.isAsyncEnabled()).isTrue();
+    file.setProperty("ntfy.async", "true");
+    NtfyConfig config = ConfigLoader.load(k -> null, file, sysProp("ntfy.async", "false"));
+    assertThat(config.isAsyncEnabled()).isFalse();
   }
 
   @Test

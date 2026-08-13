@@ -34,6 +34,9 @@ class LogbackAlertAppenderActionsHeaderIT {
     appender.setContext(new LoggerContext());
     appender.setUrl("http://localhost:" + wireMockPort);
     appender.setTopic("alerts");
+    // Inline synchronous delivery (explicit 2.0 opt-out): this suite pins payload/digest/counter
+    // semantics deterministically; the async default is covered by LogbackAlertAppenderAsyncIT.
+    appender.setAsync(false);
     return appender;
   }
 

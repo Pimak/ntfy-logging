@@ -21,7 +21,9 @@ class SpringSyncVsAsyncIT {
   @Test
   void syncErrorLogBlocksTheCallingThreadUntilTheServerResponds() throws Exception {
     try (LoopbackNtfyServer server = new LoopbackNtfyServer();
-        ConfigurableApplicationContext context = ExampleApplications.run(server)) {
+        // --ntfy.async=false is the explicit 2.0 opt-out: this leg proves synchronous delivery.
+        ConfigurableApplicationContext context =
+            ExampleApplications.run(server, "--ntfy.async=false")) {
       server.holdFirstResponses(1);
       OrderService orders = context.getBean(OrderService.class);
 

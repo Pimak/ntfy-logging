@@ -18,9 +18,10 @@ import ch.qos.logback.classic.spi.LoggingEvent;
 import org.junit.jupiter.api.Test;
 
 /**
- * Proves {@code setAsync(true)} makes {@code doAppend} non-blocking against a slow ntfy server (the
- * blocking send runs on the {@code ntfy-alert-delivery} daemon worker), that the alert still lands,
- * and that no delivery/http/digest thread survives {@code stop()}.
+ * Proves the async default (since 2.0, no {@code setAsync} call) makes {@code doAppend}
+ * non-blocking against a slow ntfy server (the blocking send runs on the {@code
+ * ntfy-alert-delivery} daemon worker), that the alert still lands, and that no
+ * delivery/http/digest thread survives {@code stop()}.
  */
 @WireMockTest
 class LogbackAlertAppenderAsyncIT {
@@ -63,7 +64,7 @@ class LogbackAlertAppenderAsyncIT {
     appender.setContext(context);
     appender.setUrl("http://localhost:" + wm.getHttpPort());
     appender.setTopic("alerts");
-    appender.setAsync(true);
+    // setAsync deliberately untouched: non-blocking delivery must be the default since 2.0.
     appender.setMaxAlertsPerWindow(10);
     appender.setSuppressionWindow("60000");
     appender.start();

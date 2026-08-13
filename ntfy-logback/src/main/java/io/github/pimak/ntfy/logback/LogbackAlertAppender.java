@@ -168,9 +168,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
-   * Opt into asynchronous (offloaded) delivery: individual error alerts are handed to the engine's
-   * bounded work queue and published by a daemon worker, so a slow/unreachable ntfy server never
-   * blocks the logging thread. Off by default (synchronous delivery).
+   * Asynchronous (offloaded) delivery: individual error alerts are handed to the engine's bounded
+   * work queue and published by a daemon worker, so a slow/unreachable ntfy server never blocks
+   * the logging thread. On by default; set {@code false} for pre-2.0 synchronous delivery.
    */
   public void setAsync(boolean async) {
     this.async = async;
@@ -183,7 +183,8 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
 
   /**
    * Strict mode: refuse engine activation (rather than only warn) when credentials would be sent
-   * over a cleartext {@code http://} endpoint. Off by default (warn-and-activate).
+   * over a cleartext {@code http://} endpoint. On by default; set {@code false} for the pre-2.0
+   * warn-and-activate behavior.
    */
   public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
     this.requireHttpsForCredentials = requireHttpsForCredentials;

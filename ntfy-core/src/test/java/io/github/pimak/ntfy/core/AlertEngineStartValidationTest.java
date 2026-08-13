@@ -196,7 +196,9 @@ class AlertEngineStartValidationTest {
   }
 
   @Test
-  void credentialsOverPlainHttp_warnButStillActivate() {
+  void credentialsOverPlainHttp_withExplicitOptOut_warnButStillActivate() {
+    // requireHttpsForCredentials(false) is the explicit 2.0 opt-out restoring warn-and-activate
+    // for deliberate self-hosted plain-HTTP setups.
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
     AlertEngine engine =
         new AlertEngine(
@@ -204,6 +206,7 @@ class AlertEngineStartValidationTest {
                 .url("http://ntfy.internal:8080")
                 .topic("alerts")
                 .token("tk_secret")
+                .requireHttpsForCredentials(false)
                 .build(),
             diagnostics);
     try {
@@ -219,14 +222,15 @@ class AlertEngineStartValidationTest {
   @Test
   void userinfoInUrlOverPlainHttp_warnsEvenWithoutConfiguredCredentials() {
     // Gap (a) regression: http://user:pass@host embeds a secret in the request target even when no
-    // token/username/password is configured — the cleartext warning must fire, and default mode
-    // still activates.
+    // token/username/password is configured — the cleartext warning must fire, and the explicit
+    // strict-mode opt-out still activates.
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
     AlertEngine engine =
         new AlertEngine(
             NtfyConfig.builder()
                 .url("http://user:pass@ntfy.internal:8080")
                 .topic("alerts")
+                .requireHttpsForCredentials(false)
                 .build(),
             diagnostics);
     try {
@@ -265,6 +269,7 @@ class AlertEngineStartValidationTest {
 
   @Test
   void requireHttpsForCredentials_refusesActivationForTokenOverPlainHttp() {
+    // The flag is deliberately NOT set: refusal must be the untouched-builder default since 2.0.
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
     AlertEngine engine =
         new AlertEngine(
@@ -272,7 +277,6 @@ class AlertEngineStartValidationTest {
                 .url("http://ntfy.internal:8080")
                 .topic("alerts")
                 .token("tk_secret")
-                .requireHttpsForCredentials(true)
                 .build(),
             diagnostics);
 
@@ -285,13 +289,13 @@ class AlertEngineStartValidationTest {
 
   @Test
   void requireHttpsForCredentials_refusesActivationForUserinfoUrlOverPlainHttp() {
+    // The flag is deliberately NOT set: refusal must be the untouched-builder default since 2.0.
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
     AlertEngine engine =
         new AlertEngine(
             NtfyConfig.builder()
                 .url("http://user:pass@ntfy.internal:8080")
                 .topic("alerts")
-                .requireHttpsForCredentials(true)
                 .build(),
             diagnostics);
 

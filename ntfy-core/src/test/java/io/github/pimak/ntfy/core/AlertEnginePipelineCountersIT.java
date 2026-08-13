@@ -18,8 +18,10 @@ import org.junit.jupiter.api.Test;
  * {@code failed} — the {@code recordSuppressed} digest fold on a failed individual publish never
  * leaks into the {@code suppressed} observability counter.
  *
- * <p>Individual publishes and the {@code stop()} digest flush both run synchronously on the calling
- * thread, so the counts are deterministic without any timer wait.
+ * <p>The engine is built with {@code asyncEnabled(false)} (the explicit 2.0 opt-out) so individual
+ * publishes and the {@code stop()} digest flush both run synchronously on the calling thread and
+ * the counts are deterministic without any timer wait — this suite pins counter semantics, not the
+ * delivery mode; {@link AlertEngineAsyncDeliveryTest} covers the async default.
  */
 @WireMockTest
 class AlertEnginePipelineCountersIT {
@@ -43,6 +45,7 @@ class AlertEnginePipelineCountersIT {
         .topic("alerts")
         .maxAlertsPerWindow(maxAlertsPerWindow)
         .suppressionWindow(java.time.Duration.ofMillis(suppressionWindowMillis))
+        .asyncEnabled(false)
         .build();
   }
 

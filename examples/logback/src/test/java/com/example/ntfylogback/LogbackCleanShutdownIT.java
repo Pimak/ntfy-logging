@@ -28,6 +28,8 @@ class LogbackCleanShutdownIT {
                   "NTFY_URL", server.url(),
                   "NTFY_TOPIC", "alerts",
                   "NTFY_MAX_ALERTS_PER_WINDOW", "1",
+                  // Explicit 2.0 opt-out: this leg proves the synchronous shutdown contract.
+                  "NTFY_ASYNC", "false",
                   // Long window: the digest below can only come from the shutdown flush.
                   "NTFY_SUPPRESSION_WINDOW", "60000"));
       Logger log = context.getLogger("com.example.shop.CheckoutService");

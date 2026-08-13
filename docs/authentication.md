@@ -83,19 +83,20 @@ If credentials would traverse a cleartext `http://` endpoint, the `Authorization
 URL's embedded userinfo) and every alert body are readable by any on-path observer. The engine
 detects this at startup for a configured `token`, a `username`/`password` pair, **or** userinfo
 embedded in the URL itself (`http://user:pass@host` — flagged even when no separate credential is
-configured), and emits a one-time warning:
-`credentials configured with a plain http:// URL — the token/password and alert content are sent unencrypted; use https://`.
-By default the engine still activates — a self-hosted plain-HTTP setup
-is the operator's deliberate choice.
+configured).
 
-To make this a hard failure instead, enable the opt-in strict mode
-`require-https-for-credentials` (default `false`), available on every configuration surface:
-Logback XML `<requireHttpsForCredentials>`, Spring `ntfy.require-https-for-credentials`, Quarkus
+By default (since 2.0, `require-https-for-credentials = true`) this is a hard failure: the engine
+refuses activation, emitting a fixed, credential-safe diagnostic, so a secret never traverses the
+network unencrypted. A credential-free `http://` endpoint is unaffected.
+
+For a deliberate self-hosted plain-HTTP setup, set `require-https-for-credentials = false` to
+restore the pre-2.0 warn-and-activate behavior: the engine then emits a one-time warning —
+`credentials configured with a plain http:// URL — the token/password and alert content are sent unencrypted; use https://` —
+but still activates. The key is available on every configuration surface: Logback XML
+`<requireHttpsForCredentials>`, Spring `ntfy.require-https-for-credentials`, Quarkus
 `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop
-`ntfy.require-https-for-credentials`, or `NtfyConfig.Builder.requireHttpsForCredentials(true)` for
-programmatic core users. With it on, the engine refuses activation when credentials would traverse
-cleartext HTTP, emitting a fixed, credential-safe diagnostic. A credential-free `http://` endpoint
-is unaffected either way.
+`ntfy.require-https-for-credentials`, or `NtfyConfig.Builder.requireHttpsForCredentials(false)` for
+programmatic core users.
 
 ## The token is never surfaced in diagnostics
 

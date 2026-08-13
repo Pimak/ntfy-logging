@@ -25,7 +25,7 @@ class CoreEngineSyncVsAsyncIT {
       server.holdFirstResponses(1);
       AlertEngine engine =
           new AlertEngine(
-              CoreExampleApp.baseConfig(server.url(), "alerts"),
+              CoreExampleApp.syncConfig(server.url(), "alerts"),
               new CoreExampleApp.StderrDiagnostics());
       engine.start();
       try {
