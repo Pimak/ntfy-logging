@@ -174,10 +174,12 @@ public final class NtfyConfig {
 
   /**
    * True when delivery of individual error alerts should be offloaded to the engine's bounded
-   * asynchronous work queue instead of running inline on the calling (logging) thread. Off by
-   * default: with async disabled, delivery is synchronous and behavior is identical to before this
-   * flag existed. When on, a slow or unreachable ntfy server can no longer back-pressure application
+   * asynchronous work queue instead of running inline on the calling (logging) thread. On by
+   * default (since 2.0): a slow or unreachable ntfy server can never back-pressure application
    * threads during an error storm — see {@link AlertEngine} for the queue/overflow semantics.
+   * Disable it to restore the pre-2.0 synchronous behavior, where each publish blocks the calling
+   * thread until the HTTP exchange completes — useful for short-lived processes (batch jobs, CLIs)
+   * that must know the alert left the process before the logging call returns.
    */
   public boolean isAsyncEnabled() {
     return asyncEnabled;
@@ -195,9 +197,10 @@ public final class NtfyConfig {
   /**
    * True when the engine must REFUSE activation (rather than merely warn) if credentials — a
    * configured token, a username/password pair, or userinfo embedded in the URL itself — would be
-   * sent over a cleartext {@code http://} endpoint. Off by default: without this opt-in, the engine
-   * warns loudly but still activates, preserving pre-existing behavior for deliberate self-hosted
-   * plain-HTTP setups.
+   * sent over a cleartext {@code http://} endpoint. On by default (since 2.0): secrets never
+   * traverse the network unencrypted unless the operator explicitly opts out. Setting it to {@code
+   * false} restores the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP
+   * setups.
    */
   public boolean isRequireHttpsForCredentials() {
     return requireHttpsForCredentials;
@@ -272,9 +275,9 @@ public final class NtfyConfig {
     private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
     private boolean enabled = true;
-    private boolean asyncEnabled = false;
+    private boolean asyncEnabled = true;
     private int asyncQueueCapacity = 1024;
-    private boolean requireHttpsForCredentials = false;
+    private boolean requireHttpsForCredentials = true;
     private boolean endpointFromClasspathFile = false;
     private boolean allowClasspathEndpoint = false;
     // Default English, NOT Locale.getDefault(): alert language must be deterministic and never
@@ -422,8 +425,8 @@ public final class NtfyConfig {
     }
 
     /**
-     * Opt into asynchronous (offloaded) delivery of individual error alerts. Off by default; see
-     * {@link NtfyConfig#isAsyncEnabled()}.
+     * Toggles asynchronous (offloaded) delivery of individual error alerts. On by default; set
+     * {@code false} for pre-2.0 synchronous delivery. See {@link NtfyConfig#isAsyncEnabled()}.
      */
     public Builder asyncEnabled(boolean asyncEnabled) {
       this.asyncEnabled = asyncEnabled;
@@ -440,8 +443,8 @@ public final class NtfyConfig {
     }
 
     /**
-     * Opt into refusing activation when credentials would traverse a cleartext {@code http://}
-     * endpoint. Off by default (warn-and-activate); see
+     * Toggles refusing activation when credentials would traverse a cleartext {@code http://}
+     * endpoint. On by default; set {@code false} for the pre-2.0 warn-and-activate behavior. See
      * {@link NtfyConfig#isRequireHttpsForCredentials()}.
      */
     public Builder requireHttpsForCredentials(boolean requireHttpsForCredentials) {

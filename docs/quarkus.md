@@ -41,10 +41,11 @@ quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 As soon as `url` and `topic` are set, error logs auto-publish through the extension's log handler.
 The extension is native-image ready out of the box.
 
-Set `quarkus.ntfy.async=true` (optionally `quarkus.ntfy.async-queue-capacity`, default `1024`) to
-offload delivery to a bounded queue drained by a daemon worker, so a slow or unreachable ntfy server
-never blocks the logging thread. The worker is a plain platform daemon thread, so it stays
-native-image safe. See [alert-behavior.md](alert-behavior.md).
+Delivery is asynchronous by default (since 2.0): alerts are offloaded to a bounded queue drained by
+a daemon worker (tune it with `quarkus.ntfy.async-queue-capacity`, default `1024`), so a slow or
+unreachable ntfy server never blocks the logging thread. The worker is a plain platform daemon
+thread, so it stays native-image safe. Set `quarkus.ntfy.async=false` for pre-2.0 synchronous,
+inline delivery. See [alert-behavior.md](alert-behavior.md).
 
 ## Manual notifications
 

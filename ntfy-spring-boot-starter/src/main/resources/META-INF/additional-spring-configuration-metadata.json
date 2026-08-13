@@ -103,8 +103,8 @@
     {
       "name": "ntfy.require-https-for-credentials",
       "type": "java.lang.Boolean",
-      "description": "Strict mode: refuse to activate alerting (instead of only warning) when credentials would be sent over a plain http:// endpoint.",
-      "defaultValue": false
+      "description": "Strict mode: refuse to activate alerting (instead of only warning) when credentials would be sent over a plain http:// endpoint. Set to false to restore the pre-2.0 warn-and-activate behavior.",
+      "defaultValue": true
     }
   ]
 }

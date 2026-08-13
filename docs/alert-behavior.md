@@ -73,13 +73,10 @@ trace) so the message, logger name, and cause chain stay intact as long as possi
 measured in UTF-8 bytes, not string length, so multi-byte characters are never split mid-character
 and the published body never exceeds the byte budget.
 
-## Delivery mode: synchronous (default) or asynchronous
+## Delivery mode: asynchronous (default) or synchronous
 
-By default the engine publishes on the calling (logging) thread: `HttpClient.send()` blocks for up to
-`connect-timeout + request-timeout` per event.
-
-Set `async = true` to offload delivery instead. Individual error alerts are then handed to a
-**bounded work queue** drained by a single daemon worker thread (`ntfy-alert-delivery`), so a slow or
+By default (since 2.0) delivery is asynchronous: individual error alerts are handed to a **bounded
+work queue** drained by a single daemon worker thread (`ntfy-alert-delivery`), so a slow or
 unreachable ntfy server never back-pressures your application threads during an error storm. This is
 the first-class alternative to hand-wrapping `LogbackAlertAppender` in an `AsyncAppender`.
 
@@ -90,8 +87,12 @@ already won a publish slot. The queue holds up to `async-queue-capacity` pending
 "suppressed count is never silently dropped" guarantee above. On shutdown, `stop()` drains any
 queued-but-unsent alerts into that same digest count before the final synchronous flush.
 
-Async is opt-in: with `async = false` (the default) delivery is inline and behaves exactly as it did
-before the flag existed. See [configuration.md](configuration.md) for the `async` /
+Set `async = false` to restore the pre-2.0 synchronous mode: the engine then publishes inline on the
+calling (logging) thread, and `HttpClient.send()` blocks for up to `connect-timeout +
+request-timeout` per event. Synchronous mode is worth considering for short-lived processes (batch
+jobs, CLIs): a queued alert that the worker has not sent before the JVM exits is folded into the
+digest count at `stop()` — or lost outright if `stop()` never runs — whereas a synchronous publish
+completes before the logging call returns. See [configuration.md](configuration.md) for the `async` /
 `async-queue-capacity` keys and each adapter's spelling.
 
 ## See also

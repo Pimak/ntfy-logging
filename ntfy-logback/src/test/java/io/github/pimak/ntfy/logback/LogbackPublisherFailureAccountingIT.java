@@ -55,6 +55,9 @@ class LogbackPublisherFailureAccountingIT {
     appender.setContext(context);
     appender.setUrl("http://localhost:" + wm.getHttpPort());
     appender.setTopic("alerts");
+    // Inline synchronous delivery (explicit 2.0 opt-out): this suite pins payload/digest/counter
+    // semantics deterministically; the async default is covered by LogbackAlertAppenderAsyncIT.
+    appender.setAsync(false);
     appender.setMaxAlertsPerWindow(MAX_ALERTS_PER_WINDOW);
     appender.setSuppressionWindow("300"); // 300 ms
     appender.start();

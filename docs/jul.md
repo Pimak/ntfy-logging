@@ -86,14 +86,15 @@ NtfyConfig cfg = NtfyConfig.builder()
     .url("https://ntfy.example.com")
     .topic("my-app-alerts")
     .token("tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-    .asyncEnabled(true)
     .build();
 Logger.getLogger("").addHandler(NtfyJulHandler.forConfig(cfg));
 ```
 
-As everywhere in the family, `async=true` (or `NTFY_ASYNC=true`) hands each alert to the engine's
-bounded queue drained by a daemon worker, so a slow or unreachable ntfy server never blocks the
-logging thread.
+As everywhere in the family, delivery is asynchronous by default (since 2.0): each alert is handed
+to the engine's bounded queue drained by a daemon worker, so a slow or unreachable ntfy server
+never blocks the logging thread. Set `async=false` (or `NTFY_ASYNC=false`) for synchronous, inline
+delivery — the guarantee a short-lived process may prefer, since the publish completes before the
+logging call returns.
 
 ## Going further
 

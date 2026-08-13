@@ -42,6 +42,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   factory) and keeps only the Quarkus glue: `@ConfigMapping`, the `RUNTIME_INIT` recorder, and the
   CDI producer. No behavior or configuration change for Quarkus users; `ntfy-core` still arrives
   transitively.
+- **BREAKING: `require-https-for-credentials` now defaults to `true`.** When credentials — a
+  configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself
+  (`http://user:pass@host`) — would traverse a cleartext `http://` endpoint, the engine now
+  **refuses activation** with a fixed, credential-safe diagnostic instead of warning and
+  proceeding. Secrets never leave the process unencrypted unless explicitly allowed.
+  **Migration:** self-hosted plain-HTTP setups that relied on the old warn-and-activate behavior
+  must either switch the endpoint to `https://` (recommended) or explicitly set
+  `require-https-for-credentials=false` (env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS=false`, sysprop
+  `ntfy.require-https-for-credentials=false`, Logback XML
+  `<requireHttpsForCredentials>false</requireHttpsForCredentials>`, Spring
+  `ntfy.require-https-for-credentials=false`, Quarkus
+  `quarkus.ntfy.require-https-for-credentials=false`, or
+  `NtfyConfig.Builder.requireHttpsForCredentials(false)`). Credential-free `http://` endpoints are
+  unaffected.
+- **BREAKING: `async` delivery now defaults to `true`.** Individual error alerts are handed to the
+  engine's bounded work queue (default capacity `1024`) and published by a single daemon worker
+  thread (`ntfy-alert-delivery`), so a slow or unreachable ntfy server can never back-pressure
+  application threads during an error storm. Queue overflow folds dropped alerts into the storm
+  digest's suppressed count — never a silent loss. **Migration:** delivery is no longer guaranteed
+  to have completed when the logging call returns; short-lived processes (batch jobs, CLIs) that
+  log an error and exit immediately should either ensure an orderly logging-framework shutdown
+  (Logback shutdown hook / context stop, which flushes the queue accounting into the digest) or
+  restore the pre-2.0 synchronous, inline delivery with `async=false` (env `NTFY_ASYNC=false`,
+  sysprop `ntfy.async=false`, Logback XML `<async>false</async>`, Spring `ntfy.async=false`,
+  Quarkus `quarkus.ntfy.async=false`, or `NtfyConfig.Builder.asyncEnabled(false)`). Setups that
+  wrap the appender in a Logback `AsyncAppender` should also set `<async>false</async>` to avoid
+  queuing delivery twice.
 
 ## [1.2.0] - 2026-07-23
 

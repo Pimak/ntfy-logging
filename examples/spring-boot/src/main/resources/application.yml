@@ -8,10 +8,11 @@ ntfy:
   # For an auth-protected topic:
   # token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-  # Built-in async delivery: with true, each error alert is handed to a bounded queue drained by a
-  # daemon worker, so a slow or unreachable ntfy server never blocks the logging thread. Off by
-  # default (synchronous, inline delivery).
-  # async: true
+  # Built-in async delivery (the default since 2.0): each error alert is handed to a bounded queue
+  # drained by a daemon worker, so a slow or unreachable ntfy server never blocks the logging
+  # thread. Set async: false for pre-2.0 synchronous, inline delivery — the guarantee a short-lived
+  # process may prefer, since the publish completes before the logging call returns.
+  # async: false
   # async-queue-capacity: 1024
 
   # Storm suppression (defaults shown): at most max-alerts-per-window individual alerts per

@@ -23,6 +23,8 @@ class SpringCleanShutdownIT {
           ExampleApplications.run(
               server,
               "--ntfy.max-alerts-per-window=1",
+              // Explicit 2.0 opt-out: this leg proves the synchronous shutdown contract.
+              "--ntfy.async=false",
               // Long window: the digest below can only come from the shutdown flush.
               "--ntfy.suppression-window=60s");
       OrderService orders = context.getBean(OrderService.class);

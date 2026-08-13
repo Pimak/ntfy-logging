@@ -18,9 +18,10 @@ Every example's integration tests cover the same three behaviors:
 - **Base alert path** — an ordinary ERROR log (or a manual `notify(..)`) lands on the configured
   topic with title/priority/body intact.
 - **Synchronous vs asynchronous delivery** — the loopback stand-in holds its HTTP response open, so
-  the tests prove *deterministically* that a synchronous error log blocks the calling thread until
-  the ntfy server responds, while with `async` enabled the very same call returns immediately and a
-  daemon worker (`ntfy-alert-delivery`) does the blocking send in the background.
+  the tests prove *deterministically* that with `async` (the default since 2.0) an error log
+  returns immediately and a daemon worker (`ntfy-alert-delivery`) does the blocking send in the
+  background, while with the explicit `async=false` opt-out the very same call blocks the calling
+  thread until the ntfy server responds.
 - **Clean shutdown** — stopping the app the normal way (Spring context close, Logback context
   stop/shutdown hook, JUL handler uninstall/close, `AlertEngine.stop()`) flushes the pending storm
   digest, folds queued-or-in-flight async alerts into it (count-never-lost), and leaves no engine

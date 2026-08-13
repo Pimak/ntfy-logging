@@ -25,7 +25,11 @@ class JulSyncVsAsyncIT {
   void syncSevereLogBlocksTheLoggingThreadUntilTheServerResponds() throws Exception {
     try (LoopbackNtfyServer server = new LoopbackNtfyServer();
         AmbientNtfyProperties props = new AmbientNtfyProperties()) {
-      props.set("ntfy.url", server.url()).set("ntfy.topic", "alerts");
+      // ntfy.async=false is the explicit 2.0 opt-out: this leg proves synchronous delivery.
+      props
+          .set("ntfy.url", server.url())
+          .set("ntfy.topic", "alerts")
+          .set("ntfy.async", "false");
       server.holdFirstResponses(1);
       Logger scope = Logger.getLogger("com.example.shop");
       NtfyJulHandler handler = NtfyJulInstaller.install(scope).orElseThrow();

@@ -61,16 +61,31 @@ public final class CoreExampleApp {
   }
 
   /**
-   * Same endpoint, with delivery offloaded to the engine's bounded queue: {@code submit(..)} then
-   * returns immediately and a daemon worker ({@code ntfy-alert-delivery}) does the blocking send.
+   * Delivery offloaded to the engine's bounded queue — the default since 2.0, so no flag is set:
+   * {@code submit(..)} returns immediately and a daemon worker ({@code ntfy-alert-delivery}) does
+   * the blocking send.
    */
   static NtfyConfig asyncConfig(String url, String topic) {
     return NtfyConfig.builder()
         .url(url)
         .topic(topic)
         .appName("core-example")
-        .asyncEnabled(true)
         .asyncQueueCapacity(256)
+        .build();
+  }
+
+  /**
+   * The explicit 2.0 opt-out: {@code asyncEnabled(false)} restores synchronous, inline delivery —
+   * {@code submit(..)} blocks the calling thread until the HTTP exchange completes. The guarantee a
+   * short-lived process (batch job, CLI) may prefer, since the publish is done when the call
+   * returns.
+   */
+  static NtfyConfig syncConfig(String url, String topic) {
+    return NtfyConfig.builder()
+        .url(url)
+        .topic(topic)
+        .appName("core-example")
+        .asyncEnabled(false)
         .build();
   }
 

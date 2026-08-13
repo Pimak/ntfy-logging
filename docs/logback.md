@@ -53,22 +53,22 @@ Equivalently pass `-Dntfy.url=… -Dntfy.topic=…` as JVM system properties, or
 
 ### Built-in async delivery
 
-Instead of hand-wrapping the appender in an `AsyncAppender`, set `async` on the appender itself:
+Delivery is asynchronous by default (since 2.0) — no `AsyncAppender` wrapper needed: each error
+alert is handed to the engine's bounded queue and published by a daemon worker, so a slow or
+unreachable ntfy server never blocks the logging thread. Overflow drops fold into the storm digest
+rather than being lost. See [alert-behavior.md](alert-behavior.md) for the full semantics.
 
 ```xml
 <appender name="NTFY_ALERT" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
   <url>https://ntfy.example.com</url>
   <topic>my-app-alerts</topic>
-  <async>true</async>
   <asyncQueueCapacity>1024</asyncQueueCapacity>
 </appender>
 ```
 
-With `async=true`, each error alert is handed to the engine's bounded queue and published by a
-daemon worker, so a slow or unreachable ntfy server never blocks the logging thread. Overflow drops
-fold into the storm digest rather than being lost. See [alert-behavior.md](alert-behavior.md) for the
-full semantics. The `AsyncAppender` wrapper below remains available if you prefer Logback's own
-offloading.
+Set `<async>false</async>` for pre-2.0 synchronous, inline delivery. The `AsyncAppender` wrapper
+below remains available if you prefer Logback's own offloading (pair it with `<async>false</async>`
+so delivery is not queued twice).
 
 ### Explicit `logback.xml`
 
@@ -80,6 +80,7 @@ Or wire it explicitly. The `AsyncAppender` wrapper is a production-grade alterna
   <url>https://ntfy.example.com</url>
   <topic>my-app-alerts</topic>
   <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token>
+  <async>false</async>
 </appender>
 
 <appender name="NTFY_ALERT" class="ch.qos.logback.classic.AsyncAppender">

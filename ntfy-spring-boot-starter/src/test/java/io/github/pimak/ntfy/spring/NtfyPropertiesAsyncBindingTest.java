@@ -25,13 +25,15 @@ class NtfyPropertiesAsyncBindingTest {
 
   @Test
   void asyncKeysBindWithRelaxedKebabCase() {
+    // Binds the non-default "false" (since 2.0) so a passing assertion can only come from the key
+    // actually reaching the field, never from the default standing.
     Map<String, String> props = new HashMap<>();
-    props.put("ntfy.async", "true");
+    props.put("ntfy.async", "false");
     props.put("ntfy.async-queue-capacity", "512");
 
     NtfyProperties bound = bind(props);
 
-    assertThat(bound.isAsync()).isTrue();
+    assertThat(bound.isAsync()).isFalse();
     assertThat(bound.getAsyncQueueCapacity()).isEqualTo(512);
   }
 
@@ -39,7 +41,7 @@ class NtfyPropertiesAsyncBindingTest {
   void asyncDefaultsWhenAbsent() {
     NtfyProperties bound = bind(new HashMap<>());
 
-    assertThat(bound.isAsync()).isFalse();
+    assertThat(bound.isAsync()).isTrue();
     assertThat(bound.getAsyncQueueCapacity()).isEqualTo(1024);
   }
 }

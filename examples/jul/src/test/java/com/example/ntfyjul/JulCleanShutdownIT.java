@@ -28,6 +28,8 @@ class JulCleanShutdownIT {
           .set("ntfy.url", server.url())
           .set("ntfy.topic", "alerts")
           .set("ntfy.max-alerts-per-window", "1")
+          // Explicit 2.0 opt-out: this leg proves the synchronous shutdown contract.
+          .set("ntfy.async", "false")
           // Long window: the digest below can only come from the shutdown flush.
           .set("ntfy.suppression-window", "60000");
       Logger scope = Logger.getLogger("com.example.shop");

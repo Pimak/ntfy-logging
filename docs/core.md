@@ -47,10 +47,11 @@ The engine can also resolve config from the environment (sysprop > env > classpa
 via `ConfigLoader` — see the [configuration reference](configuration.md).
 
 When you drive an `AlertEngine` directly (the log-adapter path, not the synchronous `NtfyClient`),
-`NtfyConfig.builder().asyncEnabled(true).asyncQueueCapacity(1024)` offloads error-alert delivery to a
-bounded queue drained by a daemon worker, so a slow ntfy server never blocks the submitting thread.
-`NtfyClient` itself stays synchronous by contract (it returns a `PublishResult`). See
-[alert-behavior.md](alert-behavior.md) for the queue and overflow semantics.
+error-alert delivery is offloaded by default (since 2.0) to a bounded queue drained by a daemon
+worker, so a slow ntfy server never blocks the submitting thread; tune it with
+`NtfyConfig.builder().asyncQueueCapacity(1024)`, or set `asyncEnabled(false)` for pre-2.0
+synchronous, inline delivery. `NtfyClient` itself stays synchronous by contract (it returns a
+`PublishResult`). See [alert-behavior.md](alert-behavior.md) for the queue and overflow semantics.
 
 ## Going further
 

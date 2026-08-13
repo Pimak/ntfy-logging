@@ -37,6 +37,9 @@ class LogbackPipelineCountersIT {
     appender.setContext(context);
     appender.setUrl("http://localhost:" + wm.getHttpPort());
     appender.setTopic("alerts");
+    // Inline synchronous delivery (explicit 2.0 opt-out): this suite pins payload/digest/counter
+    // semantics deterministically; the async default is covered by LogbackAlertAppenderAsyncIT.
+    appender.setAsync(false);
     appender.setMaxAlertsPerWindow(maxAlertsPerWindow);
     appender.setSuppressionWindow("60000"); // never fires naturally during the test
     return appender;

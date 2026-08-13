@@ -76,8 +76,10 @@ class LogbackAlertAppenderLifecycleTest {
 
   @Test
   void start_urlAndTopicSet_activatesWithInfoStatusNeverContainingToken() {
+    // https: a token over plain http would now (2.0) refuse activation — transport policy is
+    // covered by LogbackAlertAppenderRequireHttpsTest, not this lifecycle test.
     LogbackAlertAppender appender = newAppender();
-    appender.setUrl("http://localhost:9999");
+    appender.setUrl("https://localhost:9999");
     appender.setTopic("alerts");
     appender.setToken("SECRET-TOKEN-XYZ");
 
@@ -97,8 +99,9 @@ class LogbackAlertAppenderLifecycleTest {
 
   @Test
   void start_tokenAndBasicAuthBothSet_activatesWithOneTimeWarnButStillStarts() {
+    // https: a token over plain http would now (2.0) refuse activation before the overlap warn.
     LogbackAlertAppender appender = newAppender();
-    appender.setUrl("http://localhost:9999");
+    appender.setUrl("https://localhost:9999");
     appender.setTopic("alerts");
     appender.setToken("tok");
     appender.setUsername("user");

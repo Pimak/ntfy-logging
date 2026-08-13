@@ -119,14 +119,16 @@ class AlertEngineAsyncDeliveryTest {
   }
 
   @Test
-  void syncSubmit_blocksCallerOnSlowServer_provingOptInPreservesSemantics(WireMockRuntimeInfo wm) {
+  void syncSubmit_blocksCallerOnSlowServer_provingOptOutPreservesSemantics(WireMockRuntimeInfo wm) {
     int delayMillis = 1000;
     stubFor(
         post(urlEqualTo("/alerts"))
             .willReturn(aResponse().withStatus(200).withFixedDelay(delayMillis)));
 
-    // async NOT enabled (default): delivery is inline, so submit() blocks for the response delay.
-    AlertEngine engine = new AlertEngine(baseConfig(wm).build(), new CapturingDiagnostics());
+    // asyncEnabled(false) is the explicit 2.0 opt-out: delivery is inline, so submit() blocks for
+    // the response delay.
+    AlertEngine engine =
+        new AlertEngine(baseConfig(wm).asyncEnabled(false).build(), new CapturingDiagnostics());
     engine.start();
     try {
       long start = System.nanoTime();

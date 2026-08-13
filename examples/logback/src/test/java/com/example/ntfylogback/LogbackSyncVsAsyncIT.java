@@ -24,9 +24,10 @@ class LogbackSyncVsAsyncIT {
   void syncErrorLogBlocksTheLoggingThreadUntilTheServerResponds() throws Exception {
     try (LoopbackNtfyServer server = new LoopbackNtfyServer()) {
       server.holdFirstResponses(1);
+      // NTFY_ASYNC=false is the explicit 2.0 opt-out: this leg proves synchronous delivery.
       LoggerContext context =
           ExampleLoggerContexts.startFromExampleXml(
-              Map.of("NTFY_URL", server.url(), "NTFY_TOPIC", "alerts"));
+              Map.of("NTFY_URL", server.url(), "NTFY_TOPIC", "alerts", "NTFY_ASYNC", "false"));
       try {
         Logger log = context.getLogger("com.example.shop.CheckoutService");
         CompletableFuture<Void> logging =
