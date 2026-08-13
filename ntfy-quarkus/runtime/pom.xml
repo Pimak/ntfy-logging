@@ -16,17 +16,17 @@
 
     <name>ntfy-quarkus-runtime</name>
     <description>
-        Runtime half of the ntfy Quarkus extension: a java.util.logging Handler that forwards
-        SEVERE records to the framework-neutral ntfy AlertEngine, the run-time @ConfigMapping,
-        the recorder that builds the handler at RUNTIME_INIT, and a CDI producer exposing a
-        generic NtfyClient. This is the artifact applications depend on.
+        Runtime half of the ntfy Quarkus extension: the run-time @ConfigMapping, the recorder
+        that builds ntfy-jul's java.util.logging Handler at RUNTIME_INIT, and a CDI producer
+        exposing a generic NtfyClient. This is the artifact applications depend on.
     </description>
 
     <dependencies>
-        <!-- The framework-neutral engine/client. Every alert path ultimately calls into this. -->
+        <!-- The framework-neutral JUL handler this extension installs (NtfyJulHandler), which
+             brings the ntfy-core engine/client transitively. Every alert path calls into these. -->
         <dependency>
             <groupId>io.github.pimak</groupId>
-            <artifactId>ntfy-core</artifactId>
+            <artifactId>ntfy-jul</artifactId>
             <version>${project.version}</version>
         </dependency>
 

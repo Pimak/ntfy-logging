@@ -14,6 +14,14 @@ beyond what CI directly exercises.
 Minimum supported JDK: **21** (`<maven.compiler.release>21</maven.compiler.release>`; required for
 `HttpClient.shutdownNow()`, used to release the client deterministically on stop/close).
 
+## java.util.logging (`ntfy-jul`, and Quarkus via it)
+
+JUL ships in `java.base`, so `ntfy-jul` has no framework dependency to version at all: it is
+supported on every JDK the family supports (21+, table above). The declarative
+`logging.properties` entry point (`NtfyJulAutoHandler`) relies only on the stable
+`LogManager`/`Handler` contract that Tomcat's `conf/logging.properties` also uses. The Quarkus
+extension installs this module's `NtfyJulHandler` and is exercised by the Quarkus CI legs below.
+
 ## Logback (`ntfy-logback`, and Spring Boot via it)
 
 | Version | Status |

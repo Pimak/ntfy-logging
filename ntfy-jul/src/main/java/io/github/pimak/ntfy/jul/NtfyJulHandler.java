@@ -1,15 +1,21 @@
-package io.github.pimak.ntfy.quarkus.runtime;
+package io.github.pimak.ntfy.jul;
 
 import io.github.pimak.ntfy.core.AlertEngine;
+import io.github.pimak.ntfy.core.NtfyConfig;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 /**
  * A {@link Handler} that forwards SEVERE-and-above {@link LogRecord}s to the ntfy {@link
- * AlertEngine}. Quarkus installs this via a {@code LogHandlerBuildItem}, so it sees every log record
- * the application produces (JUL, JBoss LogManager, and the SLF4J/Log4j bridges all funnel through
+ * AlertEngine}. This is the framework-neutral JUL adapter: attach it to any {@code
+ * java.util.logging} logger (plain JUL apps, Tomcat, Helidon, …), or let a framework install it —
+ * the Quarkus extension feeds it to a {@code LogHandlerBuildItem}, so it sees every log record the
+ * application produces (JUL, JBoss LogManager, and the SLF4J/Log4j bridges all funnel through
  * {@code java.util.logging}).
+ *
+ * <p>For zero-code installation see {@link NtfyJulAutoHandler} (declarative, {@code
+ * logging.properties}) and {@link NtfyJulInstaller} (programmatic one-liner).
  *
  * <p>A logging handler must never throw, or it can corrupt the caller's logging path; every {@link
  * #publish} is fully guarded. Level gating mirrors the ERROR-only contract of the other adapters:
@@ -25,6 +31,22 @@ public final class NtfyJulHandler extends Handler {
    */
   public NtfyJulHandler(AlertEngine engine) {
     this.engine = engine;
+  }
+
+  /**
+   * Builds a handler around a fresh, started {@link AlertEngine} for {@code config}, with engine
+   * self-diagnostics routed to {@code System.err} (never back through the logging pipeline — see
+   * {@link JulDiagnostics}). The single construction path shared by the programmatic installer,
+   * the auto-handler, and the Quarkus extension's recorder.
+   *
+   * <p>{@code config} should be {@link NtfyConfig#isActive() active}; an inactive or invalid
+   * config never throws — the engine refuses activation with a diagnostic and the returned
+   * handler simply drops records.
+   */
+  public static NtfyJulHandler forConfig(NtfyConfig config) {
+    AlertEngine engine = new AlertEngine(config, new JulDiagnostics());
+    engine.start();
+    return new NtfyJulHandler(engine);
   }
 
   @Override

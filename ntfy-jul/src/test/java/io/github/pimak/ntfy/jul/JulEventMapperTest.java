@@ -1,4 +1,4 @@
-package io.github.pimak.ntfy.quarkus.runtime;
+package io.github.pimak.ntfy.jul;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

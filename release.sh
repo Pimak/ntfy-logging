@@ -133,7 +133,7 @@ mv CHANGELOG.md.tmp CHANGELOG.md
 #    guide under docs/ — so no install snippet is ever left pointing at the previous release.
 #    The README and each docs/*.md guide carry install snippets, so both seds are global:
 #      - every <version>…</version> line in the Maven dependency snippets, and
-#      - every `io.github.pimak:ntfy-<artifact>:<ver>` coordinate in prose (ntfy-core,
+#      - every `io.github.pimak:ntfy-<artifact>:<ver>` coordinate in prose (ntfy-core, ntfy-jul,
 #        ntfy-logback, ntfy-spring-boot-starter, ntfy-quarkus-runtime).
 #    Scope is deliberately the <version> tag and the `groupId:artifact:` coordinate only, so
 #    illustrative version-like strings in prose or code samples (e.g. a `v1.2.3` example

@@ -4,16 +4,17 @@ Every adapter in the `ntfy-logging` family configures the same framework-neutral
 is **one set of settings** with the same names, types, and defaults everywhere. What differs is only
 *where* you write them:
 
-- **Core / plain Logback** — resolved by `ConfigLoader` from, highest precedence first: a JVM
-  system property `ntfy.<key>`, then an environment variable `NTFY_<KEY>`, then a classpath
+- **Core / JUL / plain Logback** — resolved by `ConfigLoader` from, highest precedence first: a
+  JVM system property `ntfy.<key>`, then an environment variable `NTFY_<KEY>`, then a classpath
   `ntfy.properties` entry `ntfy.<key>`. (You can also set them explicitly through
-  `LogbackAlertAppender`'s XML setters or `NtfyConfig.builder()`.)
+  `LogbackAlertAppender`'s XML setters or `NtfyConfig.builder()` — the latter feeds
+  `NtfyJulHandler.forConfig` on the JUL side.)
 - **Spring Boot** — your application's own config under the `ntfy.*` prefix (`application.yml` /
   `application.properties`, environment, etc.), bound with Spring's relaxed binding.
 - **Quarkus** — your application's own config under the `quarkus.ntfy.*` prefix.
 
 > The engine no longer refuses to read the process environment: config is resolved from
-> **sysprop > env > `ntfy.properties`** (core/Logback), or from **your framework's native config**
+> **sysprop > env > `ntfy.properties`** (core/JUL/Logback), or from **your framework's native config**
 > (Spring `ntfy.*`, Quarkus `quarkus.ntfy.*`). The old "never reads `getenv`" guarantee was a
 > property of the single Logback appender; it is intentionally gone.
 
@@ -21,9 +22,9 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 
 `Key` is the canonical kebab-case name. Read the per-surface columns as:
 
-- **sysprop** — `-Dntfy.<key>` (core/Logback)
-- **env** — `NTFY_<KEY>` with `-` → `_` and upper-cased (core/Logback)
-- **`ntfy.properties`** — `ntfy.<key>` (core/Logback)
+- **sysprop** — `-Dntfy.<key>` (core/JUL/Logback)
+- **env** — `NTFY_<KEY>` with `-` → `_` and upper-cased (core/JUL/Logback)
+- **`ntfy.properties`** — `ntfy.<key>` (core/JUL/Logback)
 - **Spring** — `ntfy.<key>` (relaxed: `ntfy.app-name`, `ntfy.appName`, and `NTFY_APP_NAME` all bind)
 - **Quarkus** — `quarkus.ntfy.<key>`
 
@@ -50,7 +51,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
-| `allow-classpath-endpoint` | boolean | `false` | Opt-in for the Logback zero-code auto-install to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
+| `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
 | `async` | boolean | `false` | Offload delivery to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. Off by default (synchronous, inline delivery). See [alert-behavior.md](alert-behavior.md). |
 | `async-queue-capacity` | int | `1024` | Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when `async` is `true`; a non-positive value is clamped to a minimum of `1`. |
 | `require-https-for-credentials` | boolean | `false` | Opt-in strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Spring `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. When `false` (the default), the engine warns loudly but still activates. See [authentication.md](authentication.md). |
@@ -62,7 +63,7 @@ other setting has a safe default and can be omitted.
 ## Duration syntax
 
 `connect-timeout`, `request-timeout`, and `suppression-window` are durations. For the
-core/Logback/Quarkus surfaces they are parsed by `DurationParser`, which accepts:
+core/JUL/Logback/Quarkus surfaces they are parsed by `DurationParser`, which accepts:
 
 - a **bare integer** — interpreted as **milliseconds** (`500` → 500 ms);
 - a **suffixed integer** — `ms`, `s`, `m`, `h`, `d` (`5s`, `3m`, `2h`, `1d`);
@@ -83,7 +84,7 @@ as every other key on each surface:
 
 | Surface | How to set it |
 |---|---|
-| Core / plain Logback | `-Dntfy.locale=fr`, `NTFY_LOCALE=fr`, or `ntfy.locale=fr` in `ntfy.properties`; XML `<locale>fr</locale>`; `NtfyConfig.builder().locale("fr")` (or `.locale(Locale.FRENCH)`) |
+| Core / JUL / plain Logback | `-Dntfy.locale=fr`, `NTFY_LOCALE=fr`, or `ntfy.locale=fr` in `ntfy.properties`; XML `<locale>fr</locale>`; `NtfyConfig.builder().locale("fr")` (or `.locale(Locale.FRENCH)`) |
 | Spring Boot | `ntfy.locale: fr` |
 | Quarkus | `quarkus.ntfy.locale=fr` |
 
@@ -122,7 +123,7 @@ it.
 
 ## Per-framework examples
 
-### Core / plain Logback (environment)
+### Core / JUL / plain Logback (environment)
 
 ```bash
 export NTFY_URL=https://ntfy.example.com

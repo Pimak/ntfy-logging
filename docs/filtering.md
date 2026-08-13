@@ -7,7 +7,8 @@ notification. Two are configurable (available on every adapter), one is always o
 > alerts on every event handed to it (subject to the gates below) — but each adapter gates before
 > submitting:
 >
-> - **Quarkus** — the JUL handler forwards only `SEVERE` (ERROR-equivalent) records and above.
+> - **JUL** (`ntfy-jul`, standalone or installed by Quarkus) — the handler forwards only `SEVERE`
+>   (ERROR-equivalent) records and above.
 > - **Logback** (raw appender and the zero-code auto-install) — the appender submits only events
 >   at `ERROR` or above. This is a hard floor, not a default: without it, a root-logger
 >   auto-install would push every INFO/WARN line — request details, user identifiers, anything
@@ -41,7 +42,8 @@ diagnostic), so you can confirm which prefixes are actually in effect. See
 ## 2. The `NO_ALERT` marker — per-event opt-out (Logback only)
 
 Sometimes you want to suppress alerting for a single log statement rather than an entire logger. This
-is a **Logback-only** feature (it rides on SLF4J markers, which the Quarkus JUL path does not carry).
+is a **Logback-only** feature (it rides on SLF4J markers, which the JUL path — standalone or under
+Quarkus — does not carry).
 `LogbackAlertAppender` exposes the constant `NO_ALERT_MARKER_NAME` (value `"NO_ALERT"`) naming an
 SLF4J marker you can attach to any individual `error(...)` call:
 
@@ -64,10 +66,10 @@ digest. Use it for genuinely expected, already-handled error-level lines.
 
 The library's own package root, **`io.github.pimak.ntfy`**, is excluded from alerting
 unconditionally — independent of `excluded-loggers` and independent of any framework-level filter.
-A single root now covers every module in the family (core, logback, spring, quarkus). This is a
+A single root now covers every module in the family (core, jul, logback, spring, quarkus). This is a
 belt-and-suspenders guard against the engine ever generating a feedback loop by alerting on a failure
 inside itself. (Diagnostics already go to a separate channel — Logback's `StatusManager`, or
-`System.err` for the Quarkus/Spring paths — never back through the logging pipeline, so a loop could
+`System.err` for the JUL/Quarkus/Spring paths — never back through the logging pipeline, so a loop could
 not form anyway; the self-exclusion holds even if that invariant is ever violated by future code.)
 
 You do not configure this; it cannot be turned off. It survives a blank or misconfigured
@@ -83,8 +85,9 @@ You do not configure this; it cannot be turned off. It survives a blank or misco
 tool an allowlist has an inverted failure mode: an error from a logger you never thought to add would
 be silently dropped — exactly the event you most need to be paged about. An exclude-list fails safe
 instead: everything alerts by default, and you opt specific, already-understood noise sources out by
-name. To scope alerting to a specific subtree, attach the appender to that logger (Logback) rather
-than adding an allowlist.
+name. To scope alerting to a specific subtree, attach the appender (Logback) or handler (JUL, e.g.
+`NtfyJulInstaller.install(Logger.getLogger("com.example"))`) to that logger rather than adding an
+allowlist.
 
 ## See also
 

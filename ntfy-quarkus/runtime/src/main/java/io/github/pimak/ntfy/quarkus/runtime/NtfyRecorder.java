@@ -1,7 +1,7 @@
 package io.github.pimak.ntfy.quarkus.runtime;
 
-import io.github.pimak.ntfy.core.AlertEngine;
 import io.github.pimak.ntfy.core.NtfyConfig;
+import io.github.pimak.ntfy.jul.NtfyJulHandler;
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.annotations.Recorder;
 import java.util.Optional;
@@ -10,11 +10,13 @@ import java.util.logging.Handler;
 /**
  * Records the creation of the ntfy log {@link Handler} at {@code RUNTIME_INIT}. The deployment
  * processor invokes {@link #create} from a {@code @Record(RUNTIME_INIT)} build step and feeds the
- * result to a {@code LogHandlerBuildItem}.
+ * result to a {@code LogHandlerBuildItem}. The handler itself is the framework-neutral {@link
+ * NtfyJulHandler} from ntfy-jul; this recorder only binds it to Quarkus config and lifecycle.
  *
- * <p>Native-image safety hinges on this being RUNTIME_INIT: the {@link AlertEngine} builds its
- * {@code HttpClient}, worker threads, and digest scheduler inside {@link AlertEngine#start()}, which
- * runs here at application boot — never at build time or static-init.
+ * <p>Native-image safety hinges on this being RUNTIME_INIT: the engine builds its {@code
+ * HttpClient}, worker threads, and digest scheduler inside {@code AlertEngine.start()}, which
+ * {@link NtfyJulHandler#forConfig} invokes here at application boot — never at build time or
+ * static-init.
  */
 @Recorder
 public class NtfyRecorder {
@@ -40,8 +42,6 @@ public class NtfyRecorder {
     if (!cfg.isActive()) {
       return new RuntimeValue<>(Optional.empty());
     }
-    AlertEngine engine = new AlertEngine(cfg, new JulDiagnostics());
-    engine.start();
-    return new RuntimeValue<>(Optional.of(new NtfyJulHandler(engine)));
+    return new RuntimeValue<>(Optional.of(NtfyJulHandler.forConfig(cfg)));
   }
 }

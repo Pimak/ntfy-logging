@@ -1,0 +1,6 @@
+[
+  {
+    "name": "io.github.pimak.ntfy.jul.NtfyJulAutoHandler",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+]

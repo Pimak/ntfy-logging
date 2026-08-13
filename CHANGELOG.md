@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **New `ntfy-jul` module: a framework-neutral `java.util.logging` adapter.** The JUL handler,
+  event mapper, and stderr diagnostics sink previously private to the Quarkus runtime now live in
+  their own artifact (`io.github.pimak:ntfy-jul`, package `io.github.pimak.ntfy.jul`), usable from
+  any JUL-based application (plain JUL, Tomcat, Helidon, zero-dependency tools). Beyond the moved
+  handler, the module adds two zero-code entry points, both fed by the same ambient `ConfigLoader`
+  chain (sysprop > env > classpath `ntfy.properties`) and both protected by the same
+  classpath-endpoint supply-chain guard as the Logback auto-install: `NtfyJulAutoHandler` for
+  declarative installation via a `logging.properties` `handlers =` line (never throws — an
+  unconfigured environment degrades to a no-op), and `NtfyJulInstaller.install()` /
+  `install(Logger)` for a programmatic one-liner scoped to the root logger or a subtree. A
+  `reflect-config.json` under `META-INF/native-image/` covers the auto-handler's reflective
+  instantiation in hand-rolled native builds. See [docs/jul.md](docs/jul.md).
+
+### Changed
+- **`ntfy-quarkus-runtime` now depends on `ntfy-jul` instead of carrying its own JUL classes.**
+  The extension installs the shared `NtfyJulHandler` (via the new `NtfyJulHandler.forConfig`
+  factory) and keeps only the Quarkus glue: `@ConfigMapping`, the `RUNTIME_INIT` recorder, and the
+  CDI producer. No behavior or configuration change for Quarkus users; `ntfy-core` still arrives
+  transitively.
+
 ## [1.2.0] - 2026-07-23
 
 ### Added

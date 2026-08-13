@@ -15,11 +15,13 @@
     <modules>
         <!-- The framework-neutral engine every adapter builds on. -->
         <module>ntfy-core</module>
+        <!-- java.util.logging handler + zero-code auto-handler/installer; also the handler the Quarkus extension installs. -->
+        <module>ntfy-jul</module>
         <!-- Logback appender + zero-code auto-install (Configurator SPI); serves Spring and any Logback app. -->
         <module>ntfy-logback</module>
         <!-- Spring Boot auto-configuration on top of ntfy-logback + an injectable NtfyClient bean. -->
         <module>ntfy-spring-boot-starter</module>
-        <!-- Quarkus extension aggregator (runtime + deployment); native + zero-code via LogHandlerBuildItem. -->
+        <!-- Quarkus extension aggregator (runtime + deployment) on top of ntfy-jul; native + zero-code via LogHandlerBuildItem. -->
         <module>ntfy-quarkus</module>
     </modules>
 
