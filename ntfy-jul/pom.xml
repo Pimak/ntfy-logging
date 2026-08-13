@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.2.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-jul</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-jul</name>
+    <description>java.util.logging adapter for the ntfy notification engine: a JUL Handler that forwards SEVERE records to ntfy-core's framework-neutral AlertEngine, plus a zero-code auto-handler for logging.properties and a one-line programmatic installer. Pure JDK on top of ntfy-core; also the handler the Quarkus extension installs.</description>
+
+    <dependencies>
+        <!--
+            The framework-neutral engine. Everything gating/publishing/digest-related lives here;
+            this module only maps a java.util.logging LogRecord onto an AlertEvent and calls
+            submit(). JUL itself ships in java.base, so unlike ntfy-logback there is no
+            provided-scope framework dependency at all.
+        -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test stack: plain JUnit + AssertJ. The reliable-path unit tests use a loopback
+             com.sun.net.httpserver.HttpServer standing in for ntfy, no WireMock needed. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-dependency-allowlist</id>
+                        <!-- default phase = validate, no override needed -->
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <!--
+                                        Strict ALLOWLIST, not a blocklist (same design as ntfy-core's
+                                        pom). This adapter's promise is "ntfy-core + the JDK's own
+                                        java.util.logging, nothing else": JUL lives in java.base, so
+                                        the only compile-scope coordinate is ntfy-core itself, and the
+                                        rest of the roster is the shared test stack. Banning everything
+                                        and re-allowing only the verified roster below means any new
+                                        dependency is a deliberate, visible diff that trips this rule
+                                        instead of silently sailing through.
+
+                                        To safely extend this allowlist for a genuinely new, legitimate
+                                        dependency:
+                                          1. Confirm it belongs at the adapter layer (framework glue),
+                                             not in ntfy-core. Engine logic stays pure-JDK in core.
+                                          2. Run `mvn dependency:tree` and add EVERY new direct +
+                                             transitive coordinate the change surfaces, not just the one
+                                             you added by hand; transitives are what this rule catches.
+                                          3. Prefer a group-level wildcard (`groupId:*`) for multi-artifact
+                                             aggregators (see the org.junit.jupiter/org.junit.platform
+                                             entries below).
+                                          4. Re-run `mvn validate` and confirm BUILD SUCCESS before
+                                             committing.
+                                    -->
+                                    <searchTransitive>true</searchTransitive>
+                                    <excludes>
+                                        <exclude>*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>io.github.pimak:ntfy-core</include>
+                                        <include>org.junit.jupiter:*</include>
+                                        <include>org.junit.platform:*</include>
+                                        <include>org.opentest4j:opentest4j</include>
+                                        <include>org.apiguardian:apiguardian-api</include>
+                                        <include>org.jspecify:jspecify</include>
+                                        <include>org.assertj:assertj-core</include>
+                                        <include>net.bytebuddy:byte-buddy</include>
+                                    </includes>
+                                    <message>
+                                        ntfy-jul must stay "ntfy-core + the JDK's java.util.logging"
+                                        (plus its test stack). See the allowlist comment above this
+                                        rule before adding anything here.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

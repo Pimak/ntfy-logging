@@ -1,4 +1,4 @@
-package io.github.pimak.ntfy.quarkus.runtime;
+package io.github.pimak.ntfy.jul;
 
 import io.github.pimak.ntfy.core.AlertEvent;
 import java.text.MessageFormat;
@@ -10,9 +10,9 @@ import java.util.Set;
 import java.util.logging.LogRecord;
 
 /**
- * Maps a {@link LogRecord} (Quarkus routes all logging — JBoss LogManager, JUL, and the SLF4J/Log4j
- * bridges — through {@code java.util.logging}) into the framework-neutral {@link AlertEvent} the
- * core engine consumes.
+ * Maps a {@link LogRecord} into the framework-neutral {@link AlertEvent} the core engine consumes.
+ * Everything that logs through {@code java.util.logging} — plain JUL, JBoss LogManager, and the
+ * SLF4J/Log4j bridges — produces records this mapper understands.
  *
  * <p>The cause chain is walked surface&rarr;root; the root cause's frames are rendered unlimited
  * (the engine applies {@code maxStackFrames}). JUL has no marker concept, so {@code markerNames} is

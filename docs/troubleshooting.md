@@ -12,7 +12,7 @@ The channel depends on the adapter:
 | Adapter | Channel | How to see it |
 |---|---|---|
 | **Logback** (raw appender, zero-code auto-install) and **Spring Boot** (via the installed `ntfy-auto` appender) | Logback's `StatusManager` (`addInfo`/`addWarn`/`addError`) | Add a status listener, or dump the status list programmatically (below) |
-| **Quarkus** | `System.err`, each line prefixed `[ntfy]` (warnings as `[ntfy] WARN:`, errors as `[ntfy] ERROR:`) | Read the application's console/stderr |
+| **JUL** (`ntfy-jul`, standalone) and **Quarkus** (which installs the same handler) | `System.err`, each line prefixed `[ntfy]` (warnings as `[ntfy] WARN:`, errors as `[ntfy] ERROR:`) | Read the application's console/stderr |
 
 For the Logback/Spring path, the simplest way to surface the status lines is Logback's console
 listener:
@@ -51,17 +51,17 @@ runtime.
 | `topic is not a valid ntfy topic name (allowed: A-Z, a-z, 0-9, '-', '_'; max 64 chars) — engine disabled` | warn | The configured `topic` contains characters ntfy itself rejects (or is over 64 chars). The engine refuses activation rather than build request paths from it. The rejected value is deliberately not echoed. | Fix the `topic` to match `[-_A-Za-z0-9]{1,64}`. |
 | `credentials configured with a plain http:// URL — the token/password and alert content are sent unencrypted; use https://` | warn | A token or username/password is configured but `url` is `http://` — the `Authorization` header and every alert body travel in cleartext. Activation still proceeds. | Switch the ntfy server URL to `https://`, or accept the risk knowingly (private network). |
 | `configured priority/tags value contains non-printable-ASCII characters — the invalid header will be omitted from publishes` | warn | One of `error-priority`/`digest-priority`/`error-tags`/`digest-tags` contains a character outside printable ASCII (e.g. a literal emoji instead of a shortcode). That header is omitted from publishes instead of aborting them. | Use ntfy shortcodes (e.g. `rotating_light`), not literal emoji, and ASCII priority names/numbers. |
-| `ntfy: endpoint URL comes ONLY from a classpath ntfy.properties … refusing to auto-install alerting … for supply-chain safety` | warn (Logback auto-install only) | The endpoint URL was supplied only by a `ntfy.properties` found on the classpath (no `NTFY_URL` env var or `ntfy.url` system property), and the `allow-classpath-endpoint` opt-in is not set. Any jar can carry such a file, so the auto-install refuses to activate rather than send your error logs to a destination the classpath chose. | If the file is yours, opt in with `-Dntfy.allow-classpath-endpoint=true` / `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`, or set the URL via env/sysprop. If you don't recognize it, find which dependency ships it — it is trying to redirect your error logs. |
-| `ntfy: endpoint URL comes from a classpath ntfy.properties … make sure that file is one you trust` | warn (Logback auto-install only) | The zero-code auto-install activated from a `ntfy.properties` found on the classpath (with the `allow-classpath-endpoint` opt-in set), with no `NTFY_URL` env var or `ntfy.url` system property set. The destination is named loudly. | If the file is yours, no action. If you don't recognize it, find which dependency ships it — it is redirecting your error logs. |
+| `ntfy: endpoint URL comes ONLY from a classpath ntfy.properties … refusing to auto-install alerting … for supply-chain safety` | warn (Logback/JUL zero-code paths only) | The endpoint URL was supplied only by a `ntfy.properties` found on the classpath (no `NTFY_URL` env var or `ntfy.url` system property), and the `allow-classpath-endpoint` opt-in is not set. Any jar can carry such a file, so the auto-install refuses to activate rather than send your error logs to a destination the classpath chose. | If the file is yours, opt in with `-Dntfy.allow-classpath-endpoint=true` / `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`, or set the URL via env/sysprop. If you don't recognize it, find which dependency ships it — it is trying to redirect your error logs. |
+| `ntfy: endpoint URL comes from a classpath ntfy.properties … make sure that file is one you trust` | warn (Logback/JUL zero-code paths only) | The zero-code auto-install activated from a `ntfy.properties` found on the classpath (with the `allow-classpath-endpoint` opt-in set), with no `NTFY_URL` env var or `ntfy.url` system property set. The destination is named loudly. | If the file is yours, no action. If you don't recognize it, find which dependency ships it — it is redirecting your error logs. |
 
 ## Common scenarios
 
 **"I configured it but nothing happens."** Look for `ntfy alert engine not configured …` or `url set
-but topic missing …` — one of `url`/`topic` is probably missing. On Quarkus, grep stderr for
-`[ntfy]`.
+but topic missing …` — one of `url`/`topic` is probably missing. On JUL and Quarkus, grep stderr
+for `[ntfy]`.
 
 **"My Logback appender doesn't alert on WARN."** By design: every adapter gates at ERROR
-(`SEVERE` on Quarkus) before submitting, so sub-ERROR log content is never published off-host.
+(`SEVERE` on JUL/Quarkus) before submitting, so sub-ERROR log content is never published off-host.
 See [filtering.md](filtering.md).
 
 **"My own logs from `io.github.pimak.ntfy.*` never alert."** That package root is always

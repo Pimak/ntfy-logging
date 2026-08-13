@@ -1,10 +1,10 @@
-package io.github.pimak.ntfy.quarkus.runtime;
+package io.github.pimak.ntfy.jul;
 
 import io.github.pimak.ntfy.core.Diagnostics;
 
 /**
- * {@link Diagnostics} sink for the Quarkus extension that writes to {@link System#err}, never back
- * into any logging framework. Routing engine self-diagnostics through the log system would create a
+ * {@link Diagnostics} sink for the JUL adapter that writes to {@link System#err}, never back into
+ * any logging framework. Routing engine self-diagnostics through the log system would create a
  * feedback loop (a JUL handler that logs, whose logs feed the handler); {@code System.err} breaks
  * it. The core engine already guarantees these messages are generic and never carry a credential;
  * this sink simply relays them.
