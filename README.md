@@ -63,6 +63,15 @@ Everything beyond the base config — the full key reference, authentication, al
 filtering, troubleshooting — is shared across all five and lives in the reference pages under
 [Documentation](#documentation), linked from each guide.
 
+## Runnable examples
+
+Each adapter has a small, realistic example application under [`examples/`](examples/) (the Quarkus
+one lives in [`ntfy-quarkus/integration-tests/`](ntfy-quarkus/integration-tests/)). They double as
+the adapters' functional test-beds: their integration tests boot the example apps against a loopback
+ntfy stand-in in CI — covering the base alert path, the synchronous-vs-asynchronous delivery
+difference, and the clean-shutdown digest flush — so the examples can never drift from the code.
+See [examples/README.md](examples/README.md).
+
 ## Filtering: exclude-list, not allowlist
 
 You can exclude specific loggers (`excluded-loggers`, prefix-matched) from ever alerting, but there

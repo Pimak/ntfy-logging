@@ -10,6 +10,10 @@ exists.
 **Use this when** you use Logback (with or without Spring) and want ERROR logs to alert — via XML, or
 with no config at all.
 
+**Runnable example:** [`examples/logback`](../examples/logback) — a plain SLF4J app wired through
+[`logback.xml`](../examples/logback/src/main/resources/logback.xml), whose CI-run integration tests
+cover the base alert path, sync-vs-async delivery, and the clean-shutdown digest flush.
+
 ## Install
 
 - **Maven Central:** [io.github.pimak:ntfy-logback](https://central.sonatype.com/artifact/io.github.pimak/ntfy-logback)

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Example Logback configuration wiring the ntfy alert appender explicitly. Every ntfy setting is
+    resolved through Logback variable substitution with a default, so the same file works out of the
+    box (NTFY_URL / NTFY_TOPIC environment variables, or -Dntfy… system properties) AND lets this
+    module's integration tests point the appender at a loopback ntfy stand-in via context
+    properties — the tests run exactly this file.
+
+    Alternative: with ntfy-logback on the classpath you need no XML at all — setting NTFY_URL and
+    NTFY_TOPIC auto-installs the appender through a Logback Configurator SPI (see docs/logback.md).
+-->
+<configuration>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="NTFY" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
+    <url>${NTFY_URL:-https://ntfy.example.com}</url>
+    <topic>${NTFY_TOPIC:-my-app-alerts}</topic>
+    <!-- For an auth-protected topic: <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token> -->
+
+    <!-- Built-in async delivery: with true, each error alert is handed to a bounded queue drained
+         by a daemon worker, so a slow or unreachable ntfy server never blocks the logging thread.
+         With false (the default), delivery is synchronous and inline. -->
+    <async>${NTFY_ASYNC:-false}</async>
+
+    <!-- Storm suppression: at most maxAlertsPerWindow individual alerts per suppressionWindow
+         (milliseconds); the overflow is reported as one aggregated digest — also flushed on a
+         clean shutdown, so suppressed errors are never lost. These are the library defaults,
+         spelled out so the example shows where to tune them. -->
+    <maxAlertsPerWindow>${NTFY_MAX_ALERTS_PER_WINDOW:-3}</maxAlertsPerWindow>
+    <suppressionWindow>${NTFY_SUPPRESSION_WINDOW:-180000}</suppressionWindow>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="NTFY"/>
+  </root>
+
+  <!-- Stops the LoggerContext (and therefore the ntfy appender) on JVM exit: the appender's stop()
+       drains any queued async alerts and flushes the pending storm digest while the HTTP client is
+       still live. -->
+  <shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook"/>
+
+</configuration>

@@ -23,6 +23,18 @@
         <module>ntfy-spring-boot-starter</module>
         <!-- Quarkus extension aggregator (runtime + deployment) on top of ntfy-jul; native + zero-code via LogHandlerBuildItem. -->
         <module>ntfy-quarkus</module>
+        <!--
+            Runnable example applications that double as functional test-beds — one per adapter,
+            plus the shared loopback ntfy stand-in their tests use. NEVER published (each module
+            sets the full skip block; the release profile's excludeArtifacts below is the
+            authoritative Central exclusion). In the reactor so plain `verify` keeps every example
+            compiling and its integration tests green: the examples cannot drift from the code.
+        -->
+        <module>examples/testkit</module>
+        <module>examples/core</module>
+        <module>examples/jul</module>
+        <module>examples/logback</module>
+        <module>examples/spring-boot</module>
     </modules>
 
     <licenses>
@@ -296,6 +308,11 @@
                                  skips in its own pom as defense in depth. -->
                             <excludeArtifacts>
                                 <excludeArtifact>ntfy-quarkus-integration-tests</excludeArtifact>
+                                <excludeArtifact>ntfy-example-testkit</excludeArtifact>
+                                <excludeArtifact>ntfy-example-core</excludeArtifact>
+                                <excludeArtifact>ntfy-example-jul</excludeArtifact>
+                                <excludeArtifact>ntfy-example-logback</excludeArtifact>
+                                <excludeArtifact>ntfy-example-spring-boot</excludeArtifact>
                             </excludeArtifacts>
                         </configuration>
                     </plugin>

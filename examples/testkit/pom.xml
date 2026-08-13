@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.2.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-example-testkit</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-example-testkit</name>
+    <description>
+        Pure-JDK loopback ntfy stand-in shared by the example applications' integration tests. It
+        records every publish it receives and can hold responses open, which is what lets the
+        examples prove the synchronous-vs-asynchronous delivery difference and the clean-shutdown
+        digest flush deterministically. This module is NEVER published to Central.
+    </description>
+
+    <properties>
+        <!-- Test support for the examples, not a released artifact: keep it out of every publish
+             and static-analysis path that the released modules run (same block as the Quarkus
+             integration-tests harness). -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
+        <enforcer.skip>true</enforcer.skip>
+        <pmd.skip>true</pmd.skip>
+        <cpd.skip>true</cpd.skip>
+    </properties>
+
+    <!-- Deliberately dependency-free: com.sun.net.httpserver ships in the JDK, so the stand-in
+         works identically under every example's classpath (including a hand-rolled native one). -->
+</project>

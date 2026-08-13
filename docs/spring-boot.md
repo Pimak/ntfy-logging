@@ -10,6 +10,10 @@ manual notifications.
 **Use this when** you run Spring Boot and want alerting configured from `application.yml` and an
 `@Autowired NtfyClient` to send your own notifications.
 
+**Runnable example:** [`examples/spring-boot`](../examples/spring-boot) — a small app using this
+starter, whose CI-run integration tests cover the base alert path, sync-vs-async delivery, and the
+clean-shutdown digest flush.
+
 ## Install
 
 - **Maven Central:** [io.github.pimak:ntfy-spring-boot-starter](https://central.sonatype.com/artifact/io.github.pimak/ntfy-spring-boot-starter)

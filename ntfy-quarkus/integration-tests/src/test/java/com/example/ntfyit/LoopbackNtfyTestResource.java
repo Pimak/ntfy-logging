@@ -27,6 +27,17 @@ public class LoopbackNtfyTestResource implements QuarkusTestResourceLifecycleMan
   /** JVM-global slot the loopback server writes the received request path into. */
   public static final String RECEIVED_PATH_PROP = "ntfy.it.received.path";
 
+  /**
+   * JVM-global flag ({@code "true"}/absent): while set, the loopback server records each request on
+   * arrival but holds its response open (bounded by a 15 s safety timeout). The async test uses it
+   * to prove {@code quarkus.ntfy.async=true} keeps {@code /boom} non-blocking — the request thread
+   * returns while the ntfy response is still outstanding. A system property (not a latch) for the
+   * same classloader reason as {@link #RECEIVED_PATH_PROP}.
+   */
+  public static final String HOLD_RESPONSES_PROP = "ntfy.it.hold.responses";
+
+  private static final long HOLD_SAFETY_TIMEOUT_MILLIS = 15_000L;
+
   private static final String TOPIC = "smoke";
 
   private HttpServer server;
@@ -44,6 +55,7 @@ public class LoopbackNtfyTestResource implements QuarkusTestResourceLifecycleMan
         exchange -> {
           System.setProperty(RECEIVED_PATH_PROP, exchange.getRequestURI().getPath());
           exchange.getRequestBody().readAllBytes();
+          awaitHoldReleased();
           byte[] body = "{\"id\":\"1\"}".getBytes(StandardCharsets.UTF_8);
           exchange.sendResponseHeaders(200, body.length);
           exchange.getResponseBody().write(body);
@@ -68,5 +80,18 @@ public class LoopbackNtfyTestResource implements QuarkusTestResourceLifecycleMan
   /** The topic configured above; the app publishes to {@code /<topic>}. */
   public static String expectedPath() {
     return "/" + TOPIC;
+  }
+
+  /** Polls {@link #HOLD_RESPONSES_PROP} until cleared, bounded so a test can never hang the run. */
+  private static void awaitHoldReleased() {
+    long deadline = System.currentTimeMillis() + HOLD_SAFETY_TIMEOUT_MILLIS;
+    while (Boolean.getBoolean(HOLD_RESPONSES_PROP) && System.currentTimeMillis() < deadline) {
+      try {
+        Thread.sleep(25);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+    }
   }
 }

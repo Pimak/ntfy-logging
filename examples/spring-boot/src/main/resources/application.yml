@@ -1,0 +1,21 @@
+# Example ntfy configuration for a Spring Boot application. These two keys are all the starter
+# needs to publish every ERROR log as a push notification and to expose the injectable NtfyClient.
+# The module's integration tests boot this application with the url/topic overridden (via
+# command-line properties) to point at a loopback ntfy stand-in.
+ntfy:
+  url: https://ntfy.example.com
+  topic: my-app-alerts
+  # For an auth-protected topic:
+  # token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Built-in async delivery: with true, each error alert is handed to a bounded queue drained by a
+  # daemon worker, so a slow or unreachable ntfy server never blocks the logging thread. Off by
+  # default (synchronous, inline delivery).
+  # async: true
+  # async-queue-capacity: 1024
+
+  # Storm suppression (defaults shown): at most max-alerts-per-window individual alerts per
+  # suppression-window; the overflow is reported as one aggregated digest — also flushed when the
+  # application context closes, so suppressed errors are never lost.
+  # max-alerts-per-window: 3
+  # suppression-window: 3m
