@@ -68,9 +68,10 @@ The library's own package root, **`io.github.pimak.ntfy`**, is excluded from ale
 unconditionally — independent of `excluded-loggers` and independent of any framework-level filter.
 A single root now covers every module in the family (core, jul, logback, spring, quarkus). This is a
 belt-and-suspenders guard against the engine ever generating a feedback loop by alerting on a failure
-inside itself. (Diagnostics already go to a separate channel — Logback's `StatusManager`, or
-`System.err` for the JUL/Quarkus/Spring paths — never back through the logging pipeline, so a loop could
-not form anyway; the self-exclusion holds even if that invariant is ever violated by future code.)
+inside itself. (Diagnostics already go to a separate channel — Logback's `StatusManager` for the
+Logback/Spring paths, or `System.err` for the JUL/Quarkus paths — never back through the logging
+pipeline, so a loop could not form anyway; the self-exclusion holds even if that invariant is ever
+violated by future code.)
 
 You do not configure this; it cannot be turned off. It survives a blank or misconfigured
 `excluded-loggers` value.

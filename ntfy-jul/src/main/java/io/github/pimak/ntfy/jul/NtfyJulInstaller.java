@@ -32,15 +32,26 @@ public final class NtfyJulInstaller {
 
   /**
    * Resolves the ambient config and, when active and vetted, attaches a started {@link
-   * NtfyJulHandler} to {@code logger}. Empty — with nothing attached — when ntfy is not configured
-   * or the classpath-endpoint guard refused.
+   * NtfyJulHandler} to {@code logger}. Empty — with nothing attached — when ntfy is not configured,
+   * the classpath-endpoint guard refused, or resolution/construction failed (reported on {@code
+   * System.err}); like the auto-handler, this entry point never lets an alerting-setup failure
+   * propagate into the caller.
    */
   public static Optional<NtfyJulHandler> install(Logger logger) {
     Objects.requireNonNull(logger, "logger");
-    Optional<NtfyJulHandler> handler =
-        JulAmbientConfig.resolve(new JulDiagnostics()).map(NtfyJulHandler::forConfig);
-    handler.ifPresent(logger::addHandler);
-    return handler;
+    JulDiagnostics diagnostics = new JulDiagnostics();
+    try {
+      Optional<NtfyJulHandler> handler =
+          JulAmbientConfig.resolve(diagnostics).map(NtfyJulHandler::forConfig);
+      handler.ifPresent(logger::addHandler);
+      return handler;
+    } catch (RuntimeException e) {
+      // Same defense as NtfyJulAutoHandler: a failure to read ambient config (e.g. a
+      // SecurityException from the env/sysprop lookups) degrades to "not installed", never a
+      // throw out of a one-liner documented as always safe to call.
+      diagnostics.error("ntfy: installer initialization failed", e);
+      return Optional.empty();
+    }
   }
 
   /** Detaches {@code handler} from {@code logger} and stops its engine. */
