@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alive). The existing Quarkus integration-tests app plays the same role for the Quarkus extension
   and gained an async-delivery smoke test (`quarkus.ntfy.async=true` keeps `/boom` non-blocking
   while the ntfy response is held). See [examples/README.md](examples/README.md).
+- **Claude-reviewed Dependabot PRs with auto-merge of safe bumps.** A new
+  `dependabot-auto-review` workflow runs a Claude Code session on every Dependabot PR: it reviews
+  the diff (must be a pure version bump), the release notes, and how the dependency is used in
+  this codebase, then approves and enables `gh pr merge --auto` for clean semver-patch/minor
+  updates (so they merge once the required checks pass) while major or suspicious updates get a
+  summarizing comment for human review instead. Runs on `pull_request_target` without ever
+  checking out the PR head (review is via read-only `gh pr view`/`gh pr diff`), with Claude's
+  toolset restricted to those gh subcommands plus read-only file access.
 
 ### Changed
 - **`ntfy-quarkus-runtime` now depends on `ntfy-jul` instead of carrying its own JUL classes.**
