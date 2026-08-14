@@ -34,8 +34,10 @@ jobs:
   # Slow leg (the native smoke): GraalVM-native-compiles the Quarkus integration-tests app and runs
   # its @QuarkusIntegrationTest against the native binary — proof the extension works in a native
   # image (URL protocols, log handler install, engine boot at RUNTIME_INIT). This is the expensive
-  # job (a native build is minutes, not seconds), so it runs once on JDK 21 only, not the full
-  # matrix. Blocking (no continue-on-error): a native regression must turn CI red.
+  # job (a native build is minutes, not seconds), so it runs once on JDK 25 only, not the full
+  # matrix (GraalVM CE community builds only track the latest JDK; the 21 line is frozen at
+  # 21.0.2, which is too old for Quarkus 3.38+). Blocking (no continue-on-error): a native
+  # regression must turn CI red.
   native-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -44,7 +46,7 @@ jobs:
       - name: Set up GraalVM (native-image)
         uses: graalvm/setup-graalvm@5298d94fb55a4f185c602eeac5de1b553882abe2 # v1
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: maven
