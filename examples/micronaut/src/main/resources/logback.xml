@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The ordinary console logging configuration a Micronaut application ships. It deliberately
+    declares NO ntfy appender: unlike the plain-Logback example, here the appender is installed
+    programmatically from the ntfy.* block of application.yml, once the Micronaut context has
+    started. Declaring one here as well would attach a second, independently configured alert
+    engine to the same root logger.
+
+    That omission is also what keeps this file harmless on the test classpath. src/main/resources is
+    on it, so Logback configures the JVM-global logger context from this very file during the
+    integration tests (the log4j2 example needs a test-only override precisely because its shipped
+    configuration does declare the appender). No ntfy element here means no JVM-global engine, and
+    therefore nothing that could survive a context close and break the clean-shutdown IT's
+    "no engine thread alive" assertion.
+
+    Its presence additionally makes the ntfy-logback Configurator SPI a no-op — Logback only
+    consults the Configurator when it finds no configuration file — so the only appender the tests
+    ever observe is the one the Micronaut installer attached.
+
+    Root at INFO so the application narrative and Micronaut's own startup lines are visible without
+    the DEBUG-level bean-resolution tracing Logback's built-in default would produce. The ntfy
+    appender gates on ERROR internally, so an INFO root still publishes error alerts only.
+-->
+<configuration>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+</configuration>

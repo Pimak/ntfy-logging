@@ -8,6 +8,7 @@ so the examples can never drift from the library.
 | Example | Library | The example app |
 |---|---|---|
 | [`spring-boot/`](spring-boot/) | `ntfy-spring-boot-starter` | A Spring Boot app configured via `application.yml` `ntfy.*`: a service whose ERROR log alerts, plus a `NtfyClient`-injecting service for manual notifications. |
+| [`micronaut/`](micronaut/) | `ntfy-micronaut` | A Micronaut app configured via `application.yml` `ntfy.*`: a service whose ERROR log alerts through the appender installed on the root Logback logger at startup, plus a `NtfyClient`-injecting service for manual notifications. |
 | [`logback/`](logback/) | `ntfy-logback` | A plain SLF4J app whose [`logback.xml`](logback/src/main/resources/logback.xml) wires the `LogbackAlertAppender` (env-substituted settings, shutdown hook). |
 | [`log4j2/`](log4j2/) | `ntfy-log4j2` | A plain Log4j2 app whose [`log4j2.xml`](log4j2/src/main/resources/log4j2.xml) declares the `<Ntfy>` appender (env-substituted settings) and references it from the root logger. |
 | [`jul/`](jul/) | `ntfy-jul` | A plain `java.util.logging` app installing the ntfy handler with the `NtfyJulInstaller.install()` one-liner from ambient config (`NTFY_URL`/`-Dntfy.*`). |
