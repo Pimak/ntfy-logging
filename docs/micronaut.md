@@ -85,6 +85,26 @@ The bean is a `@Singleton` whose lifecycle belongs to the container: it is close
 shutdown, which stops the async delivery worker. `NtfyClient.notify(...)` never throws — every
 outcome is returned as a `PublishResult`.
 
+## MDC context in alert bodies
+
+Name the MDC keys you want attached to alerts and each is rendered as its own `key: value` line just
+after `Logger:`:
+
+```yaml
+ntfy:
+  url: https://ntfy.example.com
+  topic: my-app-alerts
+  include-mdc-keys: correlation-id, tenant
+```
+
+Values come from the SLF4J/Logback MDC — this module installs a Logback appender, so `MDC.put(...)`
+from anywhere in your application is what populates them.
+
+It is an **allow-list with no wildcard form**: a key you have not named is never published, so an MDC
+carrying a session token or an e-mail address cannot leak into a topic. Unset — the default — bodies
+are byte-identical to before. See **[filtering.md](filtering.md)** for the guards and
+**[configuration.md](configuration.md)** for the key's spelling on every other surface.
+
 ## Scope: Logback only
 
 The automatic appender install is **Logback-specific, and only Logback**. Micronaut ships Logback
