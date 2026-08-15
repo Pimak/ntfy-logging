@@ -72,9 +72,8 @@ filtering, troubleshooting — is shared across all seven and lives in the refer
 
 ## Runnable examples
 
-Most adapters have a small, realistic example application under [`examples/`](examples/) (the Quarkus
-one lives in [`ntfy-quarkus/integration-tests/`](ntfy-quarkus/integration-tests/); `ntfy-micronaut`
-has no standalone example yet — it is covered by its own module integration test). They double as
+Each adapter has a small, realistic example application under [`examples/`](examples/) (the Quarkus
+one lives in [`ntfy-quarkus/integration-tests/`](ntfy-quarkus/integration-tests/)). They double as
 the adapters' functional test-beds: their integration tests boot the example apps against a loopback
 ntfy stand-in in CI — covering the base alert path, the synchronous-vs-asynchronous delivery
 difference, and the clean-shutdown digest flush — so the examples can never drift from the code.

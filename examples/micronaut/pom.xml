@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.2.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-example-micronaut</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-example-micronaut</name>
+    <description>
+        Runnable example for ntfy-micronaut that doubles as its functional test-bed: a small
+        Micronaut application configured via application.yml ntfy.* properties, with an injected
+        NtfyClient for manual notifications. The integration tests boot the real application context
+        against a loopback ntfy stand-in and prove the base alert path, the
+        synchronous-vs-asynchronous delivery difference, and the clean-shutdown (context close)
+        digest flush. This module is NEVER published to Central.
+    </description>
+
+    <properties>
+        <!-- Example/test harness, not a released artifact: keep it out of every publish and
+             static-analysis path that the released modules run. -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
+        <enforcer.skip>true</enforcer.skip>
+        <pmd.skip>true</pmd.skip>
+        <cpd.skip>true</cpd.skip>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Micronaut platform BOM scoped to this module (same pattern as ntfy-micronaut) so its
+                 managed versions never collide with the Quarkus BOM imported by the reactor parent.
+                 The version comes from the parent's ${micronaut.version} property, so the example
+                 always demonstrates the Micronaut line the adapter is built and tested against. -->
+            <dependency>
+                <groupId>io.micronaut.platform</groupId>
+                <artifactId>micronaut-platform</artifactId>
+                <version>${micronaut.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- The library under example — exactly what a Micronaut consumer declares (it pulls
+             ntfy-core and ntfy-logback transitively). -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-micronaut</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- The Micronaut runtime any application declares: micronaut-inject carries the
+             @Singleton/@ConfigurationProperties model the annotation processor generates against,
+             micronaut-context the ApplicationContext and io.micronaut.runtime.Micronaut entry point
+             the example's main() uses. Versions come from the platform BOM above. -->
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-inject</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-context</artifactId>
+        </dependency>
+
+        <!-- Logback is the SLF4J backend of this application. Runtime scope, NOT provided: the
+             adapter keeps Logback provided because the host application supplies it — here this
+             module IS that host application, and no example class compiles against a Logback type.
+             The version comes from the reactor parent's dependencyManagement, so every module in
+             this repository runs the same Logback. -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Required for application.yml to be read at all: micronaut-inject ships the
+             YamlPropertySourceLoader but keeps SnakeYAML optional, and the loader silently disables
+             itself when org.yaml.snakeyaml.Yaml is absent — an application.yml that is quietly
+             ignored, not an error. A Micronaut application that configures itself in YAML therefore
+             declares this; one using application.properties does not. -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-example-testkit</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Micronaut is a compile-time DI framework: micronaut-inject-java generates the
+                        *$Definition classes that ARE this example's beans, so without the processor
+                        the application would start with an empty context. The path is declared
+                        explicitly rather than left to classpath discovery because javac no longer
+                        scans the classpath for annotation processors from JDK 23 on, and CI builds
+                        this reactor on both JDK 21 and JDK 25 — discovery would silently produce a
+                        bean-less application on the newer JDK. Same reasoning, same declaration as
+                        ntfy-micronaut/pom.xml.
+
+                        No <version> elements: maven-compiler-plugin resolves processor-path versions
+                        from this project's dependencyManagement (MCOMPILER-391, since 3.12.0), i.e.
+                        the Micronaut platform BOM imported above, keeping the processor and the
+                        micronaut-inject it generates against on exactly one version.
+                    -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.micronaut</groupId>
+                            <artifactId>micronaut-inject-java</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                    <!-- The integration tests boot a real ApplicationContext, and any bean declared
+                         in test sources needs the same processor to get a definition. -->
+                    <testAnnotationProcessorPaths>
+                        <path>
+                            <groupId>io.micronaut</groupId>
+                            <artifactId>micronaut-inject-java</artifactId>
+                        </path>
+                    </testAnnotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <!-- The *IT integration tests run at verify; version + executions inherited from the
+                 parent's pluginManagement — declaring the plugin activates them. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,31 @@
+# Example ntfy configuration for a Micronaut application. These keys are all ntfy-micronaut needs
+# to publish every ERROR log as a push notification and to expose the injectable NtfyClient bean:
+# @ConfigurationProperties("ntfy") binds them, and the startup listener installs the appender on the
+# root Logback logger. Relaxed binding means kebab-case (app-name), camelCase (appName) and
+# NTFY_APP_NAME all reach the same field.
+#
+# Placeholder syntax is Micronaut's, not Spring's: ${NAME:default} — and a default containing a
+# colon (any URL) must be wrapped in backticks, because the first colon is what separates the
+# placeholder name from its default. Micronaut resolves NTFY_URL from the environment, and
+# -Dntfy.url overrides the resolved value entirely (system properties outrank config files).
+ntfy:
+  url: ${NTFY_URL:`https://ntfy.example.com`}
+  topic: ${NTFY_TOPIC:my-app-alerts}
+  # Shown in every notification title, so several services sharing one topic stay distinguishable.
+  app-name: order-service
+  # For an auth-protected topic:
+  # token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+  # Built-in async delivery (the default since 2.0): each error alert is handed to a bounded queue
+  # drained by a daemon worker, so a slow or unreachable ntfy server never blocks the logging
+  # thread. Set async: false for pre-2.0 synchronous, inline delivery — the guarantee a short-lived
+  # process may prefer, since the publish completes before the logging call returns.
+  # async: false
+  # async-queue-capacity: 1024
+
+  # Storm suppression (defaults shown): at most max-alerts-per-window individual alerts per
+  # suppression-window; the overflow is reported as one aggregated digest — also flushed when the
+  # application context closes, so suppressed errors are never lost. Micronaut converts these
+  # Duration values natively, so 3m, 180s and PT3M are all accepted.
+  # max-alerts-per-window: 3
+  # suppression-window: 3m
