@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Fixture for NtfyLog4j2PluginDiscoveryIT. Deliberately NOT named log4j2.xml/log4j2-test.xml so
+    log4j2 never auto-detects it: the IT loads it explicitly into its own isolated LoggerContext,
+    and every other test in this module keeps log4j2's default configuration.
+
+    The url points at port 1 and nothing is ever logged through this configuration, so no HTTP
+    request is made — the IT only asserts that the <Ntfy> element RESOLVES to the plugin (i.e. that
+    Log4j2Plugins.dat was generated) and lands on the root logger.
+-->
+<Configuration status="warn" name="ntfy-plugin-discovery">
+    <Appenders>
+        <Ntfy name="ntfy"
+              url="http://localhost:1"
+              topic="alerts"
+              appName="DiscoveryProbe"
+              maxAlertsPerWindow="5"
+              suppressionWindow="60000"
+              errorPriority="high"
+              excludedLoggers="com.noisy"/>
+    </Appenders>
+    <Loggers>
+        <Root level="error">
+            <AppenderRef ref="ntfy"/>
+        </Root>
+    </Loggers>
+</Configuration>
