@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Example Log4j2 configuration wiring the ntfy alert appender explicitly. The <Ntfy> element only
+    resolves because ntfy-log4j2 is on the classpath: the jar ships the Log4j2Plugins.dat descriptor
+    log4j2 uses to map the element name onto NtfyLog4j2Appender.
+
+    Every ntfy setting is resolved through Log4j2 property substitution with a default, so the same
+    file works out of the box (NTFY_URL / NTFY_TOPIC environment variables) AND lets this module's
+    integration tests point the appender at a loopback ntfy stand-in — the tests run exactly this
+    file.
+
+    Why the doubled ${sys:… :-${env:… :-default}} form: unlike Logback's ${NAME:-default}, a Log4j2
+    lookup is source-specific — env: reads only the environment, sys: only system properties.
+    Nesting the environment lookup inside the system-property lookup's default value yields the
+    familiar precedence chain "-D wins over the environment wins over the built-in default" in a
+    single expression, and it is the system-property rung the integration tests drive.
+
+    Alternative: with ntfy-log4j2 on the classpath you need no <Ntfy> element at all —
+    NtfyLog4j2Installer.install() wires the appender from ambient config in one line and survives
+    log4j2 reconfiguration (see docs/log4j2.md).
+
+    shutdownHook="enable" is log4j2's default, spelled out because it is what makes the clean
+    shutdown work: on JVM exit log4j2 stops this LoggerContext, and the ntfy appender's stop()
+    drains any queued async alerts and flushes the pending storm digest while the HTTP client is
+    still live. status="warn" routes the appender's own diagnostics (a malformed attribute, or the
+    engine declining to activate) to log4j2's StatusLogger — never back through this pipeline.
+-->
+<Configuration name="ntfy-example" status="warn" shutdownHook="enable">
+
+  <Appenders>
+
+    <Console name="CONSOLE" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"/>
+    </Console>
+
+    <!--
+        Attributes are camelCase and all string-valued; url and topic are the only required ones.
+        An omitted attribute keeps ntfy-core's default rather than being clobbered by a 0/false.
+
+        For an auth-protected topic add: token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+        async: built-in async delivery (the default since 2.0) hands each error alert to a bounded
+        queue drained by a daemon worker, so a slow or unreachable ntfy server never blocks the
+        logging thread. Set false for pre-2.0 synchronous, inline delivery — the guarantee a
+        short-lived process may prefer, since the publish completes before the logging call
+        returns.
+
+        Storm suppression: at most maxAlertsPerWindow individual alerts per suppressionWindow
+        (milliseconds, or 30s/5m/… ); the overflow is reported as one aggregated digest — also
+        flushed on a clean shutdown, so suppressed errors are never lost. These are the library
+        defaults, spelled out so the example shows where to tune them.
+    -->
+    <Ntfy name="NTFY"
+          url="${sys:ntfy.url:-${env:NTFY_URL:-https://ntfy.example.com}}"
+          topic="${sys:ntfy.topic:-${env:NTFY_TOPIC:-my-app-alerts}}"
+          async="${sys:ntfy.async:-${env:NTFY_ASYNC:-true}}"
+          maxAlertsPerWindow="${sys:ntfy.maxAlertsPerWindow:-${env:NTFY_MAX_ALERTS_PER_WINDOW:-3}}"
+          suppressionWindow="${sys:ntfy.suppressionWindow:-${env:NTFY_SUPPRESSION_WINDOW:-180000}}"/>
+
+  </Appenders>
+
+  <Loggers>
+    <!--
+        Root at INFO so the console appender sees the whole application narrative. The ntfy
+        appender gates on ERROR internally, so referencing it from an INFO root publishes error
+        alerts only — no INFO/WARN line ever reaches the topic.
+    -->
+    <Root level="info">
+      <AppenderRef ref="CONSOLE"/>
+      <AppenderRef ref="NTFY"/>
+    </Root>
+  </Loggers>
+
+</Configuration>
