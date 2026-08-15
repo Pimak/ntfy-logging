@@ -225,6 +225,16 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * The resolved {@code include-mdc-keys} allow-list this appender is currently projecting with —
+   * empty before {@code start()} and after {@code stop()}. Package-private: it exists so the
+   * setter&rarr;config&rarr;appender binding can be asserted without standing up an HTTP endpoint,
+   * and is not part of the public appender surface.
+   */
+  List<String> resolvedMdcKeys() {
+    return mdcKeys;
+  }
+
+  /**
    * Builds an {@link AlertEngine} from the injected config (if present) or from the JavaBean
    * setters, starts it, and marks this appender started ONLY if the engine actually activated. A
    * silently/partially unconfigured engine leaves the appender {@code isStarted()==false} (the
