@@ -100,13 +100,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Generates spring-configuration-metadata.json for ntfy.* keys (IDE completion). -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-
         <!--
             Optional Micrometer binding: when the consumer already has micrometer-core on the
             classpath (any Spring Boot Actuator app does), the starter exports the ntfy pipeline
@@ -127,6 +120,17 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            The reader half of the configuration-metadata format (the same parser IDEs use), so
+            NtfyConfigurationMetadataTest can assert against the metadata this module actually
+            generates rather than re-implementing a JSON reader. Test-only: nothing at runtime
+            reads metadata. Version comes from the imported spring-boot-dependencies BOM.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-metadata</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.wiremock</groupId>
             <artifactId>wiremock-standalone</artifactId>
@@ -139,6 +143,28 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!--
+                        spring-boot-configuration-processor turns the @ConfigurationProperties
+                        class into META-INF/spring-configuration-metadata.json — the file IDEs read
+                        to complete and describe the ntfy.* keys. It is declared here rather than
+                        as an optional dependency (the usual Spring idiom) for the same reason
+                        ntfy-log4j2 declares log4j-core's processor this way: javac stopped
+                        scanning the classpath for annotation processors by default in JDK 23, and
+                        CI builds this reactor on both JDK 21 and JDK 25. Left to classpath
+                        discovery the metadata simply stopped being generated on the newer JDK, and
+                        nothing said so — a missing metadata file breaks no compilation. An
+                        explicit processor path makes the generation JDK-independent, and
+                        NtfyConfigurationMetadataTest now fails loudly if it ever stops running.
+                    -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${spring-boot.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

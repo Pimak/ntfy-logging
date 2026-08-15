@@ -41,6 +41,13 @@ quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 As soon as `url` and `topic` are set, error logs auto-publish through the extension's log handler.
 The extension is native-image ready out of the box.
 
+The runtime jar carries Quarkus' own config documentation model
+(`META-INF/quarkus-config-doc/`), generated from the `@ConfigMapping` javadoc, so tooling can
+describe the `quarkus.ntfy.*` keys. To read it yourself as a table of every key with its type,
+default and environment-variable name, run
+`./mvnw -pl ntfy-quarkus/runtime -am process-classes` and open
+`ntfy-quarkus/runtime/target/quarkus-generated-doc/config/`.
+
 Delivery is asynchronous by default (since 2.0): alerts are offloaded to a bounded queue drained by
 a daemon worker (tune it with `quarkus.ntfy.async-queue-capacity`, default `1024`), so a slow or
 unreachable ntfy server never blocks the logging thread. The worker is a plain platform daemon

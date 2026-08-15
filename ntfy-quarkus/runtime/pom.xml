@@ -75,6 +75,45 @@
                 </configuration>
             </plugin>
 
+            <!--
+                The Quarkus counterpart of the Spring starter's configuration metadata. The
+                annotation processor above already emits the config model and the @ConfigMapping
+                javadoc — as META-INF/quarkus-config-doc/*.json inside the jar, where Quarkus'
+                own tooling reads it — and it is strict about that javadoc: a config method
+                without one fails the compilation outright ("Unable to find javadoc for config
+                item"), which is why the quarkus.ntfy.* keys need no completeness test of their
+                own, unlike the Spring ones.
+
+                What this plugin adds is the readable rendering of that model: a Markdown table of
+                every quarkus.ntfy.* key with its type, default and environment-variable name,
+                regenerated on demand with
+                `./mvnw -pl ntfy-quarkus/runtime -am process-classes`. It stays in target/ and is
+                never committed — docs/configuration.md remains the single cross-surface key
+                reference, and a committed copy would be one more thing to keep in step with it.
+
+                Bound to process-classes, not the goal's default generate-resources: the model it
+                reads is written by the annotation processor during compile, so on a clean build
+                the default binding would find nothing to render.
+            -->
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-config-doc-maven-plugin</artifactId>
+                <version>${quarkus.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-config-doc</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>generate-config-doc</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Markdown to match the docs/ tree, rather than the Quarkus-site asciidoc default. -->
+                            <format>markdown</format>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

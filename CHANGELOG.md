@@ -58,6 +58,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alive). The existing Quarkus integration-tests app plays the same role for the Quarkus extension
   and gained an async-delivery smoke test (`quarkus.ntfy.async=true` keeps `/boom` non-blocking
   while the ntfy response is held). See [examples/README.md](examples/README.md).
+- **A description for every `ntfy.*` key in the IDE, and a test that keeps it that way.** The
+  Spring Boot starter's configuration metadata described 19 of its 24 keys; `ntfy.click-url`,
+  `ntfy.actions`, `ntfy.locale`, `ntfy.async` and `ntfy.async-queue-capacity` completed as bare
+  names. The descriptions now come from javadoc on the `NtfyProperties` fields — one source of
+  truth, mirroring how the Quarkus `@ConfigMapping` documents `quarkus.ntfy.*` — so
+  `additional-spring-configuration-metadata.json` is left holding only what the annotation
+  processor cannot infer from the source: the three `Duration` defaults, and new completion hints
+  (the five ntfy priorities for `ntfy.error-priority` / `ntfy.digest-priority`, the shipped locales
+  for `ntfy.locale`, and logger-name completion for `ntfy.excluded-loggers`). A new
+  `NtfyConfigurationMetadataTest` reads the metadata file the build actually produces and fails if
+  any bound key is missing or undescribed, so a field added later without javadoc cannot ship
+  undocumented.
+- **A generated configuration reference for the Quarkus extension.** The runtime module now runs
+  `quarkus-config-doc-maven-plugin`, rendering the config model that
+  `quarkus-extension-processor` already produces into a Markdown table of every `quarkus.ntfy.*`
+  key with its type, default and environment-variable name. It is generated into `target/` on
+  demand (`./mvnw -pl ntfy-quarkus/runtime -am process-classes`) rather than committed:
+  [docs/configuration.md](docs/configuration.md) stays the single cross-surface key reference.
+
+### Fixed
+- **The Spring starter's IDE metadata would have silently stopped being generated on JDK 23+.**
+  `spring-boot-configuration-processor` was declared as a plain optional dependency, i.e. found by
+  classpath scanning — which javac stopped doing by default in JDK 23. Nothing would have failed:
+  no metadata file simply means no completion and no descriptions for consumers. CI already builds
+  this reactor on JDK 25, where the file was not being produced. The processor is now declared in
+  `<annotationProcessorPaths>`, the same way `ntfy-log4j2` declares log4j-core's plugin processor,
+  which makes the generation JDK-independent; `NtfyConfigurationMetadataTest` fails loudly if it
+  ever stops running again.
 
 ### Changed
 - **The Spring Boot starter is no longer Logback-only.** Its auto-configuration used to carry a

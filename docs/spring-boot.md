@@ -64,6 +64,11 @@ That is all you need. As soon as `url` and `topic` are set, error logs auto-publ
 appender is installed idempotently on the bound backend) — no `logback.xml` / `log4j2.xml` edit
 required.
 
+You should not need this page open while writing that block: the starter ships
+`META-INF/spring-configuration-metadata.json`, so an IDE completes every `ntfy.*` key in
+`application.yml` / `application.properties` with its type, default and description, and suggests
+the valid values for `ntfy.error-priority` and `ntfy.digest-priority`.
+
 Delivery is asynchronous by default (since 2.0): alerts are offloaded to a bounded queue drained by
 a daemon worker (tune it with `ntfy.async-queue-capacity`, default `1024`), so a slow or unreachable
 ntfy server never blocks your application threads. Set `ntfy.async: false` for pre-2.0 synchronous,
