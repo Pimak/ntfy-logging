@@ -50,6 +50,12 @@ class AlertEngineMdcBodyIT {
             .topic("alerts")
             .maxAlertsPerWindow(10)
             .suppressionWindow(java.time.Duration.ofMillis(60_000L)) // never fires naturally
+            // Explicit 2.0 opt-out, matching AlertEnginePipelineCountersIT: delivery is
+            // asynchronous by default, so an individual alert is still sitting in the bounded
+            // queue when stop() runs — and stop() folds queued-but-unsent events into the storm
+            // digest rather than delivering them. These tests assert on the INDIVIDUAL alert
+            // body, so they need inline delivery to observe it at all.
+            .asyncEnabled(false)
             .build();
     return new AlertEngine(config, NO_OP);
   }
