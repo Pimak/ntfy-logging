@@ -36,6 +36,7 @@
         <module>examples/core</module>
         <module>examples/jul</module>
         <module>examples/logback</module>
+        <module>examples/log4j2</module>
         <module>examples/spring-boot</module>
     </modules>
 
