@@ -2,5 +2,10 @@
   {
     "name": "io.github.pimak.ntfy.jul.NtfyJulAutoHandler",
     "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "condition": { "typeReachable": "org.jboss.logmanager.ExtLogRecord" },
+    "name": "org.jboss.logmanager.ExtLogRecord",
+    "methods": [{ "name": "getMdc", "parameterTypes": ["java.lang.String"] }]
   }
 ]

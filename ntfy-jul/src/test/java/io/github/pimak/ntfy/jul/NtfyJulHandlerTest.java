@@ -2,10 +2,13 @@ package io.github.pimak.ntfy.jul;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.pimak.ntfy.core.AlertEngine;
 import io.github.pimak.ntfy.core.NtfyConfig;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
+import org.jboss.logmanager.ExtLogRecord;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,6 +90,67 @@ class NtfyJulHandlerTest {
       // Give any (erroneous) async publish a moment; nothing should arrive.
       TimeUnit.MILLISECONDS.sleep(300);
       assertThat(server.receivedPaths()).isEmpty();
+    } finally {
+      handler.close();
+    }
+  }
+
+  /**
+   * The pre-{@code include-mdc-keys} constructor is kept for source/binary compatibility: it must
+   * still publish, and must render no MDC context even from a record that carries one.
+   */
+  @Test
+  void singleArgConstructor_stillWorks_andRendersNoMdc() throws InterruptedException {
+    NtfyConfig cfg =
+        NtfyConfig.builder().url(server.baseUrl()).topic("alerts").maxAlertsPerWindow(10).build();
+    AlertEngine engine = new AlertEngine(cfg, new JulDiagnostics());
+    engine.start();
+    NtfyJulHandler handler = new NtfyJulHandler(engine);
+    try {
+      ExtLogRecord record = new ExtLogRecord(Level.SEVERE, "legacy-ctor");
+      record.setLoggerName("com.example.Legacy");
+      record.withMdc("requestId", "req-legacy");
+
+      handler.publish(record);
+
+      assertThat(server.waitForRequest()).isTrue();
+      assertThat(server.receivedBodies()).hasSize(1);
+      assertThat(server.receivedBodies().get(0)).contains("legacy-ctor").doesNotContain("req-");
+      // Not even consulted: an empty allow-list short-circuits before any MDC access.
+      assertThat(record.mdcCallCount()).isZero();
+    } finally {
+      handler.close();
+    }
+  }
+
+  /**
+   * End-to-end: an allow-listed MDC key configured on {@link NtfyConfig} reaches the published body
+   * as its own {@code key: value} line — while a key that was NOT allow-listed does not, value and
+   * all. The record is an {@code org.jboss.logmanager.ExtLogRecord} stub, so the real reflective
+   * detection path runs (see that class's header comment).
+   */
+  @Test
+  void allowListedMdcValueReachesThePublishedBody() throws InterruptedException {
+    NtfyConfig cfg =
+        NtfyConfig.builder()
+            .url(server.baseUrl())
+            .topic("alerts")
+            .maxAlertsPerWindow(10)
+            .includeMdcKeys(List.of("requestId"))
+            .build();
+    NtfyJulHandler handler = NtfyJulHandler.forConfig(cfg);
+    try {
+      ExtLogRecord record = new ExtLogRecord(Level.SEVERE, "kaboom-mdc");
+      record.setLoggerName("com.example.Boom");
+      record.withMdc("requestId", "req-4711").withMdc("sessionToken", "super-secret");
+      record.setThrown(new IllegalStateException("bad state"));
+
+      handler.publish(record);
+
+      assertThat(server.waitForRequest()).isTrue();
+      String body = server.receivedBodies().get(0);
+      assertThat(body).contains("requestId: req-4711");
+      assertThat(body).doesNotContain("sessionToken").doesNotContain("super-secret");
     } finally {
       handler.close();
     }

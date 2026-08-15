@@ -1,12 +1,15 @@
 package io.github.pimak.ntfy.jul;
 
 import io.github.pimak.ntfy.core.AlertEvent;
+import io.github.pimak.ntfy.core.MdcProjector;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.LogRecord;
 
 /**
@@ -17,6 +20,12 @@ import java.util.logging.LogRecord;
  * <p>The cause chain is walked surface&rarr;root; the root cause's frames are rendered unlimited
  * (the engine applies {@code maxStackFrames}). JUL has no marker concept, so {@code markerNames} is
  * always empty.
+ *
+ * <p>Plain JUL has no MDC concept either, so {@code mdcValues} is empty unless the record is one
+ * JBoss LogManager supplied — an {@code org.jboss.logmanager.ExtLogRecord}, as under Quarkus —
+ * which {@link ExtLogRecordMdc} detects reflectively. Even then, only the operator's explicitly
+ * allow-listed keys are ever read: see {@link MdcProjector}, which owns every guard (order, dedupe,
+ * caps, truncation, scrubbing) applied to the result.
  */
 final class JulEventMapper {
 
@@ -25,8 +34,15 @@ final class JulEventMapper {
 
   private JulEventMapper() {}
 
-  /** Builds an {@link AlertEvent} from {@code record}. Never throws on a malformed record. */
-  static AlertEvent map(LogRecord record) {
+  /**
+   * Builds an {@link AlertEvent} from {@code record}. Never throws on a malformed record.
+   *
+   * @param record the JUL record to map
+   * @param includeMdcKeys the operator-configured MDC allow-list, in rendering order; {@code null}
+   *     or empty (the default) means the record's MDC is never consulted and no reflection happens
+   *     at all
+   */
+  static AlertEvent map(LogRecord record, List<String> includeMdcKeys) {
     List<AlertEvent.Cause> causeChain = new ArrayList<>();
     List<String> rootCauseFrames = List.of();
 
@@ -52,13 +68,25 @@ final class JulEventMapper {
       rootCauseFrames = rendered;
     }
 
+    // The feature being unset must cost nothing: no reflection, no MDC access, not even a probe
+    // for JBoss LogManager. Only once the operator has named at least one key is the record's
+    // provenance examined at all.
+    Map<String, String> mdcValues = Map.of();
+    if (includeMdcKeys != null && !includeMdcKeys.isEmpty()) {
+      Function<String, String> lookup = ExtLogRecordMdc.lookupFor(record);
+      if (lookup != null) {
+        mdcValues = MdcProjector.project(includeMdcKeys, lookup);
+      }
+    }
+
     return new AlertEvent(
         loggerName(record),
         formatMessage(record),
         record.getMillis(),
         causeChain,
         rootCauseFrames,
-        Set.of());
+        Set.of(),
+        mdcValues);
   }
 
   /**
