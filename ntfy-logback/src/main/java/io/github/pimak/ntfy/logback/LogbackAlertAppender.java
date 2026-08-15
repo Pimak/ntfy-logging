@@ -1,5 +1,7 @@
 package io.github.pimak.ntfy.logback;
 
+import java.util.List;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
@@ -41,6 +43,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String title;
   private String appName;
   private String excludedLoggers;
+  private String includeMdcKeys;
   private String connectTimeout;
   private String requestTimeout;
   private String suppressionWindow;
@@ -62,6 +65,18 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private NtfyConfig injectedConfig;
 
   private AlertEngine engine;
+
+  /**
+   * The RESOLVED {@code include-mdc-keys} allow-list handed to the mapper on every append. Empty
+   * until {@code start()} resolves it, and empty again after {@code stop()}, so an appender that
+   * never activated can never project an MDC value into a body.
+   *
+   * <p>{@code volatile} for the same reason as {@link #engine}: {@code start()}/{@code stop()} run
+   * on a configuration thread (Joran, or the auto-installer) while {@link #append} runs on
+   * application threads, and the assignment must be visible to them without a lock on the logging
+   * path.
+   */
+  private volatile List<String> mdcKeys = List.of();
 
   // Read-only pipeline observability counters. Owned by the appender (which outlives individual
   // engines) and handed to every engine built in start(), so the tallies survive stop()/start()
@@ -155,6 +170,16 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * A comma-separated allow-list of MDC keys rendered into alert bodies, one {@code key: value} line
+   * each, in the order given here. Unset by default, and there is deliberately no wildcard form: an
+   * MDC value reaches a notification only when an operator named its key, because a production MDC
+   * routinely holds tokens and user identifiers that must never leave the process.
+   */
+  public void setIncludeMdcKeys(String includeMdcKeys) {
+    this.includeMdcKeys = includeMdcKeys;
+  }
+
+  /**
    * Language of notification bodies and diagnostics as a BCP 47 tag (e.g. {@code fr}, {@code de-DE}).
    * Defaults to English; an unknown/unshipped locale silently uses English. XML: {@code
    * <locale>fr</locale>}.
@@ -213,6 +238,12 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
       return;
     }
     NtfyConfig config = injectedConfig != null ? injectedConfig : buildConfigFromSetters();
+    // Taken from the BUILT config, never from the raw includeMdcKeys setter string: that is what
+    // makes the setConfig(...) injected-config path work too (the auto-install path used by
+    // NtfyLogbackConfigurator, whose keys come from the environment via ConfigLoader and never
+    // touch a JavaBean setter). It also means the CSV parsing/normalization lives in exactly one
+    // place — NtfyConfig.Builder#includeMdcKeysCsv.
+    this.mdcKeys = config.getIncludeMdcKeys();
     this.engine = new AlertEngine(config, new LogbackDiagnostics(this), counters);
     engine.start();
     if (engine.isStarted()) {
@@ -230,7 +261,10 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .password(password)
             .title(title)
             .appName(appName)
-            .excludedLoggers(excludedLoggers);
+            .excludedLoggers(excludedLoggers)
+            // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
+            // treats null/blank as "no keys", which is exactly the unset default.
+            .includeMdcKeysCsv(includeMdcKeys);
     if (maxStackFrames != null) {
       builder.maxStackFrames(maxStackFrames);
     }
@@ -297,7 +331,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     if (event.getLevel() == null || !event.getLevel().isGreaterOrEqual(Level.ERROR)) {
       return;
     }
-    e.submit(LogbackEventMapper.map(event));
+    e.submit(LogbackEventMapper.map(event, mdcKeys));
   }
 
   /**
@@ -310,6 +344,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
       engine.stop();
     }
     engine = null;
+    // Torn down with the engine: a stopped appender holds no resolved configuration, so a restart
+    // that fails to activate cannot keep projecting MDC values from the previous configuration.
+    mdcKeys = List.of();
     super.stop();
   }
 

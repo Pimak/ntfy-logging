@@ -2,6 +2,9 @@ package io.github.pimak.ntfy.logback;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -34,7 +37,7 @@ class LogbackEventMapperTest {
     LoggingEvent event =
         new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom", surface, null);
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.causeChain()).hasSize(2);
     assertThat(mapped.causeChain().get(0).className()).isEqualTo("java.lang.RuntimeException");
@@ -49,7 +52,7 @@ class LogbackEventMapperTest {
     LoggingEvent event =
         new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom", null, null);
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.causeChain()).isEmpty();
     assertThat(mapped.rootCauseFrames()).isEmpty();
@@ -60,7 +63,7 @@ class LogbackEventMapperTest {
     LoggingEvent event =
         new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom happened", null, null);
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.formattedMessage()).isEqualTo("boom happened");
     assertThat(mapped.loggerName()).isEqualTo(LOGGER.getName());
@@ -78,7 +81,7 @@ class LogbackEventMapperTest {
             null,
             new Object[] {"alice", 3});
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.formattedMessage()).isEqualTo("user alice failed 3 times");
   }
@@ -96,7 +99,7 @@ class LogbackEventMapperTest {
     LoggingEvent event =
         new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom", surface, null);
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     // The mapper never caps frames — capping is the engine's job (maxStackFrames). The frames come
     // from the ROOT cause, so the very last synthetic frame must be present.
@@ -112,7 +115,7 @@ class LogbackEventMapperTest {
         new LoggingEvent(Logger.class.getName(), logger, Level.ERROR, "boom", null, null);
     event.addMarker(MarkerFactory.getMarker(AlertEngine.NO_ALERT_MARKER_NAME));
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.markerNames()).contains("NO_ALERT");
   }
@@ -128,7 +131,7 @@ class LogbackEventMapperTest {
         new LoggingEvent(Logger.class.getName(), logger, Level.ERROR, "boom", null, null);
     event.addMarker(composite);
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     // The engine gates on markerNames.contains("NO_ALERT"); the mapper must flatten the composite's
     // child into the set for that gate to fire.
@@ -143,7 +146,7 @@ class LogbackEventMapperTest {
         new LoggingEvent(Logger.class.getName(), logger, Level.ERROR, "boom", null, null);
     event.addMarker(MarkerFactory.getMarker("SOME_OTHER_MARKER"));
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.markerNames()).containsExactly("SOME_OTHER_MARKER");
   }
@@ -155,8 +158,75 @@ class LogbackEventMapperTest {
     LoggingEvent event =
         new LoggingEvent(Logger.class.getName(), logger, Level.ERROR, "boom", null, null);
 
-    AlertEvent mapped = LogbackEventMapper.map(event);
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
 
     assertThat(mapped.markerNames()).isEmpty();
+  }
+
+  @Test
+  void map_withAllowList_projectsOnlyListedMdcEntries() {
+    LoggingEvent event =
+        new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom", null, null);
+    event.setMDCPropertyMap(Map.of("correlation-id", "abc", "password", "hunter2"));
+
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of("correlation-id"));
+
+    // The anti-leak invariant: an MDC entry the operator did NOT name is neither selected by key
+    // nor smuggled through by value, no matter that it sat right next to an allow-listed one.
+    assertThat(mapped.mdcValues()).containsEntry("correlation-id", "abc");
+    assertThat(mapped.mdcValues()).doesNotContainKey("password");
+    assertThat(mapped.mdcValues().values()).doesNotContain("hunter2");
+  }
+
+  @Test
+  void map_withEmptyAllowList_yieldsEmptyMdcValues() {
+    LoggingEvent event =
+        new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom", null, null);
+    event.setMDCPropertyMap(Map.of("correlation-id", "abc"));
+
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of());
+
+    // Feature unset (the default) means a populated MDC still contributes nothing.
+    assertThat(mapped.mdcValues()).isEmpty();
+  }
+
+  @Test
+  void map_withNullMdcPropertyMap_yieldsEmptyMdcValues() {
+    LoggingEvent event = new NullMdcLoggingEvent();
+
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of("correlation-id"));
+
+    assertThat(mapped.mdcValues()).isEmpty();
+  }
+
+  @Test
+  void map_mdcValues_followConfiguredOrder() {
+    LoggingEvent event =
+        new LoggingEvent(Logger.class.getName(), LOGGER, Level.ERROR, "boom", null, null);
+    event.setMDCPropertyMap(Map.of("a", "first-by-name", "b", "second-by-name"));
+
+    AlertEvent mapped = LogbackEventMapper.map(event, List.of("b", "a"));
+
+    // Configured order, NOT the MDC map's own (hash) order: the operator's list is the body's
+    // rendering order, so "b" comes first here even though "a" sorts before it.
+    assertThat(mapped.mdcValues().keySet()).containsExactly("b", "a");
+  }
+
+  /**
+   * An {@code ILoggingEvent} whose MDC snapshot is {@code null}. A stock {@link LoggingEvent} always
+   * materializes an empty map, so the mapper's null guard — which exists for third-party event
+   * implementations (test doubles, custom async wrappers) that make no such promise — can only be
+   * exercised by overriding the accessor.
+   */
+  private static final class NullMdcLoggingEvent extends LoggingEvent {
+
+    NullMdcLoggingEvent() {
+      super(Logger.class.getName(), LOGGER, Level.ERROR, "boom", null, null);
+    }
+
+    @Override
+    public Map<String, String> getMDCPropertyMap() {
+      return null;
+    }
   }
 }
