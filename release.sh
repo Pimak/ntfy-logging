@@ -134,7 +134,10 @@ mv CHANGELOG.md.tmp CHANGELOG.md
 #    The README and each docs/*.md guide carry install snippets, so both seds are global:
 #      - every <version>…</version> line in the Maven dependency snippets, and
 #      - every `io.github.pimak:ntfy-<artifact>:<ver>` coordinate in prose (ntfy-core, ntfy-jul,
-#        ntfy-logback, ntfy-spring-boot-starter, ntfy-quarkus-runtime).
+#        ntfy-logback, ntfy-log4j2, ntfy-spring-boot-starter, ntfy-quarkus-runtime).
+#    The artifact character class MUST keep the digits: ntfy-log4j2 is the first artifact whose
+#    name is not purely [a-z-], and a class that omits 0-9 silently skips it — leaving the log4j2
+#    install snippets frozen at the previous version while every other artifact is stamped.
 #    Scope is deliberately the <version> tag and the `groupId:artifact:` coordinate only, so
 #    illustrative version-like strings in prose or code samples (e.g. a `v1.2.3` example
 #    message, or the Logback `1.5.38` line in compatibility.md) are never rewritten.
@@ -143,7 +146,7 @@ while IFS= read -r -d '' doc; do DOC_FILES+=("${doc}"); done < <(find docs -maxd
 echo "==> Stamping version ${VERSION} across documentation: ${DOC_FILES[*]}"
 for doc in "${DOC_FILES[@]}"; do
   sed -i "s#<version>[0-9][0-9.]*</version>#<version>${VERSION}</version>#g" "${doc}"
-  sed -i "s#\(io.github.pimak:ntfy-[a-z-]*:\)[0-9][0-9.]*#\1${VERSION}#g" "${doc}"
+  sed -i "s#\(io.github.pimak:ntfy-[a-z0-9-]*:\)[0-9][0-9.]*#\1${VERSION}#g" "${doc}"
 done
 
 # 3) Single reviewed commit folding the bump + docs pass. versions:set touches every

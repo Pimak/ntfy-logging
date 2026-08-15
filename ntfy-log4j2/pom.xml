@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.2.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-log4j2</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-log4j2</name>
+    <description>Log4j2 adapter for the ntfy notification engine: an AbstractAppender plugin exposing a declarative &lt;Ntfy&gt; element for log4j2.xml, plus a one-line programmatic installer that survives log4j2 reconfiguration. Maps Log4j2 LogEvents onto ntfy-core's framework-neutral AlertEngine.</description>
+
+    <dependencies>
+        <!--
+            The framework-neutral engine. Everything gating/publishing/digest-related lives here;
+            this module only maps a Log4j2 LogEvent onto an AlertEvent and calls submit().
+        -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+            Log4j2 is provided-scope: the host application already brings its own logging backend
+            on the runtime classpath, so this adapter compiles against log4j2 but never drags a
+            (possibly conflicting) version onto the consumer's classpath. Versions are managed by
+            the reactor parent. Everything else log4j-core declares is optional or provided, so
+            log4j-api is the only transitive this pulls in.
+        -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Log4j2 resolves an <Ntfy> element through META-INF/.../Log4j2Plugins.dat,
+                        which log4j-core's own annotation processor generates at compile time.
+                        Relying on implicit classpath discovery of that processor is NOT safe here:
+                        javac stopped scanning the classpath for processors by default in JDK 23,
+                        and CI builds this reactor on both JDK 21 and JDK 25 — the .dat would
+                        silently vanish on the newer JDK and the appender would stop resolving.
+                        Declaring the processor path explicitly makes discovery JDK-independent.
+
+                        log4j-core registers TWO processors. PluginProcessor writes the plugin
+                        descriptor; GraalVmProcessor writes native-image reachability metadata for
+                        the reflectively-instantiated plugin (which is why this module ships no
+                        hand-written reflect-config.json). GraalVmProcessor REQUIRES the two -A
+                        options below and fails the compilation without them; they decide the
+                        META-INF/native-image/log4j-generated/<groupId>/<artifactId>/ path the
+                        metadata lands in (2.26 inserts that "log4j-generated" segment itself),
+                        so they must match this artifact's own coordinates.
+                    -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-core</artifactId>
+                            <version>${log4j2.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-Alog4j.graalvm.groupId=${project.groupId}</arg>
+                        <arg>-Alog4j.graalvm.artifactId=${project.artifactId}</arg>
+                    </compilerArgs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <configuration>
+                            <!--
+                                Tests carry no @Plugin types; running the log4j2 processors over
+                                them would only emit an empty descriptor into test-classes that
+                                could shadow the real one on the test classpath.
+                            -->
+                            <proc>none</proc>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-dependency-allowlist</id>
+                        <!-- default phase = validate, no override needed -->
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <!--
+                                        Strict ALLOWLIST, not a blocklist (same design as ntfy-core's
+                                        pom). This adapter's promise is "ntfy-core + the Log4j2 SPI it
+                                        adapts, nothing else": banning everything and re-allowing only
+                                        the verified roster below means any new dependency is a
+                                        deliberate, visible diff that trips this rule instead of
+                                        silently sailing through. The extra entries over ntfy-core are
+                                        exactly the log4j2 api/core pair this module adapts (both
+                                        provided-scope) plus the ntfy-core artifact itself. Note that
+                                        log4j-core's own extras (jackson, disruptor, kafka, jctools, …)
+                                        are all declared optional or provided upstream, so none of them
+                                        reach this classpath — log4j-api is the only transitive.
+
+                                        To safely extend this allowlist for a genuinely new, legitimate
+                                        dependency:
+                                          1. Confirm it belongs at the adapter layer (framework glue),
+                                             not in ntfy-core. Engine logic stays pure-JDK in core.
+                                          2. Run `mvn dependency:tree` and add EVERY new direct +
+                                             transitive coordinate the change surfaces, not just the one
+                                             you added by hand; transitives are what this rule catches.
+                                          3. Prefer a group-level wildcard (`groupId:*`) for multi-artifact
+                                             aggregators (see the org.junit.jupiter/org.junit.platform
+                                             entries below).
+                                          4. Re-run `mvn validate` and confirm BUILD SUCCESS before
+                                             committing.
+                                    -->
+                                    <searchTransitive>true</searchTransitive>
+                                    <excludes>
+                                        <exclude>*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>org.apache.logging.log4j:log4j-api</include>
+                                        <include>org.apache.logging.log4j:log4j-core</include>
+                                        <include>io.github.pimak:ntfy-core</include>
+                                        <include>org.junit.jupiter:*</include>
+                                        <include>org.junit.platform:*</include>
+                                        <include>org.opentest4j:opentest4j</include>
+                                        <include>org.apiguardian:apiguardian-api</include>
+                                        <include>org.jspecify:jspecify</include>
+                                        <include>org.assertj:assertj-core</include>
+                                        <include>net.bytebuddy:byte-buddy</include>
+                                        <include>org.wiremock:wiremock-standalone</include>
+                                    </includes>
+                                    <message>
+                                        ntfy-log4j2 must stay "ntfy-core + the Log4j2 SPI it adapts"
+                                        (plus its test stack). See the allowlist comment above this
+                                        rule before adding anything here.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
