@@ -25,6 +25,8 @@
         <module>ntfy-spring-boot-starter</module>
         <!-- Quarkus extension aggregator (runtime + deployment) on top of ntfy-jul; native + zero-code via LogHandlerBuildItem. -->
         <module>ntfy-quarkus</module>
+        <!-- Micronaut integration on top of ntfy-logback: binds ntfy.* from application.yml and exposes an injectable NtfyClient. -->
+        <module>ntfy-micronaut</module>
         <!--
             Runnable example applications that double as functional test-beds — one per adapter,
             plus the shared loopback ntfy stand-in their tests use. NEVER published (each module
@@ -84,8 +86,15 @@
             Micronaut platform BOM. Like the Spring Boot BOM, it is imported by the module that
             needs it rather than here, so its managed versions cannot collide with the Quarkus BOM
             imported below; this property just keeps the version pinned in one visible place.
+
+            Held at the 4.10.x line ON PURPOSE: Micronaut 5 ships Java 25 bytecode (class file
+            version 69) in micronaut-inject AND in the micronaut-inject-java annotation processor,
+            so it cannot be compiled or run under this reactor's Java 21 baseline — the build fails
+            with "MixinVisitorProcessor has been compiled by a more recent version of the Java
+            Runtime". Micronaut 4.10.x is Java 17 bytecode and runs on both JDKs CI builds with
+            (21 and 25). Revisit only together with maven.compiler.release above.
         -->
-        <micronaut.version>5.1.0</micronaut.version>
+        <micronaut.version>4.10.17</micronaut.version>
     </properties>
 
     <dependencyManagement>

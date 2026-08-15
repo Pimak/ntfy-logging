@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Test-only Logback configuration. Without it Logback falls back to DEBUG-on-root and Micronaut's
+    bean-resolution tracing buries the build output. WARN still lets every ERROR through, which is
+    the only level the ntfy appender acts on, so the integration test is unaffected.
+
+    Its presence also makes the ntfy-logback Configurator SPI a no-op here (Logback only consults
+    the Configurator when no configuration file is found), keeping the appenders this module's tests
+    observe strictly the ones the Micronaut installer attached.
+-->
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -- %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="WARN">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>
