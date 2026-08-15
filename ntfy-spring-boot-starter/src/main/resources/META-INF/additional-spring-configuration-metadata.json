@@ -101,6 +101,11 @@
       "description": "Comma-separated list of logger names or prefixes whose events are never published."
     },
     {
+      "name": "ntfy.include-mdc-keys",
+      "type": "java.lang.String",
+      "description": "Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one 'key: value' line each. Empty by default; there is no wildcard form, so only keys named here are ever published."
+    },
+    {
       "name": "ntfy.require-https-for-credentials",
       "type": "java.lang.Boolean",
       "description": "Strict mode: refuse to activate alerting (instead of only warning) when credentials would be sent over a plain http:// endpoint. Set to false to restore the pre-2.0 warn-and-activate behavior.",

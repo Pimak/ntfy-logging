@@ -94,6 +94,22 @@ public interface NtfyRuntimeConfig {
   Optional<String> excludedLoggers();
 
   /**
+   * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one {@code
+   * key: value} line each, in the order given here.
+   *
+   * <p>Empty by default: unless an operator names a key, no MDC value ever leaves the application.
+   * There is deliberately no wildcard form — an MDC routinely holds session tokens, user identifiers
+   * and other data that must not be pushed to a notification server, so the only way to publish a
+   * value is to name its key explicitly. Unknown keys and keys absent from a given record are simply
+   * skipped.
+   *
+   * <p>Values are read from the JBoss LogManager MDC that Quarkus already funnels every log record
+   * through, so the usual {@code org.jboss.logmanager.MDC} / {@code org.slf4j.MDC} writes are picked
+   * up with no further wiring.
+   */
+  Optional<String> includeMdcKeys();
+
+  /**
    * Language of notification bodies and diagnostics as a BCP 47 tag (e.g. {@code fr}, {@code
    * de-DE}). Defaults to English when unset; an unknown/unshipped locale silently uses English.
    */
