@@ -4,17 +4,17 @@ Every adapter in the `ntfy-logging` family configures the same framework-neutral
 is **one set of settings** with the same names, types, and defaults everywhere. What differs is only
 *where* you write them:
 
-- **Core / JUL / plain Logback** — resolved by `ConfigLoader` from, highest precedence first: a
-  JVM system property `ntfy.<key>`, then an environment variable `NTFY_<KEY>`, then a classpath
-  `ntfy.properties` entry `ntfy.<key>`. (You can also set them explicitly through
-  `LogbackAlertAppender`'s XML setters or `NtfyConfig.builder()` — the latter feeds
-  `NtfyJulHandler.forConfig` on the JUL side.)
+- **Core / JUL / plain Logback / plain Log4j2** — resolved by `ConfigLoader` from, highest
+  precedence first: a JVM system property `ntfy.<key>`, then an environment variable `NTFY_<KEY>`,
+  then a classpath `ntfy.properties` entry `ntfy.<key>`. (You can also set them explicitly through
+  `LogbackAlertAppender`'s XML setters, the Log4j2 `<Ntfy>` element's attributes, or
+  `NtfyConfig.builder()` — the latter feeds `NtfyJulHandler.forConfig` on the JUL side.)
 - **Spring Boot** — your application's own config under the `ntfy.*` prefix (`application.yml` /
   `application.properties`, environment, etc.), bound with Spring's relaxed binding.
 - **Quarkus** — your application's own config under the `quarkus.ntfy.*` prefix.
 
 > The engine no longer refuses to read the process environment: config is resolved from
-> **sysprop > env > `ntfy.properties`** (core/JUL/Logback), or from **your framework's native config**
+> **sysprop > env > `ntfy.properties`** (core/JUL/Logback/Log4j2), or from **your framework's native config**
 > (Spring `ntfy.*`, Quarkus `quarkus.ntfy.*`). The old "never reads `getenv`" guarantee was a
 > property of the single Logback appender; it is intentionally gone.
 
@@ -22,9 +22,11 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 
 `Key` is the canonical kebab-case name. Read the per-surface columns as:
 
-- **sysprop** — `-Dntfy.<key>` (core/JUL/Logback)
-- **env** — `NTFY_<KEY>` with `-` → `_` and upper-cased (core/JUL/Logback)
-- **`ntfy.properties`** — `ntfy.<key>` (core/JUL/Logback)
+- **sysprop** — `-Dntfy.<key>` (core/JUL/Logback/Log4j2)
+- **env** — `NTFY_<KEY>` with `-` → `_` and upper-cased (core/JUL/Logback/Log4j2)
+- **`ntfy.properties`** — `ntfy.<key>` (core/JUL/Logback/Log4j2)
+- **Logback XML / Log4j2 XML** — the camelCase form of the key: a `<appName>` element on
+  `LogbackAlertAppender`, an `appName="…"` attribute on `<Ntfy>`
 - **Spring** — `ntfy.<key>` (relaxed: `ntfy.app-name`, `ntfy.appName`, and `NTFY_APP_NAME` all bind)
 - **Quarkus** — `quarkus.ntfy.<key>`
 
@@ -51,10 +53,10 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
-| `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
+| `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) and `NtfyLog4j2Installer` to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
 | `async` | boolean | `true` | Delivery is offloaded to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. On by default since 2.0; set `false` for pre-2.0 synchronous, inline delivery (each publish then blocks the logging thread until the HTTP exchange completes — the guarantee short-lived batch/CLI processes may prefer). See [alert-behavior.md](alert-behavior.md). |
 | `async-queue-capacity` | int | `1024` | Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when `async` is `true`; a non-positive value is clamped to a minimum of `1`. |
-| `require-https-for-credentials` | boolean | `true` | Strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Spring `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` (the default since 2.0) and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set `false` to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See [authentication.md](authentication.md). |
+| `require-https-for-credentials` | boolean | `true` | Strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Log4j2 `<Ntfy requireHttpsForCredentials="false">`, Spring `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` (the default since 2.0) and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set `false` to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See [authentication.md](authentication.md). |
 
 `url` and `topic` are the only two settings without which alerting stays inactive (silently if both
 are unset; with a warning if only one is set — see [troubleshooting.md](troubleshooting.md)). Every
@@ -63,7 +65,7 @@ other setting has a safe default and can be omitted.
 ## Duration syntax
 
 `connect-timeout`, `request-timeout`, and `suppression-window` are durations. For the
-core/JUL/Logback/Quarkus surfaces they are parsed by `DurationParser`, which accepts:
+core/JUL/Logback/Log4j2/Quarkus surfaces they are parsed by `DurationParser`, which accepts:
 
 - a **bare integer** — interpreted as **milliseconds** (`500` → 500 ms);
 - a **suffixed integer** — `ms`, `s`, `m`, `h`, `d` (`5s`, `3m`, `2h`, `1d`);
@@ -85,6 +87,7 @@ as every other key on each surface:
 | Surface | How to set it |
 |---|---|
 | Core / JUL / plain Logback | `-Dntfy.locale=fr`, `NTFY_LOCALE=fr`, or `ntfy.locale=fr` in `ntfy.properties`; XML `<locale>fr</locale>`; `NtfyConfig.builder().locale("fr")` (or `.locale(Locale.FRENCH)`) |
+| Plain Log4j2 | the same ambient chain (`-Dntfy.locale=fr` / `NTFY_LOCALE=fr` / `ntfy.properties`), or the attribute `<Ntfy locale="fr" …/>` |
 | Spring Boot | `ntfy.locale: fr` |
 | Quarkus | `quarkus.ntfy.locale=fr` |
 
@@ -123,7 +126,7 @@ it.
 
 ## Per-framework examples
 
-### Core / JUL / plain Logback (environment)
+### Core / JUL / plain Logback / plain Log4j2 (environment)
 
 ```bash
 export NTFY_URL=https://ntfy.example.com
@@ -155,6 +158,22 @@ or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
 </appender>
 ```
 
+### Plain Log4j2 (`log4j2.xml`)
+
+The `<Ntfy>` element takes the same roster of settings as attributes, in the same camelCase
+spelling; unset attributes keep the engine defaults. See [log4j2.md](log4j2.md).
+
+```xml
+<Appenders>
+  <Ntfy name="ntfy"
+        url="https://ntfy.example.com"
+        topic="my-app-alerts"
+        token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        appName="my-app"
+        suppressionWindow="3m"/>
+</Appenders>
+```
+
 ### Spring Boot (`application.yml`)
 
 ```yaml
@@ -182,6 +201,6 @@ quarkus.ntfy.suppression-window=3m
 - [authentication.md](authentication.md) — `token` vs `username`/`password` precedence and the
   `None` (unauthenticated) mode.
 - [filtering.md](filtering.md) — how `excluded-loggers` combines with the always-on self-exclusion,
-  and the Logback-only `NO_ALERT` per-event opt-out.
+  and the `NO_ALERT` per-event opt-out (Logback and Log4j2).
 - [alert-behavior.md](alert-behavior.md) — how the rate-limiting, digest, priority, and tag settings
   combine at runtime.

@@ -3,9 +3,9 @@
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-spring-boot-starter%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-spring-boot-starter)
 [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
 
-Spring Boot auto-configuration that binds the `ntfy.*` properties, installs an `ntfy-auto` Logback
-appender so your ERROR logs publish with no code, and exposes an injectable `NtfyClient` bean for
-manual notifications.
+Spring Boot auto-configuration that binds the `ntfy.*` properties, installs an `ntfy-auto` appender
+onto the logging backend your application runs on — Logback or Log4j2 — so your ERROR logs publish
+with no code, and exposes an injectable `NtfyClient` bean for manual notifications.
 
 **Use this when** you run Spring Boot and want alerting configured from `application.yml` and an
 `@Autowired NtfyClient` to send your own notifications.
@@ -26,7 +26,29 @@ clean-shutdown digest flush.
 </dependency>
 ```
 
-The starter pulls `ntfy-core` transitively — you only declare this one artifact.
+The starter pulls `ntfy-core` and `ntfy-logback` transitively — on the default (Logback) Spring Boot
+stack you only declare this one artifact.
+
+### On `spring-boot-starter-log4j2`
+
+If you swapped Spring Boot's default backend for Log4j2, add the Log4j2 adapter alongside the
+starter; everything else is unchanged:
+
+```xml
+<dependency>
+  <groupId>io.github.pimak</groupId>
+  <artifactId>ntfy-log4j2</artifactId>
+  <version>1.2.0</version>
+</dependency>
+```
+
+The starter is **backend-agnostic**: it installs the `ntfy-auto` appender onto whichever backend is
+actually on the classpath and bound, and the `NtfyClient` bean and the Micrometer meters below are
+available either way. (Earlier releases gated the whole auto-configuration on Logback being present,
+so a Log4j2 application got no appender, no `NtfyClient` bean, and no metrics at all.)
+`ntfy-logback` still arrives transitively, unchanged, and is inert on a Log4j2 stack: it declares
+Logback itself at `provided` scope, so it never pulls `logback-classic` onto your classpath and its
+appender is simply never installed.
 
 ## Base configuration
 
@@ -39,7 +61,8 @@ ntfy:
 ```
 
 That is all you need. As soon as `url` and `topic` are set, error logs auto-publish (an `ntfy-auto`
-Logback appender is installed idempotently) — no `logback.xml` edit required.
+appender is installed idempotently on the bound backend) — no `logback.xml` / `log4j2.xml` edit
+required.
 
 Delivery is asynchronous by default (since 2.0): alerts are offloaded to a bounded queue drained by
 a daemon worker (tune it with `ntfy.async-queue-capacity`, default `1024`), so a slow or unreachable
@@ -63,7 +86,8 @@ When `micrometer-core` is on the classpath (it is in any Spring Boot Actuator ap
 `MeterRegistry` bean exists, the starter automatically exports three monotonic counters —
 `ntfy.pipeline.published`, `ntfy.pipeline.suppressed`, `ntfy.pipeline.failed` — so you can alert on a
 spike in publish failures. The binding is classpath-conditional and adds no dependency when
-Micrometer is absent. See **[Observability](observability.md)** for the full semantics.
+Micrometer is absent; it does not depend on which logging backend you run. See
+**[Observability](observability.md)** for the full semantics.
 
 ## Going further
 
@@ -76,5 +100,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits and where Spring
-  surfaces them.
-- **[Compatibility](compatibility.md)** — tested Spring Boot / JDK / Logback versions.
+  surfaces them (Logback's `StatusManager`, or Log4j2's `StatusLogger` on a Log4j2 stack).
+- **[Compatibility](compatibility.md)** — tested Spring Boot / JDK / Logback / Log4j2 versions.
+- **[Plain Log4j2](log4j2.md)** — the adapter the starter uses on a `spring-boot-starter-log4j2`
+  classpath, and its standalone entry points.

@@ -2,9 +2,9 @@
 
 This page explains *why* the ntfy engine behaves the way it does once your application starts logging
 ERRORs — what gets published immediately, what gets suppressed, and how suppressed alerts are never
-silently lost. The behavior is identical across every adapter (Logback, Spring Boot, Quarkus, or the
-programmatic client), because they all drive the same `AlertEngine`. For the settings referenced
-below, see [configuration.md](configuration.md); for the diagnostics the engine emits, see
+silently lost. The behavior is identical across every adapter (Logback, Log4j2, JUL, Spring Boot,
+Quarkus, or the programmatic client), because they all drive the same `AlertEngine`. For the settings
+referenced below, see [configuration.md](configuration.md); for the diagnostics the engine emits, see
 [troubleshooting.md](troubleshooting.md).
 
 ## An isolated error is published immediately
@@ -51,8 +51,9 @@ The suppressed count is never silently dropped. Three mechanisms guarantee this:
 - **A failed digest publish re-folds its count back in.** If the digest publish itself fails, the
   drained count (per-logger breakdown included) is restored into the limiter instead of being lost,
   so it survives into the next window's digest.
-- **Shutdown flushes the digest synchronously.** When the engine is stopped (JVM shutdown, Logback
-  context reset, Quarkus shutdown), if there is a non-zero pending suppression count, a best-effort
+- **Shutdown flushes the digest synchronously.** When the engine is stopped (JVM shutdown, a Logback
+  context reset or Log4j2 reconfiguration/shutdown, Quarkus shutdown), if there is a non-zero pending
+  suppression count, a best-effort
   synchronous digest flush is attempted before resources are released, bounded by the existing HTTP
   timeouts (`connect-timeout`/`request-timeout`) so shutdown is never blocked indefinitely.
 
@@ -78,7 +79,8 @@ and the published body never exceeds the byte budget.
 By default (since 2.0) delivery is asynchronous: individual error alerts are handed to a **bounded
 work queue** drained by a single daemon worker thread (`ntfy-alert-delivery`), so a slow or
 unreachable ntfy server never back-pressures your application threads during an error storm. This is
-the first-class alternative to hand-wrapping `LogbackAlertAppender` in an `AsyncAppender`.
+the first-class alternative to hand-wrapping `LogbackAlertAppender` in an `AsyncAppender` (or the
+Log4j2 `<Ntfy>` appender in an `<Async>` one).
 
 Rate-limit gating still runs on the submitting thread, so the queue only ever holds events that have
 already won a publish slot. The queue holds up to `async-queue-capacity` pending alerts (default

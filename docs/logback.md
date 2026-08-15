@@ -107,8 +107,7 @@ lives in the cross-cutting reference pages:
   `ntfy.properties`), the Logback XML setters, and duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers`, the Logback-only `NO_ALERT` marker, and
-  self-exclusion.
+- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits via Logback's
   `StatusManager`, and how to surface them.
 - **[Compatibility](compatibility.md)** — tested Logback / JDK versions.

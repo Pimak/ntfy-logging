@@ -20,12 +20,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `install(Logger)` for a programmatic one-liner scoped to the root logger or a subtree. A
   `reflect-config.json` under `META-INF/native-image/` covers the auto-handler's reflective
   instantiation in hand-rolled native builds. See [docs/jul.md](docs/jul.md).
+- **New `ntfy-log4j2` module: a Log4j2 adapter.** The Log4j2 sibling of `ntfy-logback`
+  (`io.github.pimak:ntfy-log4j2`, package `io.github.pimak.ntfy.log4j2`) maps Log4j2 `LogEvent`s
+  onto the same framework-neutral `AlertEngine`, so rate limiting, storm digests, priorities/tags,
+  truncation, sync-vs-async delivery, `excluded-loggers`, auth modes and `locale` behave exactly as
+  on every other adapter; it gates at `ERROR` and above (`Level.isMoreSpecificThan(Level.ERROR)`),
+  matching Logback's ERROR floor and JUL's `SEVERE`. Two entry points: an `<Ntfy .../>` appender
+  plugin for `log4j2.xml`, whose attributes are the camelCase form of the same setting roster as the
+  Logback appender (`url`/`topic` required, everything else optional and defaulted); and
+  `NtfyLog4j2Installer.install()` / `install(LoggerContext)` — a programmatic one-liner reading the
+  ambient `ConfigLoader` chain (sysprop > env > classpath `ntfy.properties`) exactly like
+  `NtfyJulInstaller.install()`, returning `Optional<NtfyLog4j2Appender>`, never throwing, protected
+  by the same classpath-endpoint supply-chain guard as the Logback and JUL auto-installs, and
+  re-attaching itself across a Log4j2 reconfiguration (`uninstall(LoggerContext, appender)` releases
+  it). There is deliberately **no** fully zero-code auto-install: Log4j2 has no equivalent of
+  Logback's `Configurator` SPI for augmenting an existing configuration, and the only mechanism that
+  could — a delegating `ConfigurationFactory` — is fragile because exactly one factory can win.
+  The `NO_ALERT` marker works here too (including markers that reach it via `Marker.getParents()`),
+  diagnostics go to Log4j2's `StatusLogger` rather than an application logger, and native-image
+  reachability metadata for the plugin is generated at build time by log4j-core's own annotation
+  processor and ships inside the jar. Log4j2 is a `provided`-scope dependency (compiled against
+  2.26.1), so the host application's own version is what runs; Java 21+ as everywhere else. See
+  [docs/log4j2.md](docs/log4j2.md).
 - **Runnable example applications that double as functional tests.** New (unpublished) reactor
-  modules under `examples/` — `examples/spring-boot`, `examples/logback`, `examples/jul`,
-  `examples/core`, plus a shared pure-JDK loopback ntfy stand-in in `examples/testkit` — each a
-  small, realistic app using one adapter exactly the way a consumer would (`application.yml`
-  `ntfy.*`, an explicit `logback.xml`, the `NtfyJulInstaller` one-liner with `-Dntfy.*`/env config,
-  programmatic `NtfyClient`/`AlertEngine`). Their integration tests run under plain
+  modules under `examples/` — `examples/spring-boot`, `examples/logback`, `examples/log4j2`,
+  `examples/jul`, `examples/core`, plus a shared pure-JDK loopback ntfy stand-in in
+  `examples/testkit` — each a small, realistic app using one adapter exactly the way a consumer
+  would (`application.yml` `ntfy.*`, an explicit `logback.xml`, an `<Ntfy>` element in
+  `log4j2.xml`, the `NtfyJulInstaller` one-liner with `-Dntfy.*`/env config, programmatic
+  `NtfyClient`/`AlertEngine`). Their integration tests run under plain
   `./mvnw verify`, so the examples can never drift from the code, and each proves three behaviors
   end-to-end: the base alert/notify path; the synchronous-vs-asynchronous delivery difference,
   deterministically (the stand-in holds its HTTP response open, showing a sync error log blocked in
@@ -37,6 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while the ntfy response is held). See [examples/README.md](examples/README.md).
 
 ### Changed
+- **The Spring Boot starter is no longer Logback-only.** Its auto-configuration used to carry a
+  class-level `@ConditionalOnClass` on `ch.qos.logback.classic.LoggerContext`, so on a
+  `spring-boot-starter-log4j2` classpath the **entire** auto-configuration was skipped — no
+  appender, no `NtfyClient` bean, no Micrometer metrics. That gate is gone: the starter now installs
+  the `ntfy-auto` appender onto whichever backend is actually on the classpath and bound, Logback or
+  Log4j2, and the `NtfyClient` bean and the `ntfy.pipeline.*` meters are exposed either way. The
+  observable change for a Log4j2 application is that all three now appear where previously nothing
+  did. Logback applications are unaffected: `ntfy-logback` remains a normal transitive dependency of
+  the starter and behaves exactly as before; Log4j2 applications additionally declare
+  `io.github.pimak:ntfy-log4j2` alongside the starter. See
+  [docs/spring-boot.md](docs/spring-boot.md).
 - **`ntfy-quarkus-runtime` now depends on `ntfy-jul` instead of carrying its own JUL classes.**
   The extension installs the shared `NtfyJulHandler` (via the new `NtfyJulHandler.forConfig`
   factory) and keeps only the Quarkus glue: `@ConfigMapping`, the `RUNTIME_INIT` recorder, and the
