@@ -3,7 +3,7 @@
     {
       "name": "ntfy.enabled",
       "type": "java.lang.Boolean",
-      "description": "Whether the ntfy integration is active. When true, the Logback appender is installed and the NtfyClient bean is created.",
+      "description": "Whether the ntfy integration is active. When true, the appender is installed on the bound logging backend (Logback or Log4j2) and the NtfyClient bean is created.",
       "defaultValue": true
     },
     {
