@@ -6,18 +6,24 @@
 # checks (CI, CodeQL, dependency-review) pass. Major bumps, mixed-update PRs, or anything
 # suspicious get a summarizing comment for human review instead — never a merge.
 #
-# Security model — why pull_request_target, and why the PR head is never checked out:
-# - Workflows triggered by Dependabot via plain `pull_request` only see *Dependabot* secrets,
-#   not Actions secrets, so ANTHROPIC_API_KEY would be unavailable. `pull_request_target` runs
-#   the workflow definition from the default branch with normal Actions secrets.
-# - To keep that safe, the PR's code is NEVER checked out or executed here: the checkout below
-#   is the base branch only (project context for usage analysis), and Claude inspects the PR
-#   exclusively through read-only `gh pr view` / `gh pr diff` API calls. Claude's toolset is
-#   restricted to those gh subcommands plus read-only file access; it cannot edit files or push.
-# - The job runs only for PRs authored by dependabot[bot].
+# Security model — plain `pull_request` + the Dependabot secrets store:
+# - Workflows triggered by Dependabot resolve `secrets.*` from the *Dependabot* secrets store
+#   (Settings > Secrets and variables > Dependabot), and GitHub hands those secrets ONLY to
+#   runs actually triggered by Dependabot. A human's PR, a fork PR, or a push to this workflow
+#   file never sees the key — fork PRs receive no secrets at all, and non-Dependabot actors
+#   don't get Dependabot secrets. That closes the "modify the workflow to leak the secret"
+#   route without needing `pull_request_target` at all.
+# - The job additionally runs only for PRs authored by dependabot[bot], and Claude's toolset
+#   is allowlisted to a few read/review/merge `gh pr` subcommands plus read-only file access:
+#   it cannot edit files, run builds, or push.
+# - GITHUB_TOKEN is read-only by default on Dependabot-triggered runs; the job-level
+#   `permissions` block below explicitly raises it to what merging needs.
 #
 # Setup requirements (one-time):
-# - Actions secret ANTHROPIC_API_KEY (or swap in CLAUDE_CODE_OAUTH_TOKEN below).
+# - Secret ANTHROPIC_API_KEY under Settings > Secrets and variables > *Dependabot* (NOT the
+#   Actions store — this workflow only ever runs for Dependabot, which reads the Dependabot
+#   store). Prefer a key from a dedicated Anthropic workspace with a spend limit. Or swap in
+#   CLAUDE_CODE_OAUTH_TOKEN below.
 # - The Claude GitHub App installed on the repo (provides Claude's GitHub token via OIDC).
 # - Settings > General > "Allow auto-merge" enabled, plus branch protection on main with the
 #   required status checks — that is what `gh pr merge --auto` waits on. Without it, Claude
@@ -25,7 +31,7 @@
 name: Dependabot auto-review
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize]
 
 permissions:
@@ -44,7 +50,9 @@ jobs:
       pull-requests: write # approve / comment / enable auto-merge
       id-token: write # OIDC exchange for the Claude GitHub App token
     steps:
-      # Base branch only — never the PR head (see security model above).
+      # Default checkout = the PR merge ref (base + Dependabot's bump), so Claude sees the
+      # project as it would look after the update. Safe here: the job only runs for
+      # Dependabot-authored PRs and Claude has no build/execute tools anyway.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # Deterministic semver classification (semver-patch / semver-minor / semver-major),
@@ -64,9 +72,9 @@ jobs:
             DEPENDENCIES: ${{ steps.metadata.outputs.dependency-names }}
             UPDATE TYPE: ${{ steps.metadata.outputs.update-type }}
 
-            You are reviewing an automated dependency-update PR opened by Dependabot. The PR's
-            branch is intentionally NOT checked out — the workspace holds the base branch.
-            Inspect the PR exclusively with `gh pr view` and `gh pr diff`.
+            You are reviewing an automated dependency-update PR opened by Dependabot. The
+            workspace contains the PR merge ref (the project with the bump applied). Inspect
+            the change itself with `gh pr view` and `gh pr diff`.
 
             1. Review the diff. It must be a pure version bump: only pom.xml files and/or
                GitHub Actions pins in workflow files (SHA plus version comment) may change, and

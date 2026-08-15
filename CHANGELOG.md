@@ -40,9 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the diff (must be a pure version bump), the release notes, and how the dependency is used in
   this codebase, then approves and enables `gh pr merge --auto` for clean semver-patch/minor
   updates (so they merge once the required checks pass) while major or suspicious updates get a
-  summarizing comment for human review instead. Runs on `pull_request_target` without ever
-  checking out the PR head (review is via read-only `gh pr view`/`gh pr diff`), with Claude's
-  toolset restricted to those gh subcommands plus read-only file access.
+  summarizing comment for human review instead. Runs on plain `pull_request` with the API key
+  in the Dependabot secrets store, which GitHub hands only to Dependabot-triggered runs — a
+  human's PR, a fork PR, or a workflow-file modification never sees it — and Claude's toolset
+  is restricted to a few `gh pr` subcommands plus read-only file access.
 
 ### Changed
 - **`ntfy-quarkus-runtime` now depends on `ntfy-jul` instead of carrying its own JUL classes.**
