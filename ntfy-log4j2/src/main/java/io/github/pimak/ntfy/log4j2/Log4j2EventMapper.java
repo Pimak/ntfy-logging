@@ -5,7 +5,9 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.core.LogEvent;
@@ -14,6 +16,7 @@ import org.apache.logging.log4j.core.impl.ThrowableProxy;
 import org.apache.logging.log4j.message.Message;
 
 import io.github.pimak.ntfy.core.AlertEvent;
+import io.github.pimak.ntfy.core.MdcProjector;
 
 /**
  * Pure transformation from a log4j2 {@link LogEvent} into the framework-neutral {@link AlertEvent}
@@ -59,7 +62,7 @@ final class Log4j2EventMapper {
   // such alert to "no stack trace", so the deprecation is accepted and pinned here (this module
   // targets the 2.x line; see the log4j2.version comment in the reactor pom).
   @SuppressWarnings("deprecation")
-  static AlertEvent map(LogEvent event) {
+  static AlertEvent map(LogEvent event, List<String> includeMdcKeys) {
     List<AlertEvent.Cause> causeChain = new ArrayList<>();
     List<String> rootCauseFrames = new ArrayList<>();
 
@@ -78,13 +81,51 @@ final class Log4j2EventMapper {
       }
     }
 
+    Map<String, String> mdcValues = Map.of();
+    if (includeMdcKeys != null && !includeMdcKeys.isEmpty()) {
+      mdcValues = MdcProjector.project(includeMdcKeys, contextLookup(event));
+    }
+
     return new AlertEvent(
         loggerName(event),
         formattedMessage(event, causeChain),
         event.getTimeMillis(),
         causeChain,
         rootCauseFrames,
-        markerNames(event.getMarker()));
+        markerNames(event.getMarker()),
+        mdcValues);
+  }
+
+  /**
+   * A per-key lookup over the event's captured context data — log4j2's {@code ThreadContext} is its
+   * MDC, and {@link LogEvent#getContextData()} is the snapshot taken when the event was created.
+   *
+   * <p>Reading {@code ThreadContext} directly here instead would return whatever the CURRENT thread
+   * holds, which behind an {@code <Async>} appender (or this appender's own async delivery) is the
+   * worker thread's context: empty at best, another request's at worst. Sourcing from the event is
+   * what makes the projection correct on every threading model.
+   *
+   * <p>Two robustness details. {@code ReadOnlyStringMap.getValue} is generically typed and an
+   * {@code ObjectThreadContextMap} may hold non-String values, so the result is read as
+   * {@code Object} and stringified rather than cast — a cast would throw {@code ClassCastException}
+   * on the logging path. And the whole read is guarded: a third-party or hand-built {@code LogEvent}
+   * may return {@code null} context data or throw, and an appender must never break the logging call
+   * it decorates, so any failure degrades to "no context" exactly as {@link MdcProjector} does for a
+   * per-key lookup that throws.
+   */
+  private static Function<String, String> contextLookup(LogEvent event) {
+    return key -> {
+      try {
+        org.apache.logging.log4j.util.ReadOnlyStringMap contextData = event.getContextData();
+        if (contextData == null) {
+          return null;
+        }
+        Object value = contextData.getValue(key);
+        return value == null ? null : String.valueOf(value);
+      } catch (RuntimeException e) {
+        return null;
+      }
+    };
   }
 
   /**

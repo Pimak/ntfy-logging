@@ -40,6 +40,7 @@ public class NtfyConfiguration {
   private String actions;
   private String locale;
   private String excludedLoggers;
+  private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
   private int asyncQueueCapacity = 1024;
@@ -406,6 +407,26 @@ public class NtfyConfiguration {
    */
   public void setExcludedLoggers(String excludedLoggers) {
     this.excludedLoggers = excludedLoggers;
+  }
+
+  /**
+   * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one
+   * {@code key: value} line each. Empty by default, and there is deliberately no wildcard form: MDC
+   * content is application-owned and free-form, so only the keys named here are ever published.
+   *
+   * @return the allow-listed MDC keys, or {@code null} when unset
+   */
+  public String getIncludeMdcKeys() {
+    return includeMdcKeys;
+  }
+
+  /**
+   * Sets the comma-separated allow-list of MDC keys rendered into alert bodies.
+   *
+   * @param includeMdcKeys the allow-listed MDC keys
+   */
+  public void setIncludeMdcKeys(String includeMdcKeys) {
+    this.includeMdcKeys = includeMdcKeys;
   }
 
   /**

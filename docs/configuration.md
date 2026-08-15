@@ -56,7 +56,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `click-url` | String | *(none)* | URL ntfy opens when the notification is tapped (ntfy `Click` header). Applies to both error alerts and digests; sent as-is (no header when unset). |
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
-| `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). No effect on plain `java.util.logging`, which has no MDC. See [filtering.md](filtering.md). |
+| `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). Sourced per adapter: the Logback event's MDC snapshot, log4j2's `ThreadContext`, and `ExtLogRecord` under JBoss LogManager/Quarkus. No effect on plain `java.util.logging`, which has no MDC. See [filtering.md](filtering.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
 | `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) and `NtfyLog4j2Installer` to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
@@ -184,7 +184,8 @@ spelling; unset attributes keep the engine defaults. See [log4j2.md](log4j2.md).
         topic="my-app-alerts"
         token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         appName="my-app"
-        suppressionWindow="3m"/>
+        suppressionWindow="3m"
+        includeMdcKeys="correlation-id,tenant"/>
 </Appenders>
 ```
 
@@ -214,6 +215,7 @@ ntfy:
   app-name: my-app
   suppression-window: 3m
   excluded-loggers: io.micronaut.http.server, com.zaxxer.hikari
+  include-mdc-keys: correlation-id, tenant
 ```
 
 ### Quarkus (`application.properties`)

@@ -123,6 +123,37 @@ must not introduce. So on Log4j2 you name the appender in `log4j2.xml` or call
 `NtfyLog4j2Installer.install()`; both are one line, and the installer path still takes its whole
 configuration from the environment.
 
+## MDC context in alert bodies
+
+log4j2's **`ThreadContext` is its MDC**. Name the keys you want attached to alerts with
+`includeMdcKeys`, and each one is rendered as its own `key: value` line just after `Logger:`:
+
+```xml
+<Ntfy name="ntfy"
+      url="https://ntfy.example.com"
+      topic="my-app-alerts"
+      includeMdcKeys="correlation-id,tenant"/>
+```
+
+```
+Message: order settlement failed
+Logger: com.acme.billing.SettlementService
+correlation-id: 7f3a91c2-…
+tenant: acme-eu
+Caused by: java.lang.IllegalStateException: ledger closed
+```
+
+It is an **allow-list with no wildcard form**: a key you have not named is never published, so a
+`ThreadContext` carrying a session token or an e-mail address cannot leak into a topic. Unset — the
+default — bodies are byte-identical to before.
+
+The values are read from the event's captured context data (`LogEvent.getContextData()`), not from
+the `ThreadContext` thread-local. That distinction is what keeps the projection correct behind an
+`<Async>` appender or this appender's own async delivery, where the publishing thread is not the
+thread that logged. See **[filtering.md](filtering.md)** for the guards (key cap, value truncation,
+control-character scrubbing) and **[alert-behavior.md](alert-behavior.md)** for how the context block
+interacts with the 4096-byte body limit.
+
 ## Behavior notes specific to this adapter
 
 - **Level gate:** the appender submits only events at `ERROR` or above

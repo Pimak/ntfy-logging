@@ -140,6 +140,7 @@ public class NtfyLogbackInstaller implements ApplicationEventListener<StartupEve
     appender.setActions(configuration.getActions());
     appender.setLocale(configuration.getLocale());
     appender.setExcludedLoggers(configuration.getExcludedLoggers());
+    appender.setIncludeMdcKeys(configuration.getIncludeMdcKeys());
     appender.setEnabled(configuration.isEnabled());
     appender.setAsync(configuration.isAsync());
     appender.setAsyncQueueCapacity(configuration.getAsyncQueueCapacity());

@@ -1,6 +1,7 @@
 package io.github.pimak.ntfy.log4j2;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -86,6 +87,12 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
 
   // volatile: start()/stop() run on the configuration thread while append() reads this on every
   // application logging thread.
+  // Resolved from the BUILT NtfyConfig in start(), not from the plugin attribute, so the
+  // forConfig(name, config) construction path carries the allow-list too. volatile for the same
+  // reason as `engine`: start()/stop() run on a configuration thread while append() runs on
+  // application threads.
+  private volatile List<String> mdcKeys = List.of();
+
   private volatile AlertEngine engine;
 
   // The reconfiguration hook registered by NtfyLog4j2Installer, parked here so uninstall() can
@@ -143,6 +150,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
   public void start() {
     setStarting();
     NtfyConfig config = injectedConfig != null ? injectedConfig : settings.toConfig(diagnostics);
+    this.mdcKeys = config.getIncludeMdcKeys();
     AlertEngine started = new AlertEngine(config, diagnostics, counters);
     started.start();
     if (started.isStarted()) {
@@ -176,7 +184,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
       return;
     }
     try {
-      current.submit(Log4j2EventMapper.map(event));
+      current.submit(Log4j2EventMapper.map(event, mdcKeys));
     } catch (RuntimeException e) {
       // An appender must never propagate into the logging caller: a broken alert would otherwise
       // become an exception at an unrelated logger.error() call site. AbstractAppender.error routes
@@ -199,6 +207,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
   public boolean stop(long timeout, TimeUnit timeUnit) {
     AlertEngine current = engine;
     this.engine = null;
+    this.mdcKeys = List.of();
     if (current != null) {
       current.stop();
     }
@@ -274,6 +283,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String clickUrl;
     @PluginBuilderAttribute private String actions;
     @PluginBuilderAttribute private String excludedLoggers;
+    @PluginBuilderAttribute private String includeMdcKeys;
     @PluginBuilderAttribute private String locale;
     @PluginBuilderAttribute private String enabled;
     @PluginBuilderAttribute private String async;
@@ -494,6 +504,20 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * A single comma-separated allow-list of MDC keys whose values are rendered into alert bodies,
+     * one {@code key: value} line each. Empty by default, and there is deliberately no wildcard
+     * form: log4j2's {@code ThreadContext} is application-owned and free-form, so only the keys
+     * named here are ever published.
+     *
+     * @param includeMdcKeys the comma-separated allow-list
+     * @return this builder
+     */
+    public Builder setIncludeMdcKeys(String includeMdcKeys) {
+      this.includeMdcKeys = includeMdcKeys;
+      return asBuilder();
+    }
+
+    /**
      * Language of notification bodies and diagnostics as a BCP 47 tag (e.g. {@code fr}, {@code
      * de-DE}). Defaults to English; an unknown/unshipped locale silently uses English.
      *
@@ -587,7 +611,8 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
               .password(password)
               .title(title)
               .appName(appName)
-              .excludedLoggers(excludedLoggers);
+              .excludedLoggers(excludedLoggers)
+              .includeMdcKeysCsv(includeMdcKeys);
 
       // Setters whose core default must survive an absent attribute: apply only when set.
       applyString(errorPriority, builder::errorPriority);

@@ -86,6 +86,7 @@ final class Log4j2NtfyBackend implements NtfyBackend {
             .setActions(p.getActions())
             .setLocale(p.getLocale())
             .setExcludedLoggers(p.getExcludedLoggers())
+            .setIncludeMdcKeys(p.getIncludeMdcKeys())
             .setEnabled(String.valueOf(p.isEnabled()))
             .setAsync(String.valueOf(p.isAsync()))
             .setAsyncQueueCapacity(String.valueOf(p.getAsyncQueueCapacity()))

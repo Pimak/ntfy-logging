@@ -30,13 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   correlation-id beats the 5th frame) and the 1024-character budget is what bounds it. Storm digests
   deliberately carry no MDC, since per-event context across N aggregated events would be meaningless.
   Available on every surface: `-Dntfy.include-mdc-keys` / `NTFY_INCLUDE_MDC_KEYS` /
-  `ntfy.properties` `ntfy.include-mdc-keys`, Logback XML `<includeMdcKeys>`, Spring
+  `ntfy.properties` `ntfy.include-mdc-keys`, Logback XML `<includeMdcKeys>`, the Log4j2 `<Ntfy>`
+  element's `includeMdcKeys` attribute, Spring `ntfy.include-mdc-keys`, Micronaut
   `ntfy.include-mdc-keys`, Quarkus `quarkus.ntfy.include-mdc-keys`, and
   `NtfyConfig.Builder.includeMdcKeys(List)` / `.includeMdcKeysCsv(String)` for programmatic core
   users (the `List` form is also the only way to name a key containing a comma). Full support on
-  Logback and therefore Spring Boot (read from `ILoggingEvent.getMDCPropertyMap()`, captured at event
-  construction, so it is correct even behind an `AsyncAppender`) and on JBoss LogManager and
-  therefore Quarkus (read per key from `org.jboss.logmanager.ExtLogRecord`); on plain
+  Logback and therefore Spring Boot and Micronaut (read from `ILoggingEvent.getMDCPropertyMap()`,
+  captured at event construction, so it is correct even behind an `AsyncAppender`), on Log4j2 —
+  standalone or as a Log4j2-backed Spring Boot application (read from `LogEvent.getContextData()`,
+  since log4j2's `ThreadContext` is its MDC; again the event's own snapshot, so it stays correct
+  behind an `<Async>` appender) — and on JBoss LogManager and therefore Quarkus (read per key from
+  `org.jboss.logmanager.ExtLogRecord`); on plain
   `java.util.logging` the block is always empty, since JUL has no MDC concept — the same situation as
   SLF4J markers, which the JUL path already does not carry. When the allow-list is non-empty the
   engine emits one extra startup INFO line next to its `ACTIVE` and excluded-loggers lines —
