@@ -19,7 +19,9 @@
         <module>ntfy-jul</module>
         <!-- Logback appender + zero-code auto-install (Configurator SPI); serves Spring and any Logback app. -->
         <module>ntfy-logback</module>
-        <!-- Spring Boot auto-configuration on top of ntfy-logback + an injectable NtfyClient bean. -->
+        <!-- Log4j2 appender (declarative <Ntfy> element) + a one-line programmatic installer. -->
+        <module>ntfy-log4j2</module>
+        <!-- Spring Boot auto-configuration over whichever backend is on the classpath (Logback or Log4j2) + an injectable NtfyClient bean. -->
         <module>ntfy-spring-boot-starter</module>
         <!-- Quarkus extension aggregator (runtime + deployment) on top of ntfy-jul; native + zero-code via LogHandlerBuildItem. -->
         <module>ntfy-quarkus</module>
@@ -65,6 +67,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
         <logback.version>1.6.1</logback.version>
+        <!--
+            Latest stable of the maintained Log4j 2.x line (3.x is still 3.0.0-beta*). Consumed
+            provided-scope by ntfy-log4j2, so this pin only fixes what the adapter COMPILES
+            against — the host application's own log4j2 version is what runs.
+        -->
+        <log4j2.version>2.26.1</log4j2.version>
         <slf4j.version>2.0.18</slf4j.version>
         <junit.version>6.1.2</junit.version>
         <assertj.version>3.27.7</assertj.version>
@@ -85,6 +93,24 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
                 <version>${logback.version}</version>
+            </dependency>
+            <!--
+                Log4j2 API + core for the ntfy-log4j2 adapter. Declared as two explicit
+                coordinates rather than importing log4j-bom: the reactor already imports the
+                Quarkus platform BOM here and the comment below explains why BOM imports are kept
+                as narrow as possible — two artifacts do not justify a third platform import.
+                Everything else log4j-core declares is either optional or provided, so nothing
+                else reaches the adapter's classpath.
+            -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j2.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -312,6 +338,7 @@
                                 <excludeArtifact>ntfy-example-core</excludeArtifact>
                                 <excludeArtifact>ntfy-example-jul</excludeArtifact>
                                 <excludeArtifact>ntfy-example-logback</excludeArtifact>
+                                <excludeArtifact>ntfy-example-log4j2</excludeArtifact>
                                 <excludeArtifact>ntfy-example-spring-boot</excludeArtifact>
                             </excludeArtifacts>
                         </configuration>
