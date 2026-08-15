@@ -90,6 +90,14 @@ attach the appender to that specific logger rather than to `root`. See
 [docs/filtering.md](docs/filtering.md), including the `NO_ALERT` marker (Logback and Log4j2) and the
 always-on self-exclusion of the library's own package.
 
+Pointing the other way, `include-mdc-keys` is an explicit **allow-list** — of MDC keys, not of
+loggers — whose values are rendered into the alert body as `key: value` lines, so an alert can say
+*for whom* and *in which request* something broke instead of sending you back to centralized logs.
+There is deliberately no wildcard: nothing from the MDC leaves the process unless you named its key,
+and the setting is unset by default. Values are scrubbed and length-capped before rendering.
+Supported on Logback/Spring Boot and on Quarkus (JBoss LogManager); plain `java.util.logging` has no
+MDC, so the block is empty there. See [docs/filtering.md](docs/filtering.md).
+
 ## Notification language
 
 Alert bodies and the engine's own diagnostics default to English but can be produced in another

@@ -47,6 +47,29 @@ unreachable ntfy server never blocks the logging thread. The worker is a plain p
 thread, so it stays native-image safe. Set `quarkus.ntfy.async=false` for pre-2.0 synchronous,
 inline delivery. See [alert-behavior.md](alert-behavior.md).
 
+## MDC context in alert bodies
+
+List the MDC keys you want rendered into each alert body and they appear as `key: value` lines just
+after the `Logger:` line, in the order listed:
+
+```properties
+quarkus.ntfy.include-mdc-keys=correlation-id,tenant
+```
+
+Quarkus logs through **JBoss LogManager**, so the extension has a real MDC to read: values are taken
+per key from `org.jboss.logmanager.ExtLogRecord`, and this works the same in JVM and native mode.
+(This is the one capability the shared JUL handler gains under Quarkus that it cannot have on plain
+`java.util.logging` — see [jul.md](jul.md).) It is an explicit allow-list with no wildcard: nothing
+from the MDC is published unless you name its key. See [filtering.md](filtering.md) for the per-value
+guards and the rationale, and [alert-behavior.md](alert-behavior.md) for where the block sits in the
+body.
+
+> `quarkus.ntfy.async=true` is safe for MDC fidelity: the alert payload — context block included — is
+> built on the submitting thread, and only the blocking HTTP send is offloaded. What does need care
+> is a JBoss `AsyncHandler` placed **in front of** the ntfy handler: the values that reach the alert
+> are then only as accurate as that handler's own record hand-off, which must copy the record's MDC
+> rather than resolve it on the draining thread.
+
 ## Manual notifications
 
 Inject the client to send your own notifications:
@@ -67,7 +90,8 @@ lives in the cross-cutting reference pages:
   (types, defaults), plus duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
+- **[Filtering](filtering.md)** — `excluded-loggers`, the always-on self-exclusion, and the
+  `include-mdc-keys` context allow-list.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits; on Quarkus they go to
   `System.err`, each line prefixed `[ntfy]`.
 - **[Compatibility](compatibility.md)** — tested Quarkus / JDK / GraalVM versions.
