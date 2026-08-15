@@ -56,6 +56,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `click-url` | String | *(none)* | URL ntfy opens when the notification is tapped (ntfy `Click` header). Applies to both error alerts and digests; sent as-is (no header when unset). |
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
+| `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). No effect on plain `java.util.logging`, which has no MDC. See [filtering.md](filtering.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
 | `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) and `NtfyLog4j2Installer` to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
@@ -154,6 +155,7 @@ ntfy.topic=my-app-alerts
 ntfy.app-name=my-app
 ntfy.max-alerts-per-window=3
 ntfy.suppression-window=3m
+ntfy.include-mdc-keys=correlation-id,tenant
 ```
 
 or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
@@ -165,6 +167,7 @@ or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
   <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token>
   <appName>my-app</appName>
   <suppressionWindow>3m</suppressionWindow>
+  <includeMdcKeys>correlation-id,tenant</includeMdcKeys>
 </appender>
 ```
 
@@ -194,6 +197,7 @@ ntfy:
   app-name: my-app
   suppression-window: 3m
   excluded-loggers: org.apache.kafka, com.zaxxer.hikari
+  include-mdc-keys: correlation-id, tenant
 ```
 
 ### Micronaut (`application.yml`)
@@ -219,6 +223,7 @@ quarkus.ntfy.topic=my-app-alerts
 quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 quarkus.ntfy.app-name=my-app
 quarkus.ntfy.suppression-window=3m
+quarkus.ntfy.include-mdc-keys=correlation-id,tenant
 ```
 
 ## See also
@@ -226,6 +231,7 @@ quarkus.ntfy.suppression-window=3m
 - [authentication.md](authentication.md) — `token` vs `username`/`password` precedence and the
   `None` (unauthenticated) mode.
 - [filtering.md](filtering.md) — how `excluded-loggers` combines with the always-on self-exclusion,
-  and the `NO_ALERT` per-event opt-out (Logback and Log4j2).
+  the `NO_ALERT` per-event opt-out (Logback and Log4j2), and the opposite-direction
+  `include-mdc-keys` allow-list.
 - [alert-behavior.md](alert-behavior.md) — how the rate-limiting, digest, priority, and tag settings
   combine at runtime.

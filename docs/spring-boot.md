@@ -69,6 +69,26 @@ a daemon worker (tune it with `ntfy.async-queue-capacity`, default `1024`), so a
 ntfy server never blocks your application threads. Set `ntfy.async: false` for pre-2.0 synchronous,
 inline delivery. See [alert-behavior.md](alert-behavior.md).
 
+## MDC context in alert bodies
+
+To make an alert say *for whom* and *in which request* something broke, list the MDC keys you want
+rendered into the body:
+
+```yaml
+ntfy:
+  include-mdc-keys: correlation-id, tenant
+```
+
+Each named key that carries a non-blank value appears as its own `key: value` line just after the
+`Logger:` line, in the order listed. Relaxed binding applies as it does to every other key, so
+`ntfy.includeMdcKeys` and `NTFY_INCLUDE_MDC_KEYS` bind equally. The starter's appender is a Logback
+appender, so values come from `ILoggingEvent.getMDCPropertyMap()` — captured at event construction
+and therefore correct even behind an `AsyncAppender`.
+
+This is an explicit allow-list with no wildcard and no "include everything" mode: nothing from the
+MDC is published unless you name its key. Unset (the default) means alert bodies are exactly what
+they were before. See [filtering.md](filtering.md) for the per-value guards and the rationale.
+
 ## Manual notifications
 
 Inject the client to send your own notifications:
@@ -98,7 +118,8 @@ lives in the cross-cutting reference pages:
   Spring's relaxed binding, plus duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
+- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, self-exclusion, and the
+  `include-mdc-keys` context allow-list.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits and where Spring
   surfaces them (Logback's `StatusManager`, or Log4j2's `StatusLogger` on a Log4j2 stack).
 - **[Compatibility](compatibility.md)** — tested Spring Boot / JDK / Logback / Log4j2 versions.

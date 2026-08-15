@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -349,6 +350,13 @@ public final class AlertEngine {
     diagnostics.info(messages.statusActive(config.getUrl(), config.getTopic())); // never token
     diagnostics.info(
         messages.statusExclusions(config.getExcludedLoggerPrefixes())); // exactly once
+    // Conditional, unlike the exclusions line above (which always reports even the "none" case):
+    // include-mdc-keys is opt-in, so a "no MDC keys configured" line on every boot would be pure
+    // noise, and staying silent keeps the default path's diagnostic stream byte-identical to before
+    // this feature existed. Key NAMES only — a VALUE is never diagnosed.
+    if (!config.getIncludeMdcKeys().isEmpty()) {
+      diagnostics.info(messages.statusIncludeMdcKeys(config.getIncludeMdcKeys()));
+    }
     this.started = true;
   }
 
@@ -613,14 +621,27 @@ public final class AlertEngine {
   }
 
   /**
-   * Body order: log message, logger name, full cause chain (one "Caused by" line per link, surface
-   * to root), up to {@code maxStackFrames} entries of the ROOT cause's frames, then the event
-   * timestamp. All labels come from {@link AlertMessages}.
+   * Body order: log message, logger name, the allow-listed MDC context block (one {@code key: value}
+   * line each, in configured order), full cause chain (one "Caused by" line per link, surface to
+   * root), up to {@code maxStackFrames} entries of the ROOT cause's frames, then the event
+   * timestamp. All labels come from {@link AlertMessages}; the MDC block deliberately has none — the
+   * operator-chosen key name IS the label, so no bundle key can go stale against a config value.
    */
   private String buildBody(AlertEvent event, AlertEvent.Cause rootCause) {
     StringBuilder sb = new StringBuilder();
     sb.append(messages.labelMessage()).append(event.formattedMessage()).append('\n');
     sb.append(messages.labelLogger()).append(event.loggerName()).append('\n');
+
+    // Context lines sit HIGH in the body on purpose. PayloadTruncator (applied in buildPayload)
+    // keeps whole lines from the START and drops from the END, so under budget pressure the tail is
+    // sacrificed in this order — the "Time:" line first, then stack frames bottom-up, then "Caused
+    // by:" lines — while the context block survives. A correlation id beats the 5th stack frame for
+    // diagnosing a production incident. MdcProjector's MAX_TOTAL_CHARS is what keeps that privilege
+    // bounded: the block can claim at most ~1 KiB of the 4096-byte body budget. maxStackFrames is
+    // unaffected either way; it is applied below, before truncation ever runs.
+    for (Map.Entry<String, String> entry : event.mdcValues().entrySet()) {
+      sb.append(entry.getKey()).append(": ").append(entry.getValue()).append('\n');
+    }
 
     if (!event.causeChain().isEmpty()) {
       for (AlertEvent.Cause cause : event.causeChain()) {

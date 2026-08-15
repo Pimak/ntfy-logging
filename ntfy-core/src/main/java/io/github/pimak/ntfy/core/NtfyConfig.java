@@ -37,6 +37,7 @@ public final class NtfyConfig {
   private final String clickUrl;
   private final String actions;
   private final List<String> excludedLoggerPrefixes;
+  private final List<String> includeMdcKeys;
   private final boolean enabled;
   private final boolean asyncEnabled;
   private final int asyncQueueCapacity;
@@ -66,6 +67,7 @@ public final class NtfyConfig {
     this.actions = b.actions;
     this.excludedLoggerPrefixes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
+    this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
     this.asyncQueueCapacity = b.asyncQueueCapacity;
@@ -166,6 +168,20 @@ public final class NtfyConfig {
   /** The unmodifiable list of logger-name prefixes excluded from alerting. */
   public List<String> getExcludedLoggerPrefixes() {
     return excludedLoggerPrefixes;
+  }
+
+  /**
+   * The unmodifiable, EXPLICIT allow-list of MDC keys whose values are rendered into alert bodies
+   * (one {@code key: value} line each), in configured order — that order is the rendering order.
+   * Empty by default, i.e. no MDC content is published at all unless an operator opts in.
+   *
+   * <p>There is deliberately NO wildcard and no "include everything" mode: a production MDC routinely
+   * carries session tokens and user identifiers, so no MDC value may ever leave the process in a
+   * notification unless it was named here. Adapters project the live context through {@link
+   * MdcProjector#project}, which also scrubs, truncates, and caps whatever the named keys hold.
+   */
+  public List<String> getIncludeMdcKeys() {
+    return includeMdcKeys;
   }
 
   public boolean isEnabled() {
@@ -274,6 +290,7 @@ public final class NtfyConfig {
     private String clickUrl;
     private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
+    private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
     private int asyncQueueCapacity = 1024;

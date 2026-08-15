@@ -66,6 +66,28 @@ tell "one error happened" from "this service is having a bad time" without openi
 Both are pass-through values (no local validation), so future ntfy priority or tag values work
 automatically without a library update.
 
+## What an individual alert body contains
+
+Every individual error alert is assembled in one place (`AlertEngine.buildBody`) and always in the
+same order, so the layout is predictable enough to skim from a lock screen:
+
+```
+Message: order settlement failed
+Logger: com.acme.billing.SettlementService
+correlation-id: 7f3a91c2-...          ← optional MDC context block
+tenant: acme-eu                       ← one line per configured key, in configured order
+Caused by: java.lang.IllegalStateException: ledger closed
+  at com.acme.billing.Ledger.assertOpen(Ledger.java:88)
+Time: 2026-08-15T09:14:22.417Z
+```
+
+The **MDC context block** sits immediately after `Logger:` and before the `Caused by:` chain. It is
+present only for the MDC keys you named in `include-mdc-keys` (unset by default, in which case the
+body is exactly what it was before the setting existed), and only for keys that actually carry a
+non-blank value on the erroring thread. Its position is not cosmetic — see the truncation order
+below. Storm digests have their own layout and never carry MDC context. For the allow-list semantics,
+the per-value guards, and why there is no wildcard, see [filtering.md](filtering.md).
+
 ## Content truncation
 
 ntfy enforces a hard 4096-byte body limit. Before any alert (individual or digest) is published, its
@@ -73,6 +95,27 @@ body is truncated to fit, sacrificing whole trailing lines first (typically the 
 trace) so the message, logger name, and cause chain stay intact as long as possible. Truncation is
 measured in UTF-8 bytes, not string length, so multi-byte characters are never split mid-character
 and the published body never exceeds the byte budget.
+
+**`PayloadTruncator` keeps whole lines from the START of the body and drops them from the END.**
+Combined with the layout above, that gives a deliberate priority order for what survives a body that
+does not fit. Context lines sit near the start, so they survive; the tail is sacrificed, in this
+order:
+
+1. the `Time:` line;
+2. root-cause stack frames, bottom-up;
+3. `Caused by:` lines.
+
+This inverts the intuition that context is the expendable part — and that inversion is the point: a
+correlation-id that lets you pull the whole request in one query is worth more than the 5th stack
+frame. The consequence to be aware of is that **a large context block can reduce the number of stack
+frames actually visible**, even though `max-stack-frames` itself has not changed: that setting is
+applied when the body is built, and truncation runs afterwards on the assembled result. The
+1024-character aggregate budget on the context block ([filtering.md](filtering.md)) is what bounds
+this to roughly a quarter of the payload.
+
+Because ntfy's limit is measured in **bytes** while the context budget is measured in **characters**,
+1024 characters of CJK or emoji can be up to ~4 KiB — a case `PayloadTruncator` handles correctly,
+since it measures UTF-8 bytes and never splits a character.
 
 ## Delivery mode: asynchronous (default) or synchronous
 
@@ -101,4 +144,6 @@ completes before the logging call returns. See [configuration.md](configuration.
 
 - [configuration.md](configuration.md) — the settings (`max-alerts-per-window`, `suppression-window`,
   `error-priority`, `digest-priority`, `error-tags`, `digest-tags`) that control this behavior.
+- [filtering.md](filtering.md) — the `include-mdc-keys` allow-list behind the body's context block,
+  its per-value guards, and why it has no wildcard.
 - [troubleshooting.md](troubleshooting.md) — what each diagnostic the engine emits means.

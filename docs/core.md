@@ -53,6 +53,32 @@ worker, so a slow ntfy server never blocks the submitting thread; tune it with
 synchronous, inline delivery. `NtfyClient` itself stays synchronous by contract (it returns a
 `PublishResult`). See [alert-behavior.md](alert-behavior.md) for the queue and overflow semantics.
 
+## MDC context in alert bodies
+
+To have per-event context rendered into alert bodies, name the MDC keys on the builder. Two forms are
+available — a typed list, and the CSV form the string-based surfaces use:
+
+```java
+NtfyConfig config = NtfyConfig.builder()
+    .url("https://ntfy.example.com")
+    .topic("my-app-alerts")
+    .includeMdcKeys(List.of("correlation-id", "tenant"))   // typed list
+    // .includeMdcKeysCsv("correlation-id,tenant")         // ...or the CSV form
+    .build();
+```
+
+Both spell the same setting; the CSV form exists so programmatic callers can pass through a value
+they read from their own configuration without splitting it themselves. Prefer the `List` form when
+you have the keys in hand — it is also the only way to name an **MDC key containing a comma**, which
+is unreachable from every CSV surface.
+
+Core itself defines the allow-list and the rendering; it is the *adapter* that supplies the values.
+`AlertEvent` carries them in its `mdcValues` component, populated by the Logback adapter from
+`ILoggingEvent.getMDCPropertyMap()` and by the JUL handler from `ExtLogRecord` under JBoss
+LogManager. If you build `AlertEvent`s yourself and drive `AlertEngine.submit` directly, you decide
+what goes in that map — the engine applies the allow-list, the scrubbing and the length caps to
+whatever you hand it. See [filtering.md](filtering.md) for those guards.
+
 ## Going further
 
 The base config above covers the common case. Everything else is shared across all adapters and
@@ -62,7 +88,8 @@ lives in the cross-cutting reference pages:
   defaults), `ConfigLoader` resolution, and duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
+- **[Filtering](filtering.md)** — `excluded-loggers`, the always-on self-exclusion, and the
+  `include-mdc-keys` context allow-list.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits.
 - **[Compatibility](compatibility.md)** — tested JDK / GraalVM versions and the ntfy server API
   surface.
