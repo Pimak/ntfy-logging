@@ -51,6 +51,11 @@ class LogbackAlertAppenderMdcIT {
     appender.setContext(new LoggerContext());
     appender.setUrl("http://localhost:" + wireMockPort);
     appender.setTopic("alerts");
+    // Delivery is asynchronous by default since 2.0, and stop() folds anything still queued into
+    // the storm digest instead of delivering it — so an individual alert body would never be
+    // observable here. These tests assert on that body, so they opt out explicitly, exactly as
+    // LogbackAlertAppenderLevelGateIT does; the async path has its own coverage.
+    appender.setAsync(false);
     if (includeMdcKeys != null) {
       appender.setIncludeMdcKeys(includeMdcKeys);
     }
@@ -160,6 +165,7 @@ class LogbackAlertAppenderMdcIT {
         NtfyConfig.builder()
             .url("http://localhost:" + wm.getHttpPort())
             .topic("alerts")
+            .asyncEnabled(false) // observe the individual alert body, not the shutdown digest
             .includeMdcKeys(List.of("tenant"))
             .build());
     appender.start();

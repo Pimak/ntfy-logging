@@ -76,6 +76,7 @@ final class LogbackNtfyBackend implements NtfyBackend {
     appender.setActions(p.getActions());
     appender.setLocale(p.getLocale());
     appender.setExcludedLoggers(p.getExcludedLoggers());
+    appender.setIncludeMdcKeys(p.getIncludeMdcKeys());
     appender.setEnabled(p.isEnabled());
     appender.setAsync(p.isAsync());
     appender.setAsyncQueueCapacity(p.getAsyncQueueCapacity());
