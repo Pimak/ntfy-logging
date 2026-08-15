@@ -32,6 +32,7 @@ public class NtfyProperties {
   private String actions;
   private String locale;
   private String excludedLoggers;
+  private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
   private int asyncQueueCapacity = 1024;
@@ -199,6 +200,20 @@ public class NtfyProperties {
 
   public void setExcludedLoggers(String excludedLoggers) {
     this.excludedLoggers = excludedLoggers;
+  }
+
+  /**
+   * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one {@code
+   * key: value} line each, in the order given here. Empty by default, and there is deliberately no
+   * wildcard form: an MDC value reaches a notification only when an operator named its key, because
+   * a production MDC routinely holds tokens and user identifiers that must never leave the process.
+   */
+  public String getIncludeMdcKeys() {
+    return includeMdcKeys;
+  }
+
+  public void setIncludeMdcKeys(String includeMdcKeys) {
+    this.includeMdcKeys = includeMdcKeys;
   }
 
   public boolean isEnabled() {

@@ -3,6 +3,7 @@ package io.github.pimak.ntfy.spring;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,14 +14,17 @@ import ch.qos.logback.core.Appender;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import io.github.pimak.ntfy.core.NtfyClient;
+import io.github.pimak.ntfy.core.NtfyConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.lang.reflect.Field;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -77,6 +81,9 @@ class NtfyAutoConfigurationTest {
     registry.add("ntfy.app-name", () -> "starter-test");
     // Keep the rate limiter from suppressing the single ERROR we send.
     registry.add("ntfy.max-alerts-per-window", () -> "10");
+    // Exercised by the two include-mdc-keys tests below; inert for every other test here, since an
+    // event whose MDC holds none of these keys renders exactly the body it did before.
+    registry.add("ntfy.include-mdc-keys", () -> "requestId,tenant");
   }
 
   @Autowired(required = false)
@@ -106,6 +113,52 @@ class NtfyAutoConfigurationTest {
 
     await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
         WIREMOCK.verify(postRequestedFor(urlPathEqualTo("/alerts"))));
+  }
+
+  /**
+   * First of the two apply sites: {@code ntfy.include-mdc-keys} must reach the installed appender.
+   * Asserted end-to-end through the published body rather than by reading appender state, since the
+   * appender exposes only a setter — a body carrying {@code requestId: r-42} can only come from the
+   * property having been applied to the appender that produced it. The unlisted {@code password}
+   * key doubles as the allow-list's negative case: naming two keys must publish exactly those two.
+   */
+  @Test
+  void includeMdcKeys_reachesTheInstalledAppender() {
+    Logger appLogger = LoggerFactory.getLogger("com.example.demo.MdcLogger");
+    MDC.put("requestId", "r-42");
+    MDC.put("tenant", "acme");
+    MDC.put("password", "hunter2");
+    try {
+      appLogger.error("boom for the include-mdc-keys appender test");
+    } finally {
+      MDC.clear();
+    }
+
+    await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo("/alerts"))
+            .withRequestBody(containing("requestId: r-42"))
+            .withRequestBody(containing("tenant: acme"))));
+    WIREMOCK.verify(0, postRequestedFor(urlPathEqualTo("/alerts"))
+        .withRequestBody(containing("hunter2")));
+  }
+
+  /**
+   * Second of the two apply sites: the same property must also reach the {@link NtfyClient} bean's
+   * config. The client keeps its {@link NtfyConfig} private and exposes no accessor for it, so the
+   * field is read reflectively here rather than widening the production API for a test — a
+   * divergence between the two apply sites would otherwise be completely silent.
+   */
+  @Test
+  void includeMdcKeys_reachesTheNtfyClientBean() throws Exception {
+    assertThat(ntfyClient).as("NtfyClient bean").isNotNull();
+
+    Field configField = NtfyClient.class.getDeclaredField("config");
+    configField.setAccessible(true);
+    NtfyConfig config = (NtfyConfig) configField.get(ntfyClient);
+
+    assertThat(config.getIncludeMdcKeys())
+        .as("MDC allow-list on the NtfyClient bean's config")
+        .containsExactly("requestId", "tenant");
   }
 
   @Test

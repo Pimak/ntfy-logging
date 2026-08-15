@@ -28,6 +28,14 @@ public class LoopbackNtfyTestResource implements QuarkusTestResourceLifecycleMan
   public static final String RECEIVED_PATH_PROP = "ntfy.it.received.path";
 
   /**
+   * JVM-global slot the loopback server writes the received request BODY into — i.e. the alert text
+   * ntfy would display. Same system-property mechanism (and same cross-classloader reason) as
+   * {@link #RECEIVED_PATH_PROP}; it is written BEFORE the path so that a test polling on the path
+   * having arrived can always read the matching body.
+   */
+  public static final String RECEIVED_BODY_PROP = "ntfy.it.received.body";
+
+  /**
    * JVM-global flag ({@code "true"}/absent): while set, the loopback server records each request on
    * arrival but holds its response open (bounded by a 15 s safety timeout). The async test uses it
    * to prove {@code quarkus.ntfy.async=true} keeps {@code /boom} non-blocking — the request thread
@@ -45,6 +53,7 @@ public class LoopbackNtfyTestResource implements QuarkusTestResourceLifecycleMan
   @Override
   public Map<String, String> start() {
     System.clearProperty(RECEIVED_PATH_PROP);
+    System.clearProperty(RECEIVED_BODY_PROP);
     try {
       server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     } catch (IOException e) {
@@ -53,8 +62,12 @@ public class LoopbackNtfyTestResource implements QuarkusTestResourceLifecycleMan
     server.createContext(
         "/",
         exchange -> {
+          // Body first, path last: waitForReceipt() polls the path, so recording it last is what
+          // makes "a publish arrived" imply "its body is already readable".
+          System.setProperty(
+              RECEIVED_BODY_PROP,
+              new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
           System.setProperty(RECEIVED_PATH_PROP, exchange.getRequestURI().getPath());
-          exchange.getRequestBody().readAllBytes();
           awaitHoldReleased();
           byte[] body = "{\"id\":\"1\"}".getBytes(StandardCharsets.UTF_8);
           exchange.sendResponseHeaders(200, body.length);

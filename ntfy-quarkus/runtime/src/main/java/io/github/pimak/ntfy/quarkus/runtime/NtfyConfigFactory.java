@@ -42,6 +42,7 @@ final class NtfyConfigFactory {
     config.actions().ifPresent(b::actionsHeader);
     config.locale().ifPresent(b::locale);
     config.excludedLoggers().ifPresent(b::excludedLoggers);
+    config.includeMdcKeys().ifPresent(b::includeMdcKeysCsv);
 
     return b.build();
   }
