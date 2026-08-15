@@ -80,6 +80,12 @@
         <wiremock.version>3.13.2</wiremock.version>
         <quarkus.version>3.38.1</quarkus.version>
         <spring-boot.version>4.1.0</spring-boot.version>
+        <!--
+            Micronaut platform BOM. Like the Spring Boot BOM, it is imported by the module that
+            needs it rather than here, so its managed versions cannot collide with the Quarkus BOM
+            imported below; this property just keeps the version pinned in one visible place.
+        -->
+        <micronaut.version>5.1.0</micronaut.version>
     </properties>
 
     <dependencyManagement>
