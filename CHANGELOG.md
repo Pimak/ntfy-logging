@@ -42,6 +42,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   processor and ships inside the jar. Log4j2 is a `provided`-scope dependency (compiled against
   2.26.1), so the host application's own version is what runs; Java 21+ as everywhere else. See
   [docs/log4j2.md](docs/log4j2.md).
+- **New `ntfy-micronaut` module: a Micronaut integration.** `io.github.pimak:ntfy-micronaut`
+  (package `io.github.pimak.ntfy.micronaut`) binds the `ntfy.*` keys from a Micronaut application's
+  own configuration (`application.yml` / `application.properties`, environment, config clients) via
+  a `@ConfigurationProperties("ntfy")` class whose key roster, types and defaults are deliberately
+  identical to the Spring starter's — the same `ntfy.*` block moves between the two frameworks
+  unchanged, with Micronaut's relaxed binding accepting `ntfy.app-name` / `ntfy.appName` /
+  `NTFY_APP_NAME` alike and converting the duration keys natively (`5s`, `3m`, `500ms`, `PT10S`).
+  Two things are contributed to the context: an injectable `NtfyClient` `@Singleton` for manual
+  notifications, closed by the container on shutdown so the async delivery worker never outlives
+  the application; and `NtfyLogbackInstaller`, which on `StartupEvent` attaches the shared
+  `LogbackAlertAppender` under the usual name `ntfy-auto` to the root Logback logger — replacing
+  idempotently, so an appender the zero-code `ntfy-logback` `Configurator` SPI already installed
+  from env/sysprops before the context existed is superseded by the Micronaut-bound values rather
+  than duplicated — and detaches and stops it again on context shutdown. **Logback only:** Micronaut
+  binds Logback through `micronaut-logging`, and there is deliberately no Log4j2 path here, so only
+  the *appender* is backend-specific — the `NtfyClient` bean is contributed whatever SLF4J backend
+  is bound, and when Logback is on the classpath but is not the bound backend the installer logs a
+  warning and skips the install instead of failing startup (a Micronaut application on Log4j2 wires
+  `ntfy-log4j2`'s `<Ntfy>` element itself). There is no Micrometer binding yet; the pipeline
+  counters remain reachable programmatically off the installed appender. **Micronaut 4.10.x only**
+  (compiled and tested against `micronaut-platform` 4.10.17 / core 4.10.26): Micronaut 5's
+  `micronaut-inject` and its `micronaut-inject-java` annotation processor ship Java 25 bytecode
+  (class file version 69) and therefore cannot be compiled or run against this project's Java 21
+  baseline, so Micronaut 5 is not supported yet. Logback is a `provided`-scope dependency, so the
+  version the host application brings is the one that runs. See
+  [docs/micronaut.md](docs/micronaut.md).
 - **Runnable example applications that double as functional tests.** New (unpublished) reactor
   modules under `examples/` — `examples/spring-boot`, `examples/logback`, `examples/log4j2`,
   `examples/jul`, `examples/core`, plus a shared pure-JDK loopback ntfy stand-in in

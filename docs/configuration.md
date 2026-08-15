@@ -11,11 +11,14 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
   `NtfyConfig.builder()` — the latter feeds `NtfyJulHandler.forConfig` on the JUL side.)
 - **Spring Boot** — your application's own config under the `ntfy.*` prefix (`application.yml` /
   `application.properties`, environment, etc.), bound with Spring's relaxed binding.
+- **Micronaut** — your application's own config under the same `ntfy.*` prefix (`application.yml` /
+  `application.properties`, environment, etc.), bound with Micronaut's relaxed binding. Same key
+  names, types and defaults as the Spring surface.
 - **Quarkus** — your application's own config under the `quarkus.ntfy.*` prefix.
 
 > The engine no longer refuses to read the process environment: config is resolved from
 > **sysprop > env > `ntfy.properties`** (core/JUL/Logback/Log4j2), or from **your framework's native config**
-> (Spring `ntfy.*`, Quarkus `quarkus.ntfy.*`). The old "never reads `getenv`" guarantee was a
+> (Spring / Micronaut `ntfy.*`, Quarkus `quarkus.ntfy.*`). The old "never reads `getenv`" guarantee was a
 > property of the single Logback appender; it is intentionally gone.
 
 ## Key reference
@@ -28,6 +31,8 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 - **Logback XML / Log4j2 XML** — the camelCase form of the key: a `<appName>` element on
   `LogbackAlertAppender`, an `appName="…"` attribute on `<Ntfy>`
 - **Spring** — `ntfy.<key>` (relaxed: `ntfy.app-name`, `ntfy.appName`, and `NTFY_APP_NAME` all bind)
+- **Micronaut** — `ntfy.<key>` (relaxed the same way: `ntfy.app-name`, `ntfy.appName` and
+  `NTFY_APP_NAME` all bind)
 - **Quarkus** — `quarkus.ntfy.<key>`
 
 | Key | Type | Default | Meaning |
@@ -56,7 +61,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) and `NtfyLog4j2Installer` to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
 | `async` | boolean | `true` | Delivery is offloaded to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. On by default since 2.0; set `false` for pre-2.0 synchronous, inline delivery (each publish then blocks the logging thread until the HTTP exchange completes — the guarantee short-lived batch/CLI processes may prefer). See [alert-behavior.md](alert-behavior.md). |
 | `async-queue-capacity` | int | `1024` | Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when `async` is `true`; a non-positive value is clamped to a minimum of `1`. |
-| `require-https-for-credentials` | boolean | `true` | Strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Log4j2 `<Ntfy requireHttpsForCredentials="false">`, Spring `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` (the default since 2.0) and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set `false` to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See [authentication.md](authentication.md). |
+| `require-https-for-credentials` | boolean | `true` | Strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Log4j2 `<Ntfy requireHttpsForCredentials="false">`, Spring and Micronaut `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` (the default since 2.0) and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set `false` to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See [authentication.md](authentication.md). |
 
 `url` and `topic` are the only two settings without which alerting stays inactive (silently if both
 are unset; with a warning if only one is set — see [troubleshooting.md](troubleshooting.md)). Every
@@ -77,6 +82,10 @@ In **Spring Boot**, these bind as native `java.time.Duration` values using Sprin
 syntax (`5s`, `3m`, `PT5S`, or a bare number of milliseconds), so you get the same spellings through
 Spring's converter.
 
+In **Micronaut** they likewise bind as native `java.time.Duration` values through Micronaut's own
+converter (`5s`, `3m`, `500ms`, `PT10S`), and the integration hands them to the appender in
+milliseconds — so the same spellings work there too.
+
 ## Notification language (translations)
 
 Every visible string the engine produces — the body labels (`Message:`, `Logger:`, `Caused by:`,
@@ -89,6 +98,7 @@ as every other key on each surface:
 | Core / JUL / plain Logback | `-Dntfy.locale=fr`, `NTFY_LOCALE=fr`, or `ntfy.locale=fr` in `ntfy.properties`; XML `<locale>fr</locale>`; `NtfyConfig.builder().locale("fr")` (or `.locale(Locale.FRENCH)`) |
 | Plain Log4j2 | the same ambient chain (`-Dntfy.locale=fr` / `NTFY_LOCALE=fr` / `ntfy.properties`), or the attribute `<Ntfy locale="fr" …/>` |
 | Spring Boot | `ntfy.locale: fr` |
+| Micronaut | `ntfy.locale: fr` |
 | Quarkus | `quarkus.ntfy.locale=fr` |
 
 **Semantics**
@@ -184,6 +194,21 @@ ntfy:
   app-name: my-app
   suppression-window: 3m
   excluded-loggers: org.apache.kafka, com.zaxxer.hikari
+```
+
+### Micronaut (`application.yml`)
+
+Same prefix and same spellings as Spring Boot — an `ntfy.*` block moves between the two unchanged.
+See [micronaut.md](micronaut.md).
+
+```yaml
+ntfy:
+  url: https://ntfy.example.com
+  topic: my-app-alerts
+  token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  app-name: my-app
+  suppression-window: 3m
+  excluded-loggers: io.micronaut.http.server, com.zaxxer.hikari
 ```
 
 ### Quarkus (`application.properties`)
