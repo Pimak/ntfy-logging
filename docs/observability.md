@@ -38,6 +38,11 @@ the appender.
   single counters instance for its whole lifetime and injects it into every engine it builds, so the
   tallies are **monotonic** — they survive a `stop()`/`start()` cycle and a Logback `LoggerContext`
   reset (the reset-resistant reattach listener keeps the same appender instance).
+- **Log4j2:** `appender.getCounters()` on the `NtfyLog4j2Appender` returns the same
+  `PipelineCounters`, with the same contract — one counters instance per appender, injected into
+  every engine it builds, so the tallies survive a stop/start cycle. An appender installed with
+  `NtfyLog4j2Installer` also survives a Log4j2 reconfiguration as the same instance, so its tallies
+  stay monotonic across one.
 
 ## Micrometer (Spring Boot)
 
@@ -53,6 +58,10 @@ This binding is **classpath-conditional**: it activates only when `micrometer-co
 classpath (any Spring Boot Actuator application) and a `MeterRegistry` bean exists. When Micrometer
 is absent, the starter has no Micrometer dependency of its own and adds nothing — `ntfy-core` stays
 dependency-free.
+
+It is **not** backend-conditional: the starter installs onto whichever logging backend the
+application is actually running on (Logback or Log4j2), and the meters — like the `NtfyClient` bean —
+are exported either way. See [spring-boot.md](spring-boot.md).
 
 The meters resolve the current appender lazily at scrape time, so they always reflect the active
 appender and read `0` when none is installed. Note that a Spring re-install builds a **new** appender

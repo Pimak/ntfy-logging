@@ -26,24 +26,40 @@ extension installs this module's `NtfyJulHandler` and is exercised by the Quarku
 
 | Version | Status |
 |---------|--------|
-| 1.5.38  | Tested — the exact version pinned in this repo's `pom.xml` and CI |
-| 1.5.x (other) | Expected to work — no API surface used beyond what's stable across the 1.5 line, including the `ch.qos.logback.classic.spi.Configurator` SPI used for zero-code auto-install |
+| 1.6.1   | Tested — the exact version pinned in this repo's `pom.xml` and CI |
+| 1.6.x / 1.5.x (other) | Expected to work — no API surface used beyond what's stable across those lines, including the `ch.qos.logback.classic.spi.Configurator` SPI used for zero-code auto-install |
 | 1.2.x / 1.3.x | Not tested, not supported — the adapter targets the modern JavaBean/Joran and `Configurator` SPIs |
+
+## Log4j2 (`ntfy-log4j2`, and Spring Boot on `spring-boot-starter-log4j2`)
+
+| Version | Status |
+|---------|--------|
+| 2.26.1  | Tested — the exact version pinned in this repo's `pom.xml` and CI, and the version the module compiles against |
+| 2.x (other) | Expected to work — the only API surface used is the stable `@Plugin`/`@PluginFactory` appender contract, `AbstractAppender`, `LogEvent`, `Marker`, and `LoggerContext`/`Configuration` reattachment |
+
+Log4j2 is a **`provided`-scope** dependency of `ntfy-log4j2`: the module never drags a Log4j2 of its
+own onto your classpath, so the version your application declares is the one that runs. Native-image
+reachability metadata for the `Ntfy` plugin is generated at build time by log4j-core's own annotation
+processor and ships inside the jar.
 
 ## Spring Boot (`ntfy-spring-boot-starter`)
 
 | Version | Status |
 |---------|--------|
 | 4.1.x   | Tested — the version pinned in this repo (`spring-boot.version` in `pom.xml`) |
-| 3.x / 4.x (other, on Logback) | Expected to work — the starter uses stable `@AutoConfiguration` + `@ConfigurationProperties` binding and installs the Logback `ntfy-auto` appender |
+| 3.x / 4.x (other) | Expected to work — the starter uses stable `@AutoConfiguration` + `@ConfigurationProperties` binding and installs onto whichever logging backend is bound |
 
-Spring Boot must be running on Logback (the default) — the starter installs a Logback appender.
+The starter is **backend-agnostic**: it installs onto whichever backend Spring Boot is actually
+running on — Logback (the default) or Log4j2 (`spring-boot-starter-log4j2`). `ntfy-logback` arrives
+transitively with the starter; Log4j2 applications additionally declare `io.github.pimak:ntfy-log4j2`
+alongside it. The `NtfyClient` bean and the Micrometer meters are available either way. See
+[spring-boot.md](spring-boot.md).
 
 ## Quarkus (`ntfy-quarkus-runtime` / `-deployment`)
 
 | Version | Status |
 |---------|--------|
-| 3.37.x | Tested — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
+| 3.38.x | Tested — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
 | 3.x (other) | Expected to work within the stable extension-API surface used (`LogHandlerBuildItem`, `@ConfigMapping @ConfigRoot(RUN_TIME)`, `@Recorder`) |
 
 ## GraalVM native image

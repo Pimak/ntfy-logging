@@ -4,8 +4,8 @@ The ntfy engine supports three first-class authentication modes for the outbound
 modeled by `AuthMode`, a sealed type with three variants: `BearerToken`, `BasicAuth`, and `None`.
 Which variant is active is derived automatically from which of `token` / `username` / `password` you
 configure — there is no separate "auth mode" switch. This is engine-wide: it applies identically
-whether you configure via env/sysprop/`ntfy.properties`, Logback XML, Spring `ntfy.*`, or Quarkus
-`quarkus.ntfy.*`. (For the full list of where each key lives, see
+whether you configure via env/sysprop/`ntfy.properties`, Logback XML, the Log4j2 `<Ntfy>` attributes,
+Spring `ntfy.*`, or Quarkus `quarkus.ntfy.*`. (For the full list of where each key lives, see
 [configuration.md](configuration.md).)
 
 ## The three modes
@@ -30,8 +30,14 @@ quarkus.ntfy.topic=my-app-alerts
 quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+```xml
+<!-- Log4j2 log4j2.xml -->
+<Ntfy name="ntfy" url="https://ntfy.example.com" topic="my-app-alerts"
+      token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+```
+
 ```bash
-# Core / plain Logback via environment
+# Core / plain Logback / plain Log4j2 via environment
 export NTFY_URL=https://ntfy.example.com NTFY_TOPIC=my-app-alerts
 export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
@@ -93,7 +99,8 @@ For a deliberate self-hosted plain-HTTP setup, set `require-https-for-credential
 restore the pre-2.0 warn-and-activate behavior: the engine then emits a one-time warning —
 `credentials configured with a plain http:// URL — the token/password and alert content are sent unencrypted; use https://` —
 but still activates. The key is available on every configuration surface: Logback XML
-`<requireHttpsForCredentials>`, Spring `ntfy.require-https-for-credentials`, Quarkus
+`<requireHttpsForCredentials>`, Log4j2 `<Ntfy requireHttpsForCredentials="false">`,
+Spring `ntfy.require-https-for-credentials`, Quarkus
 `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop
 `ntfy.require-https-for-credentials`, or `NtfyConfig.Builder.requireHttpsForCredentials(false)` for
 programmatic core users.
@@ -104,9 +111,9 @@ The engine's self-diagnostics (its `ACTIVE` line, publish-failure warnings, erro
 include the `token`, `username`, or `password` value. The only credential-adjacent information that
 can appear is the `url` and `topic` — and even then, if you supply a URL with embedded userinfo
 (`https://user:pass@host/…`), the userinfo is stripped before the URL is logged. No diagnostic
-output ever echoes a secret. Where those diagnostics appear differs per framework (Logback
-`StatusManager`, or `System.err` for the Quarkus/Spring paths) — see
-[troubleshooting.md](troubleshooting.md).
+output ever echoes a secret. Where those diagnostics appear differs per framework (Logback's
+`StatusManager` for the Logback/Spring paths, Log4j2's `StatusLogger`, or `System.err` for the
+JUL/Quarkus paths) — see [troubleshooting.md](troubleshooting.md).
 
 ## See also
 

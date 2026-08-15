@@ -13,8 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Fast leg: the whole multi-module reactor (ntfy-core, ntfy-jul, ntfy-logback, the Spring starter,
-  # and the Quarkus runtime/deployment + integration-tests in JVM mode) on both supported JDKs.
+  # Fast leg: the whole multi-module reactor (ntfy-core, ntfy-jul, ntfy-logback, ntfy-log4j2, the
+  # Spring starter, and the Quarkus runtime/deployment + integration-tests in JVM mode) on both
+  # supported JDKs.
   build:
     runs-on: ubuntu-latest
     strategy:

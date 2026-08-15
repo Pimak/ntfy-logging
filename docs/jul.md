@@ -106,7 +106,7 @@ lives in the cross-cutting reference pages:
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[Filtering](filtering.md)** — `excluded-loggers` and self-exclusion (JUL has no marker concept,
-  so the Logback-only `NO_ALERT` marker does not apply).
+  so the `NO_ALERT` marker — available on Logback and Log4j2 — does not apply).
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits on `System.err`
   (`[ntfy]`-prefixed), and what each line means.
 - **[Compatibility](compatibility.md)** — tested JDK versions and GraalVM notes.
