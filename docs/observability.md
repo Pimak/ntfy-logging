@@ -69,6 +69,25 @@ with fresh counters; because `FunctionCounter` ignores decreases in its source, 
 never goes backwards even though the raw Java-level counters you would read directly via
 `appender.getCounters()` restart from zero on that new instance.
 
+## Micronaut
+
+`ntfy-micronaut` has **no metrics binding** — there is no Micrometer integration in the module and no
+counters bean, so it is not at parity with the Spring Boot starter here. What you get is the same
+counters the engine always tracks, reachable programmatically: the module installs the standard
+`LogbackAlertAppender` under the name `ntfy-auto` on the root logger, so look it up and call
+`getCounters()`.
+
+```java
+var root = ((ch.qos.logback.classic.LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory())
+    .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+var appender = (io.github.pimak.ntfy.logback.LogbackAlertAppender) root.getAppender("ntfy-auto");
+var snapshot = appender.getCounters().snapshot();   // null appender ⇒ nothing was installed
+```
+
+Note that the injectable `NtfyClient` bean is *not* a route to these numbers: the ad-hoc publish path
+is deliberately uncounted (see above), and the bean exposes no counters. A Micronaut Micrometer
+binding is a possible follow-up, like the Quarkus one below.
+
 ## Quarkus
 
 Quarkus gets the counters at the core level (the engine tracks them), but a Micrometer/MicroProfile

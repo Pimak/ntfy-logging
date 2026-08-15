@@ -22,7 +22,7 @@ supported on every JDK the family supports (21+, table above). The declarative
 `LogManager`/`Handler` contract that Tomcat's `conf/logging.properties` also uses. The Quarkus
 extension installs this module's `NtfyJulHandler` and is exercised by the Quarkus CI legs below.
 
-## Logback (`ntfy-logback`, and Spring Boot via it)
+## Logback (`ntfy-logback`, and Spring Boot / Micronaut via it)
 
 | Version | Status |
 |---------|--------|
@@ -54,6 +54,29 @@ running on — Logback (the default) or Log4j2 (`spring-boot-starter-log4j2`). `
 transitively with the starter; Log4j2 applications additionally declare `io.github.pimak:ntfy-log4j2`
 alongside it. The `NtfyClient` bean and the Micrometer meters are available either way. See
 [spring-boot.md](spring-boot.md).
+
+## Micronaut (`ntfy-micronaut`)
+
+| Version | Status |
+|---------|--------|
+| 4.10.17 | Tested — the `micronaut-platform` version pinned in this repo (`micronaut.version` in `pom.xml`), resolving Micronaut core 4.10.26; the version the module compiles and runs its tests against |
+| 4.10.x / 4.x (other) | Expected to work — the only API surface used is the stable `@ConfigurationProperties`, `@Factory`/`@Singleton`, `@Requires(classes = …)` and `ApplicationEventListener<StartupEvent>` contract |
+| 5.x | **Not supported (yet)** — see below |
+
+Micronaut 5 is not merely untested, it cannot be built here: `micronaut-inject` **and** the
+`micronaut-inject-java` annotation processor ship Java 25 bytecode (class file version 69), so
+compiling or running them under this project's Java 21 baseline fails outright (`… has been compiled
+by a more recent version of the Java Runtime`). Micronaut 4.10.x is Java 17 bytecode and runs on both
+JDKs CI builds with (21 and 25). Support for Micronaut 5 can only be revisited together with the
+project's `maven.compiler.release` floor.
+
+The module is **Logback-only**: it installs the `ntfy-auto` appender on the root Logback logger —
+Logback being what `micronaut-logging` binds by default — and skips the install with a warning if
+Logback is not the bound SLF4J backend. The injectable `NtfyClient` bean is contributed regardless of
+backend. Logback is a `provided`-scope dependency of the module, so the version your Micronaut
+application brings is the one that runs. There is no Log4j2 path in this module; a Micronaut
+application on Log4j2 wires `ntfy-log4j2`'s `<Ntfy>` element itself. See
+[micronaut.md](micronaut.md).
 
 ## Quarkus (`ntfy-quarkus-runtime` / `-deployment`)
 

@@ -14,8 +14,25 @@ The channel depends on the adapter:
 | **Logback** (raw appender, zero-code auto-install) and **Spring Boot** on a Logback classpath (via the installed `ntfy-auto` appender) | Logback's `StatusManager` (`addInfo`/`addWarn`/`addError`) | Add a status listener, or dump the status list programmatically (below) |
 | **Log4j2** (`<Ntfy>` appender, `NtfyLog4j2Installer`) and **Spring Boot** on a Log4j2 classpath | Log4j2's `StatusLogger` | Raise the status level in `log4j2.xml` (`<Configuration status="WARN">`, or `INFO` to also see the `ACTIVE` line) |
 | **JUL** (`ntfy-jul`, standalone) and **Quarkus** (which installs the same handler) | `System.err`, each line prefixed `[ntfy]` (warnings as `[ntfy] WARN:`, errors as `[ntfy] ERROR:`) | Read the application's console/stderr |
+| **Micronaut** (`ntfy-micronaut`, via the installed `ntfy-auto` appender) | Logback's `StatusManager`, same as the Logback/Spring path | Add a status listener, or dump the status list programmatically (below) |
 
-For the Logback/Spring path, the simplest way to surface the status lines is Logback's console
+**Micronaut has a second, separate channel.** The engine's own diagnostics — every message in the
+reference table below — still go to Logback's `StatusManager` and never through an application
+logger; the loop-safety guarantee is unchanged. But the *module's* install decisions are not engine
+diagnostics, and `NtfyLogbackInstaller` reports them as ordinary SLF4J logs under the logger
+`io.github.pimak.ntfy.micronaut.NtfyLogbackInstaller` — so they appear in your normal application
+log:
+
+| Message | Level | Meaning |
+|---|---|---|
+| `ntfy: appender not installed (enabled=…, url set=…, topic set=…)` | info | `ntfy.enabled` is `false`, or `ntfy.url`/`ntfy.topic` is unset. Normal for an app that has the module but no topic yet. Only the flags are logged — never a credential. |
+| `ntfy: SLF4J backend is not Logback (…); skipping appender installation. The NtfyClient bean is still available for manual notifications.` | warn | Logback is on the classpath but SLF4J is bound to a different provider, so there is no root Logback logger to attach to. Startup is not failed. See [micronaut.md](micronaut.md). |
+| `ntfy: the appender did not start; see Logback's own status output for the reason.` | warn | The engine declined to activate (bad topic, credentials over plain `http://`, …). The reason is on the `StatusManager` — find it in the reference table below. |
+
+These lines are logged by the library's own package, which the engine always self-excludes, so they
+can never themselves trigger an alert.
+
+For the Logback/Spring/Micronaut path, the simplest way to surface the status lines is Logback's console
 listener (on Log4j2, the equivalent is the `status` attribute on `<Configuration>`):
 
 ```xml

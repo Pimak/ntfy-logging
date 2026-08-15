@@ -8,10 +8,11 @@
 [![Javadoc: ntfy-log4j2](https://javadoc.io/badge2/io.github.pimak/ntfy-log4j2/ntfy--log4j2.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-log4j2)
 [![Javadoc: ntfy-spring-boot-starter](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/ntfy--spring--boot--starter.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
 [![Javadoc: ntfy-quarkus-runtime](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/ntfy--quarkus--runtime.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime)
+[![Javadoc: ntfy-micronaut](https://javadoc.io/badge2/io.github.pimak/ntfy-micronaut/ntfy--micronaut.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-micronaut)
 
 **ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for
-`java.util.logging`, Logback and Spring Boot, a one-line Log4j2 appender, a native-ready Quarkus
-extension, and a plain programmatic client.**
+`java.util.logging`, Logback, Spring Boot and Micronaut, a one-line Log4j2 appender, a native-ready
+Quarkus extension, and a plain programmatic client.**
 
 Publish your application's ERROR-level log events as [ntfy](https://ntfy.sh) push notifications.
 The engine is:
@@ -39,6 +40,7 @@ The engine is:
 |---|---|---|---|
 | **`ntfy-spring-boot-starter`** | [Spring Boot](docs/spring-boot.md) | Spring Boot auto-configuration binding `ntfy.*`, plus an injectable `NtfyClient` bean. | You use Spring Boot and want alerting configured from `application.yml` and a `NtfyClient` to `@Autowired`. |
 | **`ntfy-quarkus-runtime`** | [Quarkus](docs/quarkus.md) | Quarkus 3.38 extension: a JUL log handler bound to `quarkus.ntfy.*`, native-ready, plus an injectable `NtfyClient`. | You use Quarkus (JVM or native) and want `quarkus.ntfy.*` config and `@Inject NtfyClient`. |
+| **`ntfy-micronaut`** | [Micronaut](docs/micronaut.md) | Micronaut 4.10 integration binding `ntfy.*`, installing the appender on the root Logback logger at startup, plus an injectable `NtfyClient`. Logback only. | You use Micronaut on its default Logback stack and want alerting configured from `application.yml` and an `@Inject NtfyClient`. |
 | **`ntfy-logback`** | [Plain Logback](docs/logback.md) | Logback appender + zero-code auto-install via a Logback `Configurator` SPI. | You use Logback (with or without Spring) and want ERROR logs to alert — via XML, or with no config at all. |
 | **`ntfy-log4j2`** | [Plain Log4j2](docs/log4j2.md) | Log4j2 `<Ntfy>` appender plugin + a one-line `NtfyLog4j2Installer.install()`; Log4j2 at `provided` scope. | You use Log4j2 and want ERROR logs to alert — declared in `log4j2.xml`, or installed with one line in `main`. |
 | **`ntfy-jul`** | [java.util.logging](docs/jul.md) | JUL `Handler` + zero-code auto-handler for `logging.properties` and a one-line programmatic installer; pure JDK. Also the handler the Quarkus extension installs. | You log through `java.util.logging` (plain JUL, Tomcat, Helidon, zero-dependency tools) and want SEVERE logs to alert. |
@@ -58,19 +60,21 @@ config to get error alerts publishing. Pick the one that matches your stack:
 |---|---|---|
 | **[Spring Boot](docs/spring-boot.md)** | `ntfy-spring-boot-starter` | Add the starter, set `ntfy.url`/`ntfy.topic` in `application.yml` — error logs auto-publish; `@Autowired NtfyClient` for manual ones. |
 | **[Quarkus](docs/quarkus.md)** | `ntfy-quarkus-runtime` | Add the extension, set `quarkus.ntfy.url`/`.topic` — error logs auto-publish (native-ready); `@Inject NtfyClient` for manual ones. |
+| **[Micronaut](docs/micronaut.md)** | `ntfy-micronaut` | Add the module, set `ntfy.url`/`ntfy.topic` in `application.yml` — error logs auto-publish on the Logback root logger; `@Inject NtfyClient` for manual ones. |
 | **[Plain Logback](docs/logback.md)** | `ntfy-logback` | Add the appender, set `NTFY_URL`/`NTFY_TOPIC` — zero-code auto-install, or wire it explicitly in `logback.xml`. |
 | **[Plain Log4j2](docs/log4j2.md)** | `ntfy-log4j2` | Add the appender, set `NTFY_URL`/`NTFY_TOPIC` — declare `<Ntfy .../>` in `log4j2.xml`, or `NtfyLog4j2Installer.install()` in `main`. |
 | **[java.util.logging](docs/jul.md)** | `ntfy-jul` | Add the handler, set `NTFY_URL`/`NTFY_TOPIC` — declare it in `logging.properties`, or `NtfyJulInstaller.install()` in `main`. |
 | **[Core](docs/core.md)** | `ntfy-core` | Build a `NtfyConfig`, drive `NtfyClient` yourself from any JVM app. |
 
 Everything beyond the base config — the full key reference, authentication, alert behavior,
-filtering, troubleshooting — is shared across all six and lives in the reference pages under
+filtering, troubleshooting — is shared across all seven and lives in the reference pages under
 [Documentation](#documentation), linked from each guide.
 
 ## Runnable examples
 
-Each adapter has a small, realistic example application under [`examples/`](examples/) (the Quarkus
-one lives in [`ntfy-quarkus/integration-tests/`](ntfy-quarkus/integration-tests/)). They double as
+Most adapters have a small, realistic example application under [`examples/`](examples/) (the Quarkus
+one lives in [`ntfy-quarkus/integration-tests/`](ntfy-quarkus/integration-tests/); `ntfy-micronaut`
+has no standalone example yet — it is covered by its own module integration test). They double as
 the adapters' functional test-beds: their integration tests boot the example apps against a loopback
 ntfy stand-in in CI — covering the base alert path, the synchronous-vs-asynchronous delivery
 difference, and the clean-shutdown digest flush — so the examples can never drift from the code.
@@ -101,7 +105,8 @@ string (a build-time invariant test enforces this). See
 ## Compatibility
 
 Java 21+ (JUL included) · Logback 1.6.x · Log4j2 2.x (compiled against 2.26.1, `provided`) · Spring
-Boot 4.1.x · Quarkus 3.38.x · GraalVM native (via the Quarkus extension). See
+Boot 4.1.x · Quarkus 3.38.x · Micronaut 4.10.x (Micronaut 5 not supported — it ships Java 25
+bytecode) · GraalVM native (via the Quarkus extension). See
 [docs/compatibility.md](docs/compatibility.md) for the full matrix.
 
 ## Documentation
@@ -112,6 +117,7 @@ Boot 4.1.x · Quarkus 3.38.x · GraalVM native (via the Quarkus extension). See
 |------|--------|
 | [docs/spring-boot.md](docs/spring-boot.md) | Spring Boot (`ntfy-spring-boot-starter`) |
 | [docs/quarkus.md](docs/quarkus.md) | Quarkus (`ntfy-quarkus-runtime`) |
+| [docs/micronaut.md](docs/micronaut.md) | Micronaut (`ntfy-micronaut`) |
 | [docs/logback.md](docs/logback.md) | Plain Logback (`ntfy-logback`) |
 | [docs/log4j2.md](docs/log4j2.md) | Plain Log4j2 (`ntfy-log4j2`) |
 | [docs/jul.md](docs/jul.md) | java.util.logging (`ntfy-jul`) |
@@ -121,13 +127,13 @@ Boot 4.1.x · Quarkus 3.38.x · GraalVM native (via the Quarkus extension). See
 
 | Page | Covers |
 |------|--------|
-| [docs/configuration.md](docs/configuration.md) | The unified `ntfy.*` key reference (types, defaults) and the per-framework mapping (env/sysprop/properties, Spring `ntfy.*`, Quarkus `quarkus.ntfy.*`), plus `DurationParser` syntax |
+| [docs/configuration.md](docs/configuration.md) | The unified `ntfy.*` key reference (types, defaults) and the per-framework mapping (env/sysprop/properties, Spring and Micronaut `ntfy.*`, Quarkus `quarkus.ntfy.*`), plus `DurationParser` syntax |
 | [docs/alert-behavior.md](docs/alert-behavior.md) | Why alerting behaves the way it does: immediate single-error alerts, storm suppression, digest-on-window-close, digest-on-shutdown |
 | [docs/observability.md](docs/observability.md) | The read-only `published`/`suppressed`/`failed` pipeline counters, reading them programmatically, and the classpath-conditional Micrometer binding in the Spring Boot starter |
 | [docs/authentication.md](docs/authentication.md) | The three auth modes (`BearerToken`, `BasicAuth`, `None`) and the "token wins" precedence rule |
 | [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), and the always-on self-exclusion |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |
-| [docs/compatibility.md](docs/compatibility.md) | Tested JDK/Logback/Log4j2/Spring/Quarkus/GraalVM versions and the ntfy server API surface |
+| [docs/compatibility.md](docs/compatibility.md) | Tested JDK/Logback/Log4j2/Spring/Quarkus/Micronaut/GraalVM versions and the ntfy server API surface |
 
 ## License
 
