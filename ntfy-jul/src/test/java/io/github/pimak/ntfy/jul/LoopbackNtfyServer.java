@@ -18,6 +18,7 @@ final class LoopbackNtfyServer implements AutoCloseable {
 
   private final HttpServer server;
   private final List<String> receivedPaths = new CopyOnWriteArrayList<>();
+  private final List<String> receivedBodies = new CopyOnWriteArrayList<>();
 
   LoopbackNtfyServer() {
     try {
@@ -28,9 +29,13 @@ final class LoopbackNtfyServer implements AutoCloseable {
     server.createContext(
         "/",
         exchange -> {
+          // Drain the body (the client needs a clean response either way) and record it BEFORE the
+          // path: waitForRequest() polls receivedPaths, so recording the path last is what makes
+          // "a request arrived" imply "its body is already readable" for the caller.
+          String requestBody =
+              new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+          receivedBodies.add(requestBody);
           receivedPaths.add(exchange.getRequestURI().getPath());
-          // Drain the body so the client sees a clean response.
-          exchange.getRequestBody().readAllBytes();
           byte[] body = "{\"id\":\"1\"}".getBytes(StandardCharsets.UTF_8);
           exchange.sendResponseHeaders(200, body.length);
           exchange.getResponseBody().write(body);
@@ -45,6 +50,11 @@ final class LoopbackNtfyServer implements AutoCloseable {
 
   List<String> receivedPaths() {
     return receivedPaths;
+  }
+
+  /** The raw request bodies received, in arrival order — i.e. the alert bodies ntfy would show. */
+  List<String> receivedBodies() {
+    return receivedBodies;
   }
 
   /** Polls up to ~5s for at least one request to have arrived. */
