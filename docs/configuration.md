@@ -122,7 +122,8 @@ as every other key on each surface:
 1. Copy `ntfy-core/src/main/resources/io/github/pimak/ntfy/core/AlertMessages.properties` to
    `AlertMessages_<lang>.properties` (e.g. `AlertMessages_de.properties`) and translate every value.
 2. In the **MessageFormat pattern keys** (`status.active`, `publish.failed.*`,
-   `status.exclusions.list`, `digest.*`, `window.*`) **double every literal single quote** (`''`) —
+   `status.exclusions.list`, `status.includeMdcKeys.list`, `digest.*`, `window.*`) **double every
+   literal single quote** (`''`) —
    French `l'`/`d'` need this — and keep the same `{0}`/`{1}` argument set. **Never** add a `{`
    placeholder to a no-placeholder key (the labels and fixed status strings); the safety test fails
    the build if you do.

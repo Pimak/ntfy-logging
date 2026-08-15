@@ -14,7 +14,8 @@ import java.util.Locale;
  * on a framework.
  *
  * <p>Defaults are applied by the builder (not here) so a builder that is never touched still yields
- * a fully-populated config. {@code excludedLoggerPrefixes} is always stored unmodifiable.
+ * a fully-populated config. {@code excludedLoggerPrefixes} and {@code includeMdcKeys} are always
+ * stored unmodifiable.
  */
 public final class NtfyConfig {
 
@@ -433,6 +434,42 @@ public final class NtfyConfig {
         }
       }
       this.excludedLoggerPrefixes = prefixes;
+      return this;
+    }
+
+    /**
+     * Sets the MDC-key allow-list from an explicit list (defensively copied, null-safe); a {@code
+     * null} list clears it. Order is preserved and is the order the entries are rendered in. See
+     * {@link NtfyConfig#getIncludeMdcKeys()} — there is no wildcard form on purpose.
+     */
+    public Builder includeMdcKeys(List<String> keys) {
+      this.includeMdcKeys = keys == null ? new ArrayList<>() : new ArrayList<>(keys);
+      return this;
+    }
+
+    /**
+     * Convenience: sets the MDC-key allow-list from a single comma-separated string, trimming each
+     * entry and dropping blanks. A {@code null}/blank csv clears the list. This is the flat-string
+     * entry point used by environment/properties configuration.
+     *
+     * <p>Deliberately a distinct method rather than a {@code String}/{@code List} overload pair
+     * (matching the existing {@link #excludedLoggerPrefixes}/{@link #excludedLoggers} precedent): an
+     * overload would make a bare {@code null} literal ambiguous at the call site.
+     *
+     * <p>Limitation: an MDC key containing a comma is unreachable from any CSV surface — use {@link
+     * #includeMdcKeys(List)} for that.
+     */
+    public Builder includeMdcKeysCsv(String csv) {
+      List<String> keys = new ArrayList<>();
+      if (csv != null && !csv.isBlank()) {
+        for (String part : csv.split(",")) {
+          String trimmed = part.trim();
+          if (!trimmed.isEmpty()) {
+            keys.add(trimmed);
+          }
+        }
+      }
+      this.includeMdcKeys = keys;
       return this;
     }
 

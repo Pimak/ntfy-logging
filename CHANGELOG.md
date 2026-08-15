@@ -8,6 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **MDC context in alert bodies, via a new opt-in `include-mdc-keys` allow-list.** Until now an alert
+  said WHAT broke — message, logger, cause chain, root-cause frames — but never for WHOM or in WHICH
+  request, so acting on one still meant going back to centralized logs, exactly the trip the alert
+  exists to spare you. Naming MDC keys in `include-mdc-keys` renders their values into the body as
+  one `key: value` line each, in the order configured, inserted immediately after the `Logger:` line;
+  a key absent from the MDC, or holding a null/blank value, produces no line at all. The setting is
+  an **explicit allow-list with no wildcard and no "include everything" mode** — that is the security
+  design, not a limitation: an MDC is a free-form, application-populated map that routinely holds
+  session identifiers and user names nobody chose to publish, so no MDC value is ever sent off-host
+  unless an operator wrote its key in the configuration. Rendering is bounded by hard guards in
+  `MdcProjector`, none of them configurable: at most 16 keys, every value (and every key, since keys
+  can come from an env var) scrubbed of control characters, ANSI escapes, Unicode line/paragraph
+  separators and bidi/format characters, each truncated to 256 characters, and a 1024-character
+  aggregate budget for the whole block — so a value like `acme\nCaused by: java.lang.Forged` cannot
+  forge a body line. One consequence is worth knowing: `PayloadTruncator` keeps whole lines from the
+  start of the body and drops from the end, so under the 4096-byte ntfy limit the context block
+  survives while the tail is sacrificed — `Time:` first, then stack frames bottom-up, then
+  `Caused by:` lines — meaning a large context block can reduce the number of frames actually
+  visible even though `max-stack-frames` is unchanged. That inversion is deliberate (a
+  correlation-id beats the 5th frame) and the 1024-character budget is what bounds it. Storm digests
+  deliberately carry no MDC, since per-event context across N aggregated events would be meaningless.
+  Available on every surface: `-Dntfy.include-mdc-keys` / `NTFY_INCLUDE_MDC_KEYS` /
+  `ntfy.properties` `ntfy.include-mdc-keys`, Logback XML `<includeMdcKeys>`, Spring
+  `ntfy.include-mdc-keys`, Quarkus `quarkus.ntfy.include-mdc-keys`, and
+  `NtfyConfig.Builder.includeMdcKeys(List)` / `.includeMdcKeysCsv(String)` for programmatic core
+  users (the `List` form is also the only way to name a key containing a comma). Full support on
+  Logback and therefore Spring Boot (read from `ILoggingEvent.getMDCPropertyMap()`, captured at event
+  construction, so it is correct even behind an `AsyncAppender`) and on JBoss LogManager and
+  therefore Quarkus (read per key from `org.jboss.logmanager.ExtLogRecord`); on plain
+  `java.util.logging` the block is always empty, since JUL has no MDC concept — the same situation as
+  SLF4J markers, which the JUL path already does not carry. When the allow-list is non-empty the
+  engine emits one extra startup INFO line next to its `ACTIVE` and excluded-loggers lines —
+  `ntfy alert engine: MDC keys included in alert bodies: correlation-id, tenant` — listing key names
+  only, never a value. Unset (the default) leaves alert bodies byte-for-byte identical to before. See
+  [docs/filtering.md](docs/filtering.md) and [docs/alert-behavior.md](docs/alert-behavior.md).
 - **New `ntfy-jul` module: a framework-neutral `java.util.logging` adapter.** The JUL handler,
   event mapper, and stderr diagnostics sink previously private to the Quarkus runtime now live in
   their own artifact (`io.github.pimak:ntfy-jul`, package `io.github.pimak.ntfy.jul`), usable from
@@ -97,6 +132,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the starter and behaves exactly as before; Log4j2 applications additionally declare
   `io.github.pimak:ntfy-log4j2` alongside the starter. See
   [docs/spring-boot.md](docs/spring-boot.md).
+- **The public record `AlertEvent` gained a seventh component, `mdcValues`.** It carries the
+  event's MDC snapshot (normalized to an empty map when null, like the existing collection
+  components) so adapters can hand per-event context to the engine for `include-mdc-keys` rendering.
+  A delegating six-argument constructor with the previous canonical signature is retained, so code
+  that constructs an `AlertEvent` the old way keeps compiling **and** keeps linking without
+  recompilation — the change is both source- and binary-compatible for callers. Two honest caveats
+  for anyone doing more than constructing one: `equals`, `hashCode` and `toString` now take the new
+  component into account, so two events that differ only in their MDC are no longer equal and
+  `toString` output has changed; and a Java 21 **record deconstruction pattern** written with six
+  sub-patterns (`case AlertEvent(var logger, var msg, var ts, var causes, var frames, var markers)`)
+  no longer compiles, because record patterns must match the canonical arity — add a seventh
+  sub-pattern (or bind the whole event) to fix it. The retained constructor cannot help here: record
+  patterns are matched against the canonical component list, not against constructors.
 - **`ntfy-quarkus-runtime` now depends on `ntfy-jul` instead of carrying its own JUL classes.**
   The extension installs the shared `NtfyJulHandler` (via the new `NtfyJulHandler.forConfig`
   factory) and keeps only the Quarkus glue: `@ConfigMapping`, the `RUNTIME_INIT` recorder, and the
