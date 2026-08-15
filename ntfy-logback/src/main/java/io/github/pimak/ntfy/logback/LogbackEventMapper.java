@@ -39,12 +39,12 @@ final class LogbackEventMapper {
    * <ul>
    *   <li><strong>An empty (or {@code null}) allow-list never even reads the MDC.</strong> The
    *       default configuration therefore pays nothing per event: no map lookup, no copy, no
-   *       projection — and, more importantly, no MDC value can reach a notification unless a key was
-   *       named in configuration.
+   *       projection — and, more importantly, no MDC value can reach a notification unless a
+   *       key was named in configuration.
    *   <li><strong>The values come from the EVENT, not from the {@code MDC} ThreadLocal.</strong>
    *       {@link ILoggingEvent#getMDCPropertyMap()} is the snapshot Logback captured when the event
-   *       was constructed, i.e. on the application thread that made the logging call. Reading {@code
-   *       org.slf4j.MDC} here instead would return whatever the CURRENT thread happens to hold —
+   *       was constructed, i.e. on the application thread that made the logging call. Reading
+   *       {@code org.slf4j.MDC} here instead would return whatever the CURRENT thread holds —
    *       which behind an {@code AsyncAppender} (or this appender's own async delivery) is the
    *       worker thread's context: empty at best, another request's context at worst. Sourcing from
    *       the event is what makes the projection correct on every threading model.
@@ -84,9 +84,20 @@ final class LogbackEventMapper {
     if (includeMdcKeys != null && !includeMdcKeys.isEmpty()) {
       // Only touched once the operator named at least one key — see the Javadoc: the unconfigured
       // path must not read the diagnostic context at all.
-      Map<String, String> properties = event.getMDCPropertyMap();
-      // Nullable in practice: the interface makes no non-null guarantee and third-party
-      // ILoggingEvent implementations (test doubles, custom async wrappers) do return null.
+      Map<String, String> properties;
+      try {
+        properties = event.getMDCPropertyMap();
+      } catch (RuntimeException e) {
+        // Reading the context must never break the logging call it decorates. Logback itself
+        // throws here for an event whose LoggerContext has no MDC adapter (a hand-built
+        // LoggingEvent, as produced by test harnesses and by frameworks that synthesize events),
+        // and a third-party ILoggingEvent may throw for reasons of its own. Degrade to "no
+        // context" and publish the alert without it — the same stance MdcProjector takes for a
+        // per-key lookup that throws.
+        properties = null;
+      }
+      // Nullable too: the interface makes no non-null guarantee and third-party ILoggingEvent
+      // implementations (test doubles, custom async wrappers) do return null.
       if (properties != null && !properties.isEmpty()) {
         mdcValues = MdcProjector.project(includeMdcKeys, properties::get);
       }
