@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>1.2.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-micronaut</artifactId>
+    <packaging>jar</packaging>
+
+    <name>ntfy-micronaut</name>
+    <description>Micronaut integration that binds ntfy.* configuration, installs the ntfy Logback appender on the root logger and exposes an injectable NtfyClient bean.</description>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                Micronaut platform BOM scoped to THIS module (not the reactor parent), exactly as the
+                Spring Boot BOM is scoped to ntfy-spring-boot-starter. Importing two platform BOMs at
+                the parent makes every module's effective model resolve hundreds of overlapping
+                managed versions against the Quarkus BOM already imported there; keeping each BOM
+                local to the module that needs it removes that cross-contamination. The version comes
+                from the parent's ${micronaut.version} property so it stays pinned in one visible place.
+            -->
+            <dependency>
+                <groupId>io.micronaut.platform</groupId>
+                <artifactId>micronaut-platform</artifactId>
+                <version>${micronaut.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!--
+            The framework-neutral engine (NtfyClient / NtfyConfig) and the Logback adapter
+            (LogbackAlertAppender) this integration wires into a Micronaut application. Versions of
+            these two come from the reactor; every io.micronaut* version below comes from the
+            platform BOM imported above.
+        -->
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.pimak</groupId>
+            <artifactId>ntfy-logback</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+            micronaut-inject carries the annotations (@Singleton wiring, @ConfigurationProperties,
+            @Factory) and the ApplicationEventListener/StartupEvent contract; micronaut-context adds
+            the ApplicationContext implementation the generated bean definitions run inside.
+        -->
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-inject</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-context</artifactId>
+        </dependency>
+
+        <!--
+            Logback is provided-scope: a Micronaut application already ships logback-classic (that is
+            what micronaut-logging binds by default), so this module compiles against it without
+            forcing a possibly-conflicting version onto the consumer classpath. Version comes from the
+            reactor parent's dependencyManagement, not the Micronaut BOM, so every adapter in this
+            repository compiles against the same Logback.
+        -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micronaut.test</groupId>
+            <artifactId>micronaut-test-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!--
+                        Micronaut is a compile-time DI framework: micronaut-inject-java generates the
+                        *$Definition classes that ARE the beans. The processor path is declared
+                        explicitly rather than left to classpath discovery because javac no longer
+                        scans the classpath for annotation processors from JDK 23 on (JEP 452
+                        follow-up), and CI builds this reactor on both JDK 21 and JDK 25 — relying on
+                        discovery would silently produce a jar with no bean definitions on the newer
+                        JDK. An explicit path behaves identically on every JDK.
+                    -->
+                    <!--
+                        No <version> elements: maven-compiler-plugin resolves processor-path versions
+                        from this project's dependencyManagement (MCOMPILER-391, since 3.12.0), which
+                        is the Micronaut platform BOM imported above. That keeps the processor and the
+                        micronaut-inject it generates against on exactly one version.
+                    -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.micronaut</groupId>
+                            <artifactId>micronaut-inject-java</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                    <!-- The tests use @MicronautTest, which needs the same processor to build the
+                         test context's bean definitions. -->
+                    <testAnnotationProcessorPaths>
+                        <path>
+                            <groupId>io.micronaut</groupId>
+                            <artifactId>micronaut-inject-java</artifactId>
+                        </path>
+                    </testAnnotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <!--
+                Enforcer bannedDependencies (the strict per-module allowlist used by ntfy-core and
+                ntfy-logback) is deliberately NOT wired in here, for the same reason as in
+                ntfy-spring-boot-starter: a DI framework pulls in a large, legitimate transitive tree
+                that an allowlist cannot usefully enumerate. PMD's dead-code check is likewise skipped
+                for this module to avoid false positives on framework-shaped code (event-listener
+                callbacks and @Factory methods that only the container calls).
+            -->
+        </plugins>
+    </build>
+</project>
