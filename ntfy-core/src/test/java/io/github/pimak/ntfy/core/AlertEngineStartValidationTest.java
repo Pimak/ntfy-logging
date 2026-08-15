@@ -689,4 +689,46 @@ class AlertEngineStartValidationTest {
         .isEqualTo(
             "ntfy alert engine ACTIVE (url=http://ntfy.internal:8080?email=a@b.com, topic=t)");
   }
+
+  @Test
+  void includeMdcKeys_startupDiagnostic_reportsOnlyKeysThatWillActuallyRender() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    // A hand-built allow-list carrying junk: a null entry, a blank one, and an untrimmed one.
+    // MdcProjector skips all three at render time, so a diagnostic built from the raw list would
+    // advertise keys that can never appear in a body — and would print a bare "null".
+    List<String> raw = new ArrayList<>();
+    raw.add("correlation-id");
+    raw.add(null);
+    raw.add("   ");
+    raw.add("  tenant  ");
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .includeMdcKeys(raw)
+                .build(),
+            diagnostics);
+
+    engine.start();
+    engine.stop();
+
+    assertThat(diagnostics.infos)
+        .contains(messages.statusIncludeMdcKeys(List.of("correlation-id", "tenant")));
+    assertThat(diagnostics.infos).noneMatch(line -> line.contains("null"));
+  }
+
+  @Test
+  void includeMdcKeys_listForm_normalizesLikeTheCsvForm() {
+    // The two spellings of one setting must not disagree about what the allow-list contains.
+    assertThat(
+            NtfyConfig.builder().includeMdcKeysCsv(" correlation-id , , tenant ").build()
+                .getIncludeMdcKeys())
+        .isEqualTo(
+            NtfyConfig.builder()
+                .includeMdcKeys(java.util.Arrays.asList(" correlation-id ", "", null, "tenant"))
+                .build()
+                .getIncludeMdcKeys())
+        .containsExactly("correlation-id", "tenant");
+  }
 }

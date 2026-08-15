@@ -443,7 +443,20 @@ public final class NtfyConfig {
      * {@link NtfyConfig#getIncludeMdcKeys()} — there is no wildcard form on purpose.
      */
     public Builder includeMdcKeys(List<String> keys) {
-      this.includeMdcKeys = keys == null ? new ArrayList<>() : new ArrayList<>(keys);
+      // Trimmed, with null/blank entries dropped — the same normalization includeMdcKeysCsv
+      // performs, so the two spellings of one setting cannot disagree about what the allow-list
+      // contains. MdcProjector skips such entries anyway; normalizing here means the stored config
+      // never advertises a key that will never be rendered, which is what the startup diagnostic
+      // reports from.
+      List<String> normalized = new ArrayList<>();
+      if (keys != null) {
+        for (String key : keys) {
+          if (key != null && !key.isBlank()) {
+            normalized.add(key.trim());
+          }
+        }
+      }
+      this.includeMdcKeys = normalized;
       return this;
     }
 

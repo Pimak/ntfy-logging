@@ -75,9 +75,25 @@ is unreachable from every CSV surface.
 Core itself defines the allow-list and the rendering; it is the *adapter* that supplies the values.
 `AlertEvent` carries them in its `mdcValues` component, populated by the Logback adapter from
 `ILoggingEvent.getMDCPropertyMap()` and by the JUL handler from `ExtLogRecord` under JBoss
-LogManager. If you build `AlertEvent`s yourself and drive `AlertEngine.submit` directly, you decide
-what goes in that map — the engine applies the allow-list, the scrubbing and the length caps to
-whatever you hand it. See [filtering.md](filtering.md) for those guards.
+LogManager.
+
+If you build `AlertEvent`s yourself and drive `AlertEngine.submit` directly, **you own the
+allow-list step**. The engine renders whatever `mdcValues` holds; it does not intersect that map
+with `include-mdc-keys`. What you still get for free is the *bounding*: `AlertEvent`'s constructor
+re-applies the scrubbing, the per-value truncation and the key/total caps to whatever you hand it,
+so a hand-built event can never forge a body line or blow the payload budget. But selection is
+yours — hand a raw MDC map to the constructor and every entry in it is published.
+
+So project it explicitly, the same way the adapters do:
+
+```java
+Map<String, String> mdc =
+    MdcProjector.project(config.getIncludeMdcKeys(), MDC::get);   // or any key -> value lookup
+engine.submit(new AlertEvent(logger, message, millis, causes, frames, markers, mdc));
+```
+
+The six-argument constructor, which omits `mdcValues` entirely, remains the right choice when you
+have no context to attach. See [filtering.md](filtering.md) for the guards themselves.
 
 ## Going further
 
