@@ -280,6 +280,17 @@ final class AlertMessages {
   }
 
   /**
+   * Composes the "included MDC keys" status line emitted once from {@code start()}, and only when the
+   * allow-list is non-empty (the feature is opt-in, so there is deliberately no {@code .none}
+   * counterpart key). Credential-safe — it interpolates operator-configured MDC key NAMES only, never
+   * an MDC VALUE, which is precisely the content the allow-list exists to keep under control. The
+   * {@code String.join} happens in Java.
+   */
+  String statusIncludeMdcKeys(List<String> keys) {
+    return fmt("status.includeMdcKeys.list", String.join(", ", keys));
+  }
+
+  /**
    * Composes the storm-digest title. {@code titleOrAppName} may be {@code null} (treated as empty
    * string, no NPE). Credential-safe — only interpolates a caller-supplied label and an integer
    * count (pre-stringified so no digit-grouping is applied).

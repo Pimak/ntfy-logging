@@ -321,6 +321,47 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void includeMdcKeysCsv_isSplitAndTrimmed() {
+    Function<String, String> env =
+        env(Map.of("NTFY_INCLUDE_MDC_KEYS", " correlationId , tenant ,, "));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    // Blanks are dropped, entries trimmed, and the CONFIGURED ORDER is preserved — it is also the
+    // order the context lines are rendered in.
+    assertThat(config.getIncludeMdcKeys()).containsExactly("correlationId", "tenant");
+  }
+
+  @Test
+  void includeMdcKeys_sysPropBeatsEnvBeatsFile() {
+    Function<String, String> env = env(Map.of("NTFY_INCLUDE_MDC_KEYS", "fromEnv"));
+    // Unlike allow-classpath-endpoint, this key DOES read the classpath-file layer: it cannot
+    // redirect where alerts go, only name which allow-listed context lines are rendered.
+    Properties file = props("ntfy.include-mdc-keys", "fromFile");
+    Properties sys = props("ntfy.include-mdc-keys", "fromSysProp");
+
+    assertThat(ConfigLoader.load(env, file, sys).getIncludeMdcKeys())
+        .containsExactly("fromSysProp");
+    assertThat(ConfigLoader.load(env, file, null).getIncludeMdcKeys()).containsExactly("fromEnv");
+    assertThat(ConfigLoader.load(null, file, null).getIncludeMdcKeys()).containsExactly("fromFile");
+  }
+
+  @Test
+  void includeMdcKeys_blankValue_isTreatedAsAbsent() {
+    Function<String, String> env = env(Map.of("NTFY_INCLUDE_MDC_KEYS", "   "));
+    Properties file = props("ntfy.include-mdc-keys", "fromFile");
+
+    // A blank layer never masks a lower one (resolve() treats blank as absent).
+    assertThat(ConfigLoader.load(env, file, null).getIncludeMdcKeys()).containsExactly("fromFile");
+  }
+
+  @Test
+  void includeMdcKeys_absent_defaultsToEmptyList() {
+    // The whole feature is opt-in: with nothing configured, no MDC value can ever be published.
+    assertThat(ConfigLoader.load(null, null, null).getIncludeMdcKeys()).isEmpty();
+  }
+
+  @Test
   void errorPriority_isWiredThrough() {
     Function<String, String> env = env(Map.of("NTFY_ERROR_PRIORITY", "max"));
 

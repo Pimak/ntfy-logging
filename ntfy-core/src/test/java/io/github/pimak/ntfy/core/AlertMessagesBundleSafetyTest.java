@@ -47,6 +47,7 @@ class AlertMessagesBundleSafetyTest {
     m.put("publish.failed.withStatus", 2);
     m.put("publish.failed.noStatus", 1);
     m.put("status.exclusions.list", 1);
+    m.put("status.includeMdcKeys.list", 1);
     m.put("digest.title", 2);
     m.put("digest.body.summary", 2);
     m.put("digest.body.loggerLine", 2);

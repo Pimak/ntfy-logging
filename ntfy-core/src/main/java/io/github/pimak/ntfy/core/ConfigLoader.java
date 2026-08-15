@@ -74,6 +74,15 @@ public final class ConfigLoader {
       builder.excludedLoggers(excludedLoggers);
     }
 
+    // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
+    // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
+    // redirect where alerts go, it only names which allow-listed context lines are rendered into a
+    // body that was already going to be sent to the operator's own endpoint.
+    String includeMdcKeys = resolve("include-mdc-keys", envLookup, fileProps, sysProps);
+    if (includeMdcKeys != null) {
+      builder.includeMdcKeysCsv(includeMdcKeys);
+    }
+
     applyInt(builder::maxStackFrames, resolve("max-stack-frames", envLookup, fileProps, sysProps));
     applyInt(
         builder::maxAlertsPerWindow,

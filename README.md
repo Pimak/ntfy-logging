@@ -79,7 +79,7 @@ ntfy stand-in in CI — covering the base alert path, the synchronous-vs-asynchr
 difference, and the clean-shutdown digest flush — so the examples can never drift from the code.
 See [examples/README.md](examples/README.md).
 
-## Filtering: exclude-list, not allowlist
+## Filtering: exclude-list for loggers, allow-list for context
 
 You can exclude specific loggers (`excluded-loggers`, prefix-matched) from ever alerting, but there
 is deliberately no "only alert for these loggers" allowlist. For an alerting tool an allowlist has
@@ -138,7 +138,7 @@ bytecode) · GraalVM native (via the Quarkus extension). See
 | [docs/alert-behavior.md](docs/alert-behavior.md) | Why alerting behaves the way it does: immediate single-error alerts, storm suppression, digest-on-window-close, digest-on-shutdown |
 | [docs/observability.md](docs/observability.md) | The read-only `published`/`suppressed`/`failed` pipeline counters, reading them programmatically, and the classpath-conditional Micrometer binding in the Spring Boot starter |
 | [docs/authentication.md](docs/authentication.md) | The three auth modes (`BearerToken`, `BasicAuth`, `None`) and the "token wins" precedence rule |
-| [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), and the always-on self-exclusion |
+| [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), the always-on self-exclusion, and the opposite-direction `include-mdc-keys` allow-list for MDC context in alert bodies |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |
 | [docs/compatibility.md](docs/compatibility.md) | Tested JDK/Logback/Log4j2/Spring/Quarkus/Micronaut/GraalVM versions and the ntfy server API surface |
 
