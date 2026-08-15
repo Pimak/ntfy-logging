@@ -1,13 +1,11 @@
 package io.github.pimak.ntfy.spring;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
 import io.github.pimak.ntfy.core.NtfyClient;
 import io.github.pimak.ntfy.core.NtfyConfig;
-import io.github.pimak.ntfy.logback.LogbackAlertAppender;
-import org.slf4j.ILoggerFactory;
+import io.github.pimak.ntfy.core.PipelineCounters;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -17,33 +15,40 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 /**
  * Auto-configuration that turns {@code ntfy.*} properties into a live ntfy integration for a Spring
  * Boot application. It performs two independent jobs:
  *
  * <ul>
- *   <li>Installs (idempotently) a {@link LogbackAlertAppender} named {@code "ntfy-auto"} on the root
- *       Logback logger so ERROR-level events are published as ntfy notifications. This runs once all
- *       singletons are ready, so the Spring-bound configuration always wins over any appender the
- *       ntfy-logback {@code Configurator} SPI may have pre-installed from env/sysprops.
+ *   <li>Installs (idempotently) an appender named {@code "ntfy-auto"} on the root logger so
+ *       ERROR-level events are published as ntfy notifications. This runs once all singletons are
+ *       ready, so the Spring-bound configuration always wins over any appender a zero-code
+ *       auto-install may have attached earlier from env/sysprops.
  *   <li>Exposes an injectable {@link NtfyClient} bean for sending ad-hoc notifications from
  *       application code.
  * </ul>
+ *
+ * <p><strong>Backend-agnostic.</strong> This class names no logging-framework type. Each supported
+ * backend is a {@link NtfyBackend} contributed by a nested configuration guarded on its own
+ * classes, and the installer picks the first one that reports itself bound. That is what lets a
+ * {@code spring-boot-starter-log4j2} application get alerting; before, a class-level
+ * {@code @ConditionalOnClass} on Logback skipped this entire auto-configuration on such a
+ * classpath, taking the {@link NtfyClient} bean and the Micrometer meters down with it.
  */
 @AutoConfiguration
 @EnableConfigurationProperties(NtfyProperties.class)
-@ConditionalOnClass(name = "ch.qos.logback.classic.LoggerContext")
 public class NtfyAutoConfiguration implements DisposableBean {
 
   /** Name of the appender this starter manages on the root logger. */
-  static final String APPENDER_NAME = "ntfy-auto";
+  static final String APPENDER_NAME = NtfyBackend.APPENDER_NAME;
 
   private static final org.slf4j.Logger log =
       LoggerFactory.getLogger(NtfyAutoConfiguration.class);
 
-  /** Held so it can be stopped and detached cleanly on context shutdown. */
-  private volatile LogbackAlertAppender installedAppender;
+  /** The backend that actually installed, held so it can be torn down on context shutdown. */
+  private volatile NtfyBackend installedBackend;
 
   /**
    * Installs (or reinstalls) the {@code "ntfy-auto"} appender on the root logger once the context is
@@ -53,66 +58,43 @@ public class NtfyAutoConfiguration implements DisposableBean {
   @Bean
   @ConditionalOnProperty(prefix = "ntfy", name = "enabled", havingValue = "true",
       matchIfMissing = true)
-  SmartInitializingSingleton ntfyAppenderInstaller(NtfyProperties properties) {
-    return () -> installAppender(properties);
+  SmartInitializingSingleton ntfyAppenderInstaller(NtfyProperties properties,
+      ObjectProvider<NtfyBackend> backends) {
+    return () -> installAppender(properties, backends);
   }
 
-  private void installAppender(NtfyProperties p) {
-    ILoggerFactory factory = LoggerFactory.getILoggerFactory();
-    if (!(factory instanceof LoggerContext lc)) {
-      log.warn("ntfy: SLF4J backend is not Logback ({}); skipping appender installation.",
-          factory.getClass().getName());
-      return;
-    }
-
+  private void installAppender(NtfyProperties p, ObjectProvider<NtfyBackend> backends) {
     if (!p.isEnabled() || isBlank(p.getUrl()) || isBlank(p.getTopic())) {
       log.info("ntfy: appender not installed (enabled={}, url set={}, topic set={}).",
           p.isEnabled(), !isBlank(p.getUrl()), !isBlank(p.getTopic()));
       return;
     }
 
-    Logger root = lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-
-    // Idempotent replace: an appender named "ntfy-auto" may already exist (e.g. installed by the
-    // ntfy-logback Configurator SPI from env/sysprops before the Spring context came up). Stop and
-    // detach it so Spring-bound values win and there is never a duplicate.
-    var existing = root.getAppender(APPENDER_NAME);
-    if (existing != null) {
-      existing.stop();
-      root.detachAppender(existing);
+    // orderedStream() honours the @Order on the nested @Bean methods, so the selection is
+    // deterministic when a bridge puts both backends on the classpath: Logback is consulted first
+    // and keeps its long-standing behaviour, Log4j2 only picks up what Logback does not claim.
+    NtfyBackend backend = backends.orderedStream()
+        .filter(NtfyBackend::isActiveBackend)
+        .findFirst()
+        .orElse(null);
+    if (backend == null) {
+      log.warn("ntfy: no supported logging backend is bound (looked for Logback and Log4j2); "
+          + "skipping appender installation. The NtfyClient bean is still available for "
+          + "manual notifications.");
+      return;
     }
 
-    LogbackAlertAppender appender = new LogbackAlertAppender();
-    appender.setContext(lc);
-    appender.setName(APPENDER_NAME);
-    appender.setUrl(p.getUrl());
-    appender.setTopic(p.getTopic());
-    appender.setToken(p.getToken());
-    appender.setUsername(p.getUsername());
-    appender.setPassword(p.getPassword());
-    appender.setTitle(p.getTitle());
-    appender.setAppName(p.getAppName());
-    appender.setMaxStackFrames(p.getMaxStackFrames());
-    appender.setConnectTimeout(millis(p.getConnectTimeout()));
-    appender.setRequestTimeout(millis(p.getRequestTimeout()));
-    appender.setMaxAlertsPerWindow(p.getMaxAlertsPerWindow());
-    appender.setSuppressionWindow(millis(p.getSuppressionWindow()));
-    appender.setErrorPriority(p.getErrorPriority());
-    appender.setDigestPriority(p.getDigestPriority());
-    appender.setErrorTags(p.getErrorTags());
-    appender.setDigestTags(p.getDigestTags());
-    appender.setClickUrl(p.getClickUrl());
-    appender.setActions(p.getActions());
-    appender.setLocale(p.getLocale());
-    appender.setExcludedLoggers(p.getExcludedLoggers());
-    appender.setEnabled(p.isEnabled());
-    appender.setAsync(p.isAsync());
-    appender.setAsyncQueueCapacity(p.getAsyncQueueCapacity());
-    appender.setRequireHttpsForCredentials(p.isRequireHttpsForCredentials());
-    appender.start();
-    root.addAppender(appender);
-    this.installedAppender = appender;
-    log.info("ntfy: installed appender '{}' on root logger.", APPENDER_NAME);
+    if (!backend.install(p)) {
+      // The backend declined and has already explained why on its own status channel. Leaving
+      // installedBackend null keeps destroy() from tearing down an installation that never
+      // happened, and keeps the meters reading 0 rather than pointing at a dead appender.
+      log.warn("ntfy: the {} backend did not install the appender; see the logging framework's "
+          + "own status output for the reason.", backend.displayName());
+      return;
+    }
+    this.installedBackend = backend;
+    log.info("ntfy: installed appender '{}' on the root {} logger.",
+        APPENDER_NAME, backend.displayName());
   }
 
   /**
@@ -154,35 +136,61 @@ public class NtfyAutoConfiguration implements DisposableBean {
   }
 
   /**
-   * The currently-installed appender, or {@code null} when none is active. Read lazily by the
-   * Micrometer binding at scrape time so meters always reflect the current appender (and null-safe
-   * to 0 before install / after shutdown). The backing field is {@code volatile}, so this read is
-   * safe from meter-scrape threads.
+   * The currently-installed appender's pipeline counters, or {@code null} when none is active. Read
+   * lazily by the Micrometer binding at scrape time so meters always reflect the current appender
+   * (and null-safe to 0 before install / after shutdown). The backing field is {@code volatile}, so
+   * this read is safe from meter-scrape threads.
+   *
+   * <p>Returning {@link PipelineCounters} rather than an appender is what keeps this method — and
+   * therefore this class — free of any logging-framework type.
    */
-  LogbackAlertAppender installedAppender() {
-    return this.installedAppender;
+  PipelineCounters installedCounters() {
+    NtfyBackend backend = this.installedBackend;
+    return backend == null ? null : backend.counters();
   }
 
   @Override
   public void destroy() {
-    LogbackAlertAppender appender = this.installedAppender;
-    if (appender == null) {
+    NtfyBackend backend = this.installedBackend;
+    if (backend == null) {
       return;
     }
-    this.installedAppender = null;
-    appender.stop();
-    ILoggerFactory factory = LoggerFactory.getILoggerFactory();
-    if (factory instanceof LoggerContext lc) {
-      lc.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).detachAppender(appender);
-    }
-  }
-
-  private static String millis(java.time.Duration d) {
-    return d == null ? null : String.valueOf(d.toMillis());
+    this.installedBackend = null;
+    backend.uninstall();
   }
 
   private static boolean isBlank(String s) {
     return s == null || s.isBlank();
+  }
+
+  /**
+   * Contributes the Logback backend when logback-classic is on the classpath. Ordered first so an
+   * application with both backends present keeps the behaviour it had before Log4j2 was supported.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(name = "ch.qos.logback.classic.LoggerContext")
+  static class NtfyLogbackBackendConfiguration {
+
+    @Bean
+    @Order(0)
+    NtfyBackend logbackNtfyBackend() {
+      return new LogbackNtfyBackend();
+    }
+  }
+
+  /**
+   * Contributes the Log4j2 backend when log4j-core is on the classpath — the
+   * {@code spring-boot-starter-log4j2} case.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(name = "org.apache.logging.log4j.core.LoggerContext")
+  static class NtfyLog4j2BackendConfiguration {
+
+    @Bean
+    @Order(10)
+    NtfyBackend log4j2NtfyBackend() {
+      return new Log4j2NtfyBackend();
+    }
   }
 
   /**
@@ -206,9 +214,9 @@ public class NtfyAutoConfiguration implements DisposableBean {
         matchIfMissing = true)
     NtfyMetricsBinder ntfyMetricsBinder(io.micrometer.core.instrument.MeterRegistry registry,
         NtfyAutoConfiguration autoConfiguration) {
-      // Lazy supplier: meters resolve the current appender at scrape time (null-safe to 0), so they
+      // Lazy supplier: meters resolve the current counters at scrape time (null-safe to 0), so they
       // survive a re-install and never depend on installer-vs-binder ordering.
-      return new NtfyMetricsBinder(registry, autoConfiguration::installedAppender);
+      return new NtfyMetricsBinder(registry, autoConfiguration::installedCounters);
     }
   }
 }
