@@ -61,6 +61,26 @@ succeed, unauthenticated, while you believe auth is in effect. If Basic Auth app
 first check that both values are actually set and non-blank (a `${VAR}` that resolves to an empty
 string counts as blank).
 
+### Verifying credentials at startup
+
+Every credential problem above shares the same failure mode: nothing looks wrong until the first
+real error alert fails to deliver, which is the worst possible moment to discover a revoked token.
+The opt-in [startup self-test](configuration.md#startup-self-test) closes that gap by making one
+round-trip at boot and reporting the result:
+
+```properties
+ntfy.startup-ping=publish
+```
+
+A revoked, expired or insufficiently-scoped credential then surfaces immediately as
+`ntfy startup self-test FAILED (HTTP 401) — the server rejected the credentials; the token may be
+revoked or expired, or it may not grant access to this topic`.
+
+Prefer `publish` over `probe` when it is credentials you want to verify. ntfy grants read and write
+permissions separately, so `probe` — a read-only request — is passed by a read-only token that would
+still fail every real alert, and on an open server anonymous reads make it prove nothing at all. No
+self-test diagnostic ever echoes the token, username or password.
+
 ### `None`
 
 Set neither `token` nor `username`/`password`. Publishes go out with no `Authorization` header at

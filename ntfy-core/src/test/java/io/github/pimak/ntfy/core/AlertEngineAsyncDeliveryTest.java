@@ -61,20 +61,26 @@ class AlertEngineAsyncDeliveryTest {
     return AlertEvent.of("com.example.Service", message, System.currentTimeMillis());
   }
 
+  /**
+   * Selector threads alive when this class was loaded, used as the baseline for the leak checks
+   * below.
+   *
+   * <p>The engine's own threads are named ({@code ntfy-alert-*}) and so are unambiguously ours, but
+   * the JDK client's {@code HttpClient-N-SelectorManager} threads are not: Surefire runs every test
+   * class in one JVM, so asserting that NO selector thread exists anywhere makes this test depend on
+   * which other classes happen to have run first, and on how promptly their clients unwound.
+   * Comparing against a baseline keeps the assertion about the client THIS test created — which is
+   * what {@code stop()} actually promises to release — while staying immune to everyone else's.
+   */
+  private static final java.util.Set<String> BASELINE_SELECTORS = NtfyThreads.liveSelectorThreads();
+
   private static boolean anyNtfyThreadAlive() {
-    return Thread.getAllStackTraces().keySet().stream()
-        .anyMatch(
-            t ->
-                t.isAlive()
-                    && (t.getName().startsWith("ntfy-alert-http")
-                        || t.getName().startsWith("ntfy-alert-digest")
-                        || t.getName().startsWith("ntfy-alert-delivery")
-                        || (t.getName().contains("HttpClient-")
-                            && t.getName().contains("SelectorManager"))));
+    return NtfyThreads.anyEngineThreadAlive()
+        || !NtfyThreads.newSelectorThreads(BASELINE_SELECTORS).isEmpty();
   }
 
   private static void awaitNoNtfyThreads() throws InterruptedException {
-    long deadline = System.currentTimeMillis() + 2000;
+    long deadline = System.currentTimeMillis() + 5000;
     while (anyNtfyThreadAlive() && System.currentTimeMillis() < deadline) {
       Thread.sleep(25);
     }

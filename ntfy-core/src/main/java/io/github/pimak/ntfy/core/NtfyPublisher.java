@@ -192,6 +192,63 @@ public class NtfyPublisher {
   }
 
   /**
+   * Read-only reachability check against {@code {url}/{topic}/json?poll=1&since=none}, used by the
+   * opt-in startup self-test. Sends the configured {@code Authorization} header but publishes
+   * nothing, so subscribers of the topic see no notification.
+   *
+   * <p>{@code poll=1} makes ntfy answer and close instead of holding the connection open as a live
+   * stream — without it this request would block until the request timeout on every healthy server.
+   * {@code since=none} suppresses replay of cached messages, so a busy topic does not return a
+   * large body just to prove the endpoint answers.
+   *
+   * <p>Deliberately shares {@link #publish}'s URL normalization, topic validation and — most
+   * importantly — its catch-chain, which classifies failures by exception TYPE and never by {@code
+   * e.getMessage()}, because that message can embed the request URI or a plaintext credential.
+   * Reuses {@link PublishResult} rather than introducing a parallel result type: it already carries
+   * exactly what the caller needs, an HTTP status (or {@code null} when the request never reached
+   * the server) plus a fixed, credential-safe description.
+   *
+   * @return a {@link PublishResult} describing the outcome; never throws
+   */
+  PublishResult probe(String url, String topic, AuthMode auth) {
+    if (!isValidTopic(topic)) {
+      return PublishResult.failure(GENERIC_INVALID_REQUEST_MESSAGE);
+    }
+    try {
+      String base = url.replaceAll("/+$", "");
+      URI uri = URI.create(base + "/" + topic + "/json?poll=1&since=none");
+
+      HttpRequest.Builder builder = HttpRequest.newBuilder().uri(uri).timeout(requestTimeout).GET();
+
+      auth.buildHeader().ifPresent(header -> builder.header("Authorization", header));
+
+      HttpResponse<String> response =
+          httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+      int status = response.statusCode();
+      if (status >= 200 && status < 300) {
+        return PublishResult.success(status);
+      }
+      return PublishResult.failure(status, "ntfy server returned HTTP " + status);
+    } catch (HttpTimeoutException e) {
+      return PublishResult.failure("timeout");
+    } catch (ConnectException e) {
+      return PublishResult.failure("connection refused");
+    } catch (IllegalArgumentException e) {
+      // URI.create() on a malformed URL/topic, or header() on a credential containing an illegal
+      // control character (which embeds that value verbatim in its own message) — never surface
+      // e.getMessage() here.
+      return PublishResult.failure(GENERIC_INVALID_REQUEST_MESSAGE);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return PublishResult.failure("interrupted");
+    } catch (Exception e) {
+      // Classify by exception type only — never e.getMessage(), which can embed the full URI,
+      // proxy details, or other request internals.
+      return PublishResult.failure("probe failed: " + e.getClass().getSimpleName());
+    }
+  }
+
+  /**
    * Returns {@code title} verbatim when it is printable ASCII; otherwise wraps it in an RFC 2047
    * encoded-word ({@code =?UTF-8?B?...?=}, the form ntfy documents for non-ASCII titles). The JDK
    * {@code HttpClient} rejects header values containing chars &gt; 0xFF, so without this a

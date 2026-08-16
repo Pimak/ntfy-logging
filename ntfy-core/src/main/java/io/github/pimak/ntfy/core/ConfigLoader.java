@@ -141,6 +141,21 @@ public final class ConfigLoader {
       builder.requireHttpsForCredentials(Boolean.parseBoolean(requireHttps.trim()));
     }
 
+    // Read from all three layers, unlike allow-classpath-endpoint above: the self-test only probes
+    // the endpoint the config already points at, so a classpath ntfy.properties enabling it cannot
+    // redirect anything or grant itself any trust it did not already have.
+    String startupPing = resolve("startup-ping", envLookup, fileProps, sysProps);
+    if (startupPing != null) {
+      // An unparseable value keeps the default (the same lenient contract as applyInt/applyDuration
+      // above) — AlertEngine.start() warns about it so the typo is not silently read as "off".
+      builder.startupPing(startupPing);
+    }
+
+    String startupPingFailFast = resolve("startup-ping-fail-fast", envLookup, fileProps, sysProps);
+    if (startupPingFailFast != null) {
+      builder.startupPingFailFast(Boolean.parseBoolean(startupPingFailFast.trim()));
+    }
+
     return builder.build();
   }
 

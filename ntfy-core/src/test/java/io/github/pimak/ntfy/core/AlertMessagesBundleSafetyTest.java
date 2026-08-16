@@ -61,6 +61,13 @@ class AlertMessagesBundleSafetyTest {
     m.put("window.minutes", 1);
     m.put("window.second", 1);
     m.put("window.seconds", 1);
+    m.put("selftest.title.withApp", 1);
+    m.put("status.startupPing.credentialsRejected", 1);
+    m.put("status.startupPing.endpointNotFound", 1);
+    m.put("status.startupPing.rateLimited", 1);
+    m.put("status.startupPing.serverError", 1);
+    m.put("status.startupPing.unexpectedStatus", 1);
+    m.put("status.startupPing.unreachable", 1);
     return m;
   }
 

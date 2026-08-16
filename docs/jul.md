@@ -97,6 +97,23 @@ never blocks the logging thread. Set `async=false` (or `NTFY_ASYNC=false`) for s
 delivery — the guarantee a short-lived process may prefer, since the publish completes before the
 logging call returns.
 
+## Startup self-test
+
+Alerting only speaks when something breaks, so a revoked token or a wrong topic stays invisible
+until the first real error alert fails to deliver. The opt-in self-test makes one round-trip at
+boot and reports a clear diagnostic instead:
+
+```bash
+export NTFY_STARTUP_PING=probe
+```
+
+`probe` is read-only and publishes nothing; `publish` sends one low-priority test notification
+through the production path and is the only mode that proves alerts are genuinely deliverable
+(ntfy grants read and write separately). It runs in the background and never delays startup. Add
+`NTFY_STARTUP_PING_FAIL_FAST=true` to turn a failure into a failed
+startup in CI or staging. Full details, including the failure diagnostics, in
+[configuration.md](configuration.md#startup-self-test).
+
 ## MDC context: not available on plain JUL
 
 The `include-mdc-keys` setting binds here like any other key, but on **plain `java.util.logging` it

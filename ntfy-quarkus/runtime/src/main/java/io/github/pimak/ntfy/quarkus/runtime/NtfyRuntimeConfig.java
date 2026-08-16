@@ -154,4 +154,26 @@ public interface NtfyRuntimeConfig {
    */
   @WithDefault("true")
   boolean requireHttpsForCredentials();
+
+  /**
+   * Opt-in startup self-test: {@code off} (default), {@code probe} (read-only reachability check
+   * that publishes nothing) or {@code publish} (a real low-priority test notification). Verifies at
+   * boot that the configured endpoint, credentials and topic actually work, instead of finding out
+   * when the first real error alert fails to deliver.
+   *
+   * <p>Typed {@code String} rather than the {@code StartupPingMode} enum deliberately: SmallRye
+   * Config fails the whole application on an unconvertible enum value, so a single typo in
+   * {@code application.properties} would take the service down. The core parses it leniently and
+   * warns instead, which is also what the other five surfaces do.
+   */
+  @WithDefault("off")
+  String startupPing();
+
+  /**
+   * Whether a failed startup self-test aborts application startup instead of only warning. Off by
+   * default; enabling it also makes the self-test run inline, adding at most connect+request
+   * timeout to boot. Intended for CI/staging rather than production.
+   */
+  @WithDefault("false")
+  boolean startupPingFailFast();
 }

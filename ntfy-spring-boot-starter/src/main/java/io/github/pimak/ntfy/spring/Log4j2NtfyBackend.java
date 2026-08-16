@@ -94,6 +94,8 @@ final class Log4j2NtfyBackend implements NtfyBackend {
             .setAsync(String.valueOf(p.isAsync()))
             .setAsyncQueueCapacity(String.valueOf(p.getAsyncQueueCapacity()))
             .setRequireHttpsForCredentials(String.valueOf(p.isRequireHttpsForCredentials()))
+            .setStartupPing(p.getStartupPing())
+            .setStartupPingFailFast(String.valueOf(p.isStartupPingFailFast()))
             .build();
     appender.start();
     if (!appender.isStarted()) {

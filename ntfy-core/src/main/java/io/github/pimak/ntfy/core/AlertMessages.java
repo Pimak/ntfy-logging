@@ -266,6 +266,97 @@ final class AlertMessages {
     return get("publish.unexpectedError");
   }
 
+  // --- Startup self-test (opt-in; none of these is ever emitted when startup-ping is off) ---
+
+  /**
+   * Fixed success line for {@code startup-ping=probe}. Deliberately carries the read-vs-write caveat
+   * in the message itself rather than only in the docs: a probe validates READ access, and ntfy ACLs
+   * grant read and write separately, so a passing probe is weaker evidence than it looks.
+   * Credential-safe: fixed text only.
+   */
+  String statusStartupPingProbePassed() {
+    return get("status.startupPing.probePassed");
+  }
+
+  /** Fixed success line for {@code startup-ping=publish}. Credential-safe: fixed text only. */
+  String statusStartupPingPublishPassed() {
+    return get("status.startupPing.publishPassed");
+  }
+
+  /**
+   * Fixed message accompanying {@link NtfyStartupSelfTestException} when a failed self-test aborts
+   * startup. Credential-safe: fixed text only — this string reaches whatever the host application
+   * does with a startup failure (console, crash reporter, orchestrator event log).
+   */
+  String statusStartupPingFailFastRefused() {
+    return get("status.startupPing.failFastRefused");
+  }
+
+  /**
+   * Fixed warning for the always-a-mistake combination {@code startup-ping-fail-fast=true} with
+   * {@code startup-ping=off}: nothing runs, so nothing can fail-fast. Credential-safe.
+   */
+  String statusStartupPingFailFastWithoutMode() {
+    return get("status.startupPing.failFastWithoutMode");
+  }
+
+  /**
+   * Fixed warning for an unparseable {@code startup-ping} value. Deliberately does NOT echo the
+   * offending value: it arrives from the same configuration surfaces as the credentials, and a
+   * misplaced token pasted into the wrong key must not be reflected into diagnostics.
+   */
+  String statusStartupPingInvalidMode() {
+    return get("status.startupPing.invalidMode");
+  }
+
+  /**
+   * Title of the {@code startup-ping=publish} test notification — the configured title/appName when
+   * one is set (so an operator whose several services share a topic can tell which one is booting),
+   * otherwise a bare fixed label.
+   */
+  String selfTestTitle(String appLabel) {
+    if (appLabel == null || appLabel.isBlank()) {
+      return get("selftest.title");
+    }
+    return fmt("selftest.title.withApp", appLabel);
+  }
+
+  /** Fixed body of the {@code startup-ping=publish} test notification. */
+  String selfTestBody() {
+    return get("selftest.body");
+  }
+
+  /**
+   * Composes the self-test failure line, translating the HTTP status into the operator-facing
+   * diagnosis the troubleshooting guide would otherwise have to be consulted for: {@code 401}/{@code
+   * 403} is a revoked/insufficient credential, {@code 404} a wrong base url or missing topic, {@code
+   * 429} server-side rate limiting rather than a config error, {@code 5xx} an unhealthy server. A
+   * {@code null} status means the request never reached the server at all (timeout, DNS, refused
+   * connection), which is reported as unreachable.
+   *
+   * <p>Credential-safe: only the pre-stringified status code and the publisher's fixed,
+   * type-derived reason are interpolated — never a URL, a response body, or {@code e.getMessage()}.
+   */
+  String statusStartupPingFailed(Integer httpStatus, String reason) {
+    if (httpStatus == null) {
+      return fmt("status.startupPing.unreachable", reason == null ? "" : reason);
+    }
+    String status = String.valueOf(httpStatus);
+    if (httpStatus == 401 || httpStatus == 403) {
+      return fmt("status.startupPing.credentialsRejected", status);
+    }
+    if (httpStatus == 404) {
+      return fmt("status.startupPing.endpointNotFound", status);
+    }
+    if (httpStatus == 429) {
+      return fmt("status.startupPing.rateLimited", status);
+    }
+    if (httpStatus >= 500) {
+      return fmt("status.startupPing.serverError", status);
+    }
+    return fmt("status.startupPing.unexpectedStatus", status);
+  }
+
   // --- Composers (dynamic text; sanitizing logic stays in Java, never in a translation) ---
 
   /**

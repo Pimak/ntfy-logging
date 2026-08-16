@@ -90,6 +90,24 @@ This is an explicit allow-list with no wildcard and no "include everything" mode
 MDC is published unless you name its key. Unset (the default) means alert bodies are exactly what
 they were before. See [mdc-context.md](mdc-context.md) for the per-value guards and the rationale.
 
+## Startup self-test
+
+Alerting only speaks when something breaks, so a revoked token or a wrong topic stays invisible
+until the first real error alert fails to deliver. The opt-in self-test makes one round-trip at
+boot and reports a clear diagnostic instead:
+
+```yaml
+ntfy:
+  startup-ping: probe
+```
+
+`probe` is read-only and publishes nothing; `publish` sends one low-priority test notification
+through the production path and is the only mode that proves alerts are genuinely deliverable
+(ntfy grants read and write separately). It runs in the background and never delays startup. Add
+`ntfy.startup-ping-fail-fast: true` to turn a failure into a failed
+startup in CI or staging. Full details, including the failure diagnostics, in
+[configuration.md](configuration.md#startup-self-test).
+
 ## Manual notifications
 
 Inject the client to send your own notifications:

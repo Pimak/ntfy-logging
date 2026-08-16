@@ -64,6 +64,8 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private Boolean async;
   private Integer asyncQueueCapacity;
   private Boolean requireHttpsForCredentials;
+  private String startupPing;
+  private Boolean startupPingFailFast;
 
   // Pre-built config injected by the Configurator; when present it wins over the setters.
   private NtfyConfig injectedConfig;
@@ -248,6 +250,27 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Opt-in startup self-test: {@code off} (default), {@code probe} (read-only reachability check,
+   * publishes nothing) or {@code publish} (a real low-priority test notification). Verifies at boot
+   * that the configured endpoint, credentials and topic actually work, instead of finding out when
+   * the first real error alert fails to deliver. An unrecognized value keeps the default and is
+   * warned about on the Logback status manager.
+   */
+  public void setStartupPing(String startupPing) {
+    this.startupPing = startupPing;
+  }
+
+  /**
+   * When {@code true}, a failed startup self-test aborts application startup instead of only
+   * warning. Off by default, and it also makes the self-test run inline (adding at most
+   * connect+request timeout to boot) since a start that already returned cannot be aborted. Aimed
+   * at CI/staging rather than production.
+   */
+  public void setStartupPingFailFast(boolean startupPingFailFast) {
+    this.startupPingFailFast = startupPingFailFast;
+  }
+
+  /**
    * Injects a pre-built {@link NtfyConfig} (bypassing the JavaBean setters). Used by the
    * auto-installing {@code NtfyLogbackConfigurator}, which loads its config from the ambient
    * environment via {@code ConfigLoader} rather than from XML.
@@ -378,6 +401,12 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (requireHttpsForCredentials != null) {
       builder.requireHttpsForCredentials(requireHttpsForCredentials);
+    }
+    if (startupPing != null) {
+      builder.startupPing(startupPing);
+    }
+    if (startupPingFailFast != null) {
+      builder.startupPingFailFast(startupPingFailFast);
     }
     return builder.build();
   }

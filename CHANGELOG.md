@@ -8,6 +8,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Startup self-test, via the new opt-in `startup-ping` flag.** Alerting is silent by design — it
+  only speaks when something breaks — which is exactly what makes a broken *alerting* configuration
+  invisible: a revoked token, a renamed topic, a typo'd base URL and a blocked egress route all
+  behave identically at boot (nothing happens) and were only discovered when the first real
+  production error failed to deliver and nobody got paged. The engine's start-up validation was
+  entirely local (URL syntax, topic charset, auth-pair completeness, transport policy, timeouts) and
+  never touched the network, so it could not tell a working setup apart from one whose token was
+  revoked last week. `startup-ping` closes that gap by making one real round-trip when the engine
+  starts: `probe` issues a read-only `GET {url}/{topic}/json?poll=1&since=none` that validates DNS,
+  reachability, TLS, that the endpoint really is an ntfy server, and read access — while publishing
+  nothing, so subscribers see no noise; `publish` sends one `low`-priority test notification through
+  the production publish path, exercising the exact code, headers and credentials that carry real
+  alerts, and is therefore the only mode that proves alerts are genuinely deliverable (ntfy ACLs
+  grant read and write separately, so a read-only token passes a probe and still fails every alert,
+  and on an open server anonymous reads make a probe prove nothing about credentials at all — a
+  caveat the passing-probe diagnostic states in its own text rather than burying in the docs). The
+  outcome is one diagnostic line that names the probable cause and the fix instead of leaving the
+  operator to look up a status code: 401/403 reports that the token may be revoked, expired, or
+  lack access to the topic; 404 points at the single most common ntfy mistake, appending the topic
+  to `url`; 429 and 5xx explicitly absolve the configuration and blame the server; a connect/DNS/
+  timeout failure names the transport and points at firewall and proxy rules. No diagnostic ever
+  echoes a token, username, password or raw exception message, and failures are classified by
+  exception type only, matching the publisher's existing no-leak rule. The self-test runs on a
+  one-shot daemon thread (`ntfy-alert-selftest`) and never delays startup; the companion
+  `startup-ping-fail-fast` turns a failure into a failed startup (`NtfyStartupSelfTestException`)
+  for CI and staging, which necessarily also makes the check inline — a start that already returned
+  cannot be aborted — and releases every resource the engine had acquired before throwing, so an
+  aborted start leaks no HTTP pool and no ticking digest timer. It is deliberately excluded from
+  `PipelineCounters` and never routes through the delivery path that folds failures into the storm
+  digest, so it can neither inflate observability dashboards nor manufacture a phantom suppressed
+  error. Available on every surface like any other key (Logback XML `<startupPing>`, Log4j2
+  `<Ntfy startupPing="probe">`, Spring and Micronaut `ntfy.startup-ping`, Quarkus
+  `quarkus.ntfy.startup-ping`, env `NTFY_STARTUP_PING`, sysprop `ntfy.startup-ping`, classpath
+  `ntfy.properties`), bound as a string on every framework surface so one typo in a config file
+  warns (`startup-ping is not a recognized mode …`) instead of failing a context refresh or bean
+  creation. Default `off` is a true no-op: no request, and no extra diagnostic line, so the default
+  path's output stays byte-identical to before this feature existed. See
+  [docs/configuration.md](docs/configuration.md#startup-self-test),
+  [docs/troubleshooting.md](docs/troubleshooting.md) and
+  [docs/authentication.md](docs/authentication.md).
 - **An opt-in WARN route, via the new `warn-topic` / `warn-priority` / `warn-tags` settings.**
   Alerting has been ERROR-only, enforced as a hard-coded floor repeated in every adapter's gate;
   the common request it could not serve was "tell me about warnings too, but not the way you tell me

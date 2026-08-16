@@ -63,7 +63,8 @@ keeps the engine default. All attributes are string-valued (durations use the sa
 `url`, `topic`, `token`, `username`, `password`, `title`, `appName`, `maxStackFrames`,
 `connectTimeout`, `requestTimeout`, `maxAlertsPerWindow`, `suppressionWindow`, `errorPriority`,
 `digestPriority`, `errorTags`, `digestTags`, `clickUrl`, `actions`, `excludedLoggers`, `locale`,
-`enabled`, `async`, `asyncQueueCapacity`, `requireHttpsForCredentials`.
+`enabled`, `async`, `asyncQueueCapacity`, `requireHttpsForCredentials`, `includeMdcKeys`,
+`startupPing`, `startupPingFailFast`.
 
 This is the same roster as the Logback appender's XML setters — the camelCase spelling of each
 canonical key — so the per-key reference in [configuration.md](configuration.md) applies unchanged.
@@ -154,6 +155,26 @@ the `ThreadContext` thread-local. That distinction is what keeps the projection 
 thread that logged. See **[mdc-context.md](mdc-context.md)** for the guards (key cap, value truncation,
 control-character scrubbing) and **[alert-behavior.md](alert-behavior.md)** for how the context block
 interacts with the 4096-byte body limit.
+
+## Startup self-test
+
+Alerting only speaks when something breaks, so a revoked token or a wrong topic stays invisible
+until the first real error alert fails to deliver. The opt-in self-test makes one round-trip at
+boot and reports a clear diagnostic instead:
+
+```xml
+<Ntfy name="ntfy"
+      url="https://ntfy.example.com"
+      topic="my-app-alerts"
+      startupPing="probe"/>
+```
+
+`probe` is read-only and publishes nothing; `publish` sends one low-priority test notification
+through the production path and is the only mode that proves alerts are genuinely deliverable
+(ntfy grants read and write separately). It runs in the background and never delays startup. Add
+`startupPingFailFast="true"` to turn a failure into a failed
+startup in CI or staging. Full details, including the failure diagnostics, in
+[configuration.md](configuration.md#startup-self-test).
 
 ## Behavior notes specific to this adapter
 
