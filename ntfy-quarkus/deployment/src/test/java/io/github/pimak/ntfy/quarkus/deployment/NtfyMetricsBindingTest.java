@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -38,14 +39,12 @@ import org.junit.jupiter.api.extension.RegisterExtension;
  */
 class NtfyMetricsBindingTest {
 
-  static final String RECEIVED_PATH_PROP = "ntfy.metrics.test.received.path";
-
-  // Loopback ntfy stand-in, started before Quarkus boots so its port can be fed into config.
+  // Loopback ntfy stand-in, started before Quarkus boots so its port can be fed into config. It
+  // only has to answer 200 — this test reads the outcome off the meters, not off the server.
   static final HttpServer SERVER = startServer();
 
   private static HttpServer startServer() {
     try {
-      System.clearProperty(RECEIVED_PATH_PROP);
       HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
       server.createContext(
           "/",
@@ -55,13 +54,21 @@ class NtfyMetricsBindingTest {
             exchange.sendResponseHeaders(200, body.length);
             exchange.getResponseBody().write(body);
             exchange.close();
-            System.setProperty(RECEIVED_PATH_PROP, exchange.getRequestURI().getPath());
           });
       server.start();
       return server;
     } catch (IOException e) {
       throw new IllegalStateException("failed to start loopback server", e);
     }
+  }
+
+  /**
+   * Releases the server's listening socket and dispatcher thread. Surefire runs every test class of
+   * this module in one JVM, so a server left running would hold both for the rest of the run.
+   */
+  @AfterAll
+  static void stopServer() {
+    SERVER.stop(0);
   }
 
   @RegisterExtension
