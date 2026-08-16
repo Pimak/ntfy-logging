@@ -96,6 +96,52 @@ class NtfyJulHandlerTest {
     }
   }
 
+  @Test
+  void warningRecordIsRoutedToTheWarnTopicOnceOneIsConfigured() throws InterruptedException {
+    NtfyConfig cfg =
+        NtfyConfig.builder()
+            .url(server.baseUrl())
+            .topic("alerts")
+            .warnTopic("alerts-warn")
+            .maxAlertsPerWindow(10)
+            .build();
+    NtfyJulHandler handler = NtfyJulHandler.forConfig(cfg);
+    try {
+      LogRecord warning = new LogRecord(Level.WARNING, "just a warning");
+      warning.setLoggerName("com.example.Warn");
+      handler.publish(warning);
+
+      assertThat(server.waitForRequest()).isTrue();
+      assertThat(server.receivedPaths()).contains("/alerts-warn");
+    } finally {
+      handler.close();
+    }
+  }
+
+  @Test
+  void configuringAWarnTopicNeverOpensTheGateBelowWarning() throws InterruptedException {
+    NtfyConfig cfg =
+        NtfyConfig.builder()
+            .url(server.baseUrl())
+            .topic("alerts")
+            .warnTopic("alerts-warn")
+            .build();
+    NtfyJulHandler handler = NtfyJulHandler.forConfig(cfg);
+    try {
+      // JUL's INFO/CONFIG/FINE sit below WARNING and must stay unpublished on every configuration.
+      for (Level level : new Level[] {Level.INFO, Level.CONFIG, Level.FINE}) {
+        LogRecord record = new LogRecord(level, "routine line");
+        record.setLoggerName("com.example.Routine");
+        handler.publish(record);
+      }
+
+      TimeUnit.MILLISECONDS.sleep(300);
+      assertThat(server.receivedPaths()).isEmpty();
+    } finally {
+      handler.close();
+    }
+  }
+
   /**
    * {@link NtfyJulHandler#counters()} is the JUL counterpart of the appenders' {@code
    * getCounters()}, and the route the Quarkus extension's Micrometer binding takes to the pipeline
