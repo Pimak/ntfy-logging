@@ -43,6 +43,12 @@ the appender.
   every engine it builds, so the tallies survive a stop/start cycle. An appender installed with
   `NtfyLog4j2Installer` also survives a Log4j2 reconfiguration as the same instance, so its tallies
   stay monotonic across one.
+- **JUL (plain `java.util.logging`, and therefore Quarkus):** `handler.counters()` on the
+  `NtfyJulHandler`. A handler owns exactly one engine for its whole lifetime — it is built around an
+  already-started engine and stops it on `close()` — so the returned instance is stable and its
+  tallies are monotonic for as long as the handler is installed. In a Quarkus application the
+  handler belongs to the framework and is not reachable from application code; use the Micrometer
+  binding below instead.
 
 ## Micrometer (Spring Boot)
 
@@ -65,9 +71,11 @@ are exported either way. See [spring-boot.md](spring-boot.md).
 
 The meters resolve the current appender lazily at scrape time, so they always reflect the active
 appender and read `0` when none is installed. Note that a Spring re-install builds a **new** appender
-with fresh counters; because `FunctionCounter` ignores decreases in its source, the exported metric
-never goes backwards even though the raw Java-level counters you would read directly via
-`appender.getCounters()` restart from zero on that new instance.
+with fresh counters, and the meters follow it: `FunctionCounter` reports whatever its source function
+currently returns and does not clamp a decrease, so the exported value restarts from zero on that new
+instance. That is an ordinary counter reset — indistinguishable, to the monitoring system consuming
+it, from the process itself having restarted, and handled the same way (`rate()`/`increase()` in
+Prometheus, `.diff()` elsewhere).
 
 ## Micronaut
 
@@ -86,9 +94,39 @@ var snapshot = appender.getCounters().snapshot();   // null appender ⇒ nothing
 
 Note that the injectable `NtfyClient` bean is *not* a route to these numbers: the ad-hoc publish path
 is deliberately uncounted (see above), and the bean exposes no counters. A Micronaut Micrometer
-binding is a possible follow-up, like the Quarkus one below.
+binding is a possible follow-up: `micronaut-micrometer` would let it take the same shape as the
+Spring and Quarkus bindings.
 
-## Quarkus
+## Micrometer (Quarkus)
 
-Quarkus gets the counters at the core level (the engine tracks them), but a Micrometer/MicroProfile
-Metrics binding in `ntfy-quarkus` is not yet wired and is planned as a follow-up.
+`ntfy-quarkus` exports the same three meters, with the same names and meanings, as the Spring Boot
+starter:
+
+| Metric | Meaning |
+|--------|---------|
+| `ntfy.pipeline.published` | Notifications successfully published (individual + digest). |
+| `ntfy.pipeline.suppressed` | Events suppressed by the rate limiter. |
+| `ntfy.pipeline.failed` | Failed publish attempts. |
+
+The binding is a CDI `MeterBinder` that the Quarkus Micrometer extension discovers and applies to
+whichever registry the application configured, so there is nothing to enable, configure, or inject —
+add `quarkus-micrometer` plus a registry (for example
+`quarkus-micrometer-registry-prometheus`) and the meters appear under `/q/metrics` as
+`ntfy_pipeline_published_total` and friends.
+
+It is **extension-conditional**, the counterpart of the starter's classpath condition: the build step
+registers the bean only when the application provides the `io.quarkus.metrics` capability *and*
+Micrometer's `MeterRegistry` is on the runtime classpath. On a build without Micrometer the binder
+class is never even loaded, and `ntfy-quarkus` declares `micrometer-core` as an optional dependency,
+so an application that does not want metrics pulls in nothing.
+
+The meters read the counters of the installed log handler **lazily at scrape time**. That matters
+because of Quarkus's boot order: the handler is created at `RUNTIME_INIT`, long before the CDI
+container the binding lives in. Reading late means there is no ordering dependency in either
+direction, and a scrape that finds no handler — an inactive config (`quarkus.ntfy.enabled=false`, or
+no `url`/`topic`), or simply a scrape before logging is configured — reports `0` instead of failing
+or omitting the meters. A dev-mode reload installs a new handler whose counters restart from zero,
+and the meters follow it down; see the note at the end of the Spring section, which applies verbatim.
+
+The **ad-hoc `NtfyClient` bean is not covered**, by the same rule as everywhere else: `notify(...)` is
+a user-invoked API, not the alert pipeline.

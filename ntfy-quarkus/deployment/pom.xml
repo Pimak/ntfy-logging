@@ -46,6 +46,19 @@
             <artifactId>quarkus-junit5-internal</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- TEST ONLY. Puts the Micrometer extension on the QuarkusUnitTest classpath so
+             NtfyMetricsBindingTest can boot an application that really has it, and assert the
+             capability-gated build step + MeterBinder discovery end-to-end. The extension itself
+             depends on neither this nor micrometer-core at build time: NtfyProcessor names the
+             binder class by string precisely so this module compiles and runs without Micrometer.
+             The "Micrometer absent" case is covered by NtfyProcessorMetricsGateTest, which drives
+             the build step directly rather than booting an application. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-micrometer-deployment</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>

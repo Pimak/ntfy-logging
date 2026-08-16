@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.pimak.ntfy.core.AlertEngine;
 import io.github.pimak.ntfy.core.NtfyConfig;
+import io.github.pimak.ntfy.core.PipelineCounters;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -90,6 +91,34 @@ class NtfyJulHandlerTest {
       // Give any (erroneous) async publish a moment; nothing should arrive.
       TimeUnit.MILLISECONDS.sleep(300);
       assertThat(server.receivedPaths()).isEmpty();
+    } finally {
+      handler.close();
+    }
+  }
+
+  /**
+   * {@link NtfyJulHandler#counters()} is the JUL counterpart of the appenders' {@code
+   * getCounters()}, and the route the Quarkus extension's Micrometer binding takes to the pipeline
+   * tallies. It must expose the engine's live instance — the same object across reads — and reflect
+   * a successful publish.
+   */
+  @Test
+  void countersExposeThePipelineTallies() throws InterruptedException {
+    NtfyConfig cfg =
+        NtfyConfig.builder().url(server.baseUrl()).topic("alerts").maxAlertsPerWindow(10).build();
+    NtfyJulHandler handler = NtfyJulHandler.forConfig(cfg);
+    try {
+      assertThat(handler.counters()).isNotNull().isSameAs(handler.counters());
+      assertThat(handler.counters().snapshot()).isEqualTo(new PipelineCounters.Snapshot(0, 0, 0));
+
+      LogRecord record = new LogRecord(Level.SEVERE, "counted");
+      record.setLoggerName("com.example.Counted");
+      handler.publish(record);
+
+      assertThat(server.waitForRequest()).isTrue();
+      assertThat(handler.counters().published()).isEqualTo(1);
+      assertThat(handler.counters().suppressed()).isZero();
+      assertThat(handler.counters().failed()).isZero();
     } finally {
       handler.close();
     }

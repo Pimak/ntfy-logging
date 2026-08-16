@@ -2,6 +2,7 @@ package io.github.pimak.ntfy.jul;
 
 import io.github.pimak.ntfy.core.AlertEngine;
 import io.github.pimak.ntfy.core.NtfyConfig;
+import io.github.pimak.ntfy.core.PipelineCounters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +87,21 @@ public final class NtfyJulHandler extends Handler {
     AlertEngine engine = new AlertEngine(config, new JulDiagnostics());
     engine.start();
     return new NtfyJulHandler(engine, config.getIncludeMdcKeys());
+  }
+
+  /**
+   * The alert pipeline's observability counters for this handler's engine — the JUL counterpart of
+   * the Logback/Log4j2 appenders' {@code getCounters()}. Read-only and pulled, never logged, so
+   * surfacing them (in a Micrometer meter, a health check, a JMX bean, …) cannot re-enter the
+   * logging pipeline.
+   *
+   * <p>Unlike the appenders, a handler owns exactly one engine for its whole lifetime — it is
+   * constructed around an already-started engine and stops it on {@link #close()} — so the returned
+   * instance is stable and its tallies are monotonic for as long as the handler is installed.
+   * Re-installing the handler (a new {@code forConfig}) yields a new engine with fresh counters.
+   */
+  public PipelineCounters counters() {
+    return engine.counters();
   }
 
   @Override

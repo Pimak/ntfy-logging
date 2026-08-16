@@ -1,12 +1,13 @@
 ---
 name: "ntfy"
-description: "Publishes ERROR/SEVERE log events as ntfy push notifications, and exposes a generic ntfy client for arbitrary notifications."
+description: "Publishes ERROR/SEVERE log events as ntfy push notifications, exposes a generic ntfy client for arbitrary notifications, and reports the alert pipeline's counters to Micrometer when it is present."
 metadata:
   keywords:
     - "ntfy"
     - "logging"
     - "alerting"
     - "notifications"
+    - "metrics"
   categories:
     - "logging"
   status: "stable"
