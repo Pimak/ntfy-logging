@@ -36,12 +36,21 @@ public class NtfyRecorder {
    * Builds the ntfy JUL handler from the run-time config. Returns {@link Optional#empty()} when the
    * config is inactive (disabled, or missing the url/topic endpoint), so Quarkus installs no
    * handler at all.
+   *
+   * <p>Either way the handler's pipeline counters are published to {@link
+   * NtfyPipelineCountersHolder} — the live instance when a handler was installed, {@code null}
+   * otherwise. That is the only handle the Micrometer binding gets on the handler Quarkus now owns,
+   * and clearing it on the inactive path keeps a dev-mode reload from leaving the meters pointed at
+   * the previous application's counters.
    */
   public RuntimeValue<Optional<Handler>> create() {
     NtfyConfig cfg = NtfyConfigFactory.from(config.getValue());
     if (!cfg.isActive()) {
+      NtfyPipelineCountersHolder.set(null);
       return new RuntimeValue<>(Optional.empty());
     }
-    return new RuntimeValue<>(Optional.of(NtfyJulHandler.forConfig(cfg)));
+    NtfyJulHandler handler = NtfyJulHandler.forConfig(cfg);
+    NtfyPipelineCountersHolder.set(handler.counters());
+    return new RuntimeValue<>(Optional.of(handler));
   }
 }

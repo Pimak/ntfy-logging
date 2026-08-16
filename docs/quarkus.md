@@ -81,6 +81,46 @@ ntfy.notify("Deploy finished", "v1.2.3 is live");
 
 `NtfyClient.notify(...)` never throws — every outcome is returned as a `PublishResult`.
 
+## Metrics
+
+If your application already uses `quarkus-micrometer`, the extension exports the ntfy pipeline
+counters as three meters — the same three, under the same names, that the Spring Boot starter has
+always exported:
+
+| Metric | Meaning |
+|--------|---------|
+| `ntfy.pipeline.published` | Notifications successfully published (individual + digest). |
+| `ntfy.pipeline.suppressed` | Events suppressed by the rate limiter. |
+| `ntfy.pipeline.failed` | Failed publish attempts. |
+
+There is nothing to configure and nothing to inject. Add the Micrometer extension and a registry the
+way you normally would, and the meters appear alongside your own:
+
+```xml
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+</dependency>
+```
+
+```
+$ curl -s localhost:8080/q/metrics | grep ntfy_pipeline
+ntfy_pipeline_failed_total 0.0
+ntfy_pipeline_published_total 3.0
+ntfy_pipeline_suppressed_total 0.0
+```
+
+The binding is **conditional**: it activates only when the Micrometer extension is actually present.
+Without it, `ntfy-quarkus` adds no Micrometer dependency of its own and registers nothing — the
+extension never puts Micrometer on your classpath. The meters read `0` (rather than disappearing)
+when no alert handler is installed, so a scrape is safe before boot completes and on a build where
+`quarkus.ntfy.url`/`topic` are unset.
+
+Alerting on `ntfy.pipeline.failed` is the point of the exercise: a spike there is usually a revoked
+token or a changed topic ACL having silently broken delivery. See
+[observability.md](observability.md) for what each counter counts and what is deliberately left
+uncounted.
+
 ## Going further
 
 The base config above covers the common case. Everything else is shared across all adapters and
@@ -93,6 +133,8 @@ lives in the cross-cutting reference pages:
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
   is no wildcard.
 - **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
+- **[Observability](observability.md)** — the pipeline counters behind the meters above, and how to
+  read them without Micrometer.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits; on Quarkus they go to
   `System.err`, each line prefixed `[ntfy]`.
 - **[Compatibility](compatibility.md)** — tested Quarkus / JDK / GraalVM versions.

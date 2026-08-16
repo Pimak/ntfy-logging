@@ -27,8 +27,12 @@ import java.util.function.ToDoubleFunction;
  * on when the appender is installed relative to binder creation; a re-install automatically
  * redirects the meters to the new appender's counters; and if no appender is installed (blank
  * url/topic, no supported backend bound, or after context shutdown) the functions simply return 0.
- * A re-install builds a fresh appender with fresh counters, but {@link FunctionCounter} ignores
- * decreases in its source, so the exported metric never goes backwards.
+ *
+ * <p>The counters are monotonic for an appender's lifetime, so within one installation the meters
+ * only ever climb. A re-install builds a fresh appender with fresh counters and the meters follow it
+ * down to zero: {@link FunctionCounter} reports whatever its source function currently returns and
+ * does not clamp a decrease. That is an ordinary counter reset, indistinguishable to a monitoring
+ * system from the process itself restarting.
  */
 final class NtfyMetricsBinder {
 

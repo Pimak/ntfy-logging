@@ -85,6 +85,12 @@ application on Log4j2 wires `ntfy-log4j2`'s `<Ntfy>` element itself. See
 | 3.38.x | Tested — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
 | 3.x (other) | Expected to work within the stable extension-API surface used (`LogHandlerBuildItem`, `@ConfigMapping @ConfigRoot(RUN_TIME)`, `@Recorder`) |
 
+The extension's Micrometer binding is **optional and conditional**: `micrometer-core` is an `optional`
+dependency, and the `ntfy.pipeline.*` meters are registered only when the application itself brings
+`quarkus-micrometer` (the `io.quarkus.metrics` capability) together with a `MeterRegistry` on the
+runtime classpath. Applications without it resolve and run exactly as before — the extension pulls in
+no Micrometer. See [observability.md](observability.md).
+
 ## GraalVM native image
 
 Supported through the **Quarkus extension**: the alert engine's `HttpClient`, threads, and digest

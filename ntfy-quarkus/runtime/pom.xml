@@ -41,6 +41,22 @@
             <artifactId>quarkus-arc</artifactId>
         </dependency>
 
+        <!--
+            Optional Micrometer binding: when the application uses quarkus-micrometer, NtfyMeterBinder
+            exports the ntfy pipeline counters as meters. Marked optional so an application that does
+            not want metrics pulls in nothing — the extension itself never drags Micrometer onto a
+            consumer's classpath, and NtfyProcessor only registers the binder bean when both the
+            METRICS capability and MeterRegistry are actually present. This mirrors how the Spring
+            Boot starter declares micrometer-core. Optionality only affects downstream resolution —
+            the dependency stays on this module's own compile AND test classpath, so no separate
+            test-scope declaration is needed. Version comes from the imported quarkus-bom.
+        -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Test stack: plain JUnit + AssertJ. The reliable-path unit tests live here (a loopback
              com.sun.net.httpserver.HttpServer stands in for ntfy, no WireMock needed). -->
         <dependency>

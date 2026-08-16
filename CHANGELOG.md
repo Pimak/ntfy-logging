@@ -124,6 +124,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alive). The existing Quarkus integration-tests app plays the same role for the Quarkus extension
   and gained an async-delivery smoke test (`quarkus.ntfy.async=true` keeps `/boom` non-blocking
   while the ntfy response is held). See [examples/README.md](examples/README.md).
+- **Micrometer metrics on Quarkus, at parity with the Spring Boot starter.** The pipeline counters
+  were tracked on every adapter but only ever *exposed* as metrics by the starter — an odd gap on
+  Quarkus, where Micrometer is the standard metrics stack. `ntfy-quarkus` now exports the same three
+  meters under the same names: `ntfy.pipeline.published`, `ntfy.pipeline.suppressed` and
+  `ntfy.pipeline.failed`. Nothing to enable, configure or inject — the binding is a CDI `MeterBinder`
+  that the Quarkus Micrometer extension discovers and applies to whichever registry the application
+  configured, so with `quarkus-micrometer-registry-prometheus` the meters simply appear under
+  `/q/metrics` as `ntfy_pipeline_*_total`. It is **extension-conditional**, the counterpart of the
+  starter's classpath condition: the build step registers the bean only when the application provides
+  the `io.quarkus.metrics` capability *and* Micrometer's `MeterRegistry` is on the runtime classpath,
+  and it names the bean class by string so on a Micrometer-free build the binder is never loaded and
+  the deployment module needs no Micrometer dependency at all. `micrometer-core` is `optional` in
+  `ntfy-quarkus-runtime`, so an application that does not want metrics pulls in nothing. The meters
+  read the installed handler's counters **lazily at scrape time**, which is what makes them work
+  across Quarkus's boot order — the log handler is created at `RUNTIME_INIT`, long before the CDI
+  container the binding lives in — and what makes a scrape safe when no handler is installed at all
+  (an inactive config, or a scrape before logging is configured): the meters report `0` rather than
+  failing or disappearing. Enabling this also gave `NtfyJulHandler` a public `counters()` accessor,
+  the JUL counterpart of the Logback/Log4j2 appenders' `getCounters()`, so plain `java.util.logging`
+  applications can now reach the tallies programmatically too. See
+  [docs/observability.md](docs/observability.md) and [docs/quarkus.md](docs/quarkus.md).
 
 ### Changed
 - **The Spring Boot starter is no longer Logback-only.** Its auto-configuration used to carry a
@@ -182,6 +203,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Quarkus `quarkus.ntfy.async=false`, or `NtfyConfig.Builder.asyncEnabled(false)`). Setups that
   wrap the appender in a Logback `AsyncAppender` should also set `<async>false</async>` to avoid
   queuing delivery twice.
+- **Corrected what the Micrometer meters do across an appender re-install.** The documentation and
+  the `NtfyMetricsBinder` javadoc claimed `FunctionCounter` "ignores decreases in its source, so the
+  exported metric never goes backwards". It does not: `CumulativeFunctionCounter` reports whatever
+  its source function currently returns, so when a Spring re-install swaps in a fresh appender with
+  fresh counters, the exported value restarts from zero along with them. No behavior changed — only
+  the description of it. This is an ordinary counter reset, which is what a monitoring system already
+  sees when the process restarts and handles the same way (`rate()`/`increase()`), so no query needs
+  revisiting; the claim was simply wrong and would have misled anyone reasoning about a dashboard
+  gap. The Quarkus binding above documents and tests the accurate behavior from the start.
 
 ## [1.2.0] - 2026-07-23
 
