@@ -212,6 +212,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sees when the process restarts and handles the same way (`rate()`/`increase()`), so no query needs
   revisiting; the claim was simply wrong and would have misled anyone reasoning about a dashboard
   gap. The Quarkus binding above documents and tests the accurate behavior from the start.
+- **The compatibility matrix now reports measured version ranges instead of reasoned ones.** Every
+  "expected to work" row was an inference from the API surface the adapters use; none had ever been
+  run. Each affected module's full suite was executed against the versions now listed, by overriding
+  the version property the root `pom.xml` pins — Logback 1.3.14/1.4.14/1.5.0/1.5.18/1.5.38, Log4j2
+  2.17.2/2.20.0/2.24.3/2.25.2, Spring Boot 3.3.13/3.4.10/3.5.6, Micronaut 4.6.3/4.9.4, and Quarkus
+  3.15.7/3.20.6/3.24.5/3.34.7. All pass. The page now distinguishes **Tested (CI)** from **Verified**
+  (run once, locally, not re-run by CI) from **Expected to work** (reasoned, not run), because
+  collapsing those into one word is what let the errors below hide.
+  **One row was factually wrong:** Logback 1.3.x was listed with 1.2.x as unsupported "because the
+  adapter targets the modern JavaBean/Joran and `Configurator` SPIs", yet 1.3.14 compiles and passes
+  all 37 tests — the `Configurator` SPI cited as the reason is present and working there, and
+  `NtfyLogbackConfiguratorResetSurvivalTest` proves it. 1.3.x is now recorded as known-to-work but
+  unsupported (no CI leg), which is a different and honest claim. 1.2.x really is out, and now says
+  why: `Configurator.ExecutionStatus` and `ILoggingEvent.getMarkerList()` do not exist there.
+  **Two claims are newly stated rather than corrected:** GraalVM had no tested-version row at all
+  (CI native-compiles on CE 25, and CE 21 cannot be used because that line is frozen at 21.0.2,
+  older than Quarkus 3.38+ requires), and Micrometer had no entry despite backing a binding on two
+  surfaces. The Micrometer row is explicitly marked weaker evidence — **API-checked only** — since
+  both BOMs pin it literally and the suites could not be run against older versions; what was checked
+  is that all four signatures the bindings call exist from 1.9.17 through 1.17.0.
+  **One claim remains unverified and is labelled as such:** JDK 22–24. Only 21 and 25 were available
+  to test with, and those are the two CI legs already.
 
 ## [1.2.0] - 2026-07-23
 
