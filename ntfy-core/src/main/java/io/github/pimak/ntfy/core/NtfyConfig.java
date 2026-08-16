@@ -49,6 +49,9 @@ public final class NtfyConfig {
   private final boolean requireHttpsForCredentials;
   private final boolean endpointFromClasspathFile;
   private final boolean allowClasspathEndpoint;
+  private final StartupPingMode startupPing;
+  private final boolean startupPingFailFast;
+  private final boolean startupPingValueRejected;
   private final Locale locale;
 
   private NtfyConfig(Builder b) {
@@ -83,6 +86,9 @@ public final class NtfyConfig {
     this.requireHttpsForCredentials = b.requireHttpsForCredentials;
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
     this.allowClasspathEndpoint = b.allowClasspathEndpoint;
+    this.startupPing = b.startupPing;
+    this.startupPingFailFast = b.startupPingFailFast;
+    this.startupPingValueRejected = b.startupPingValueRejected;
     this.locale = b.locale;
   }
 
@@ -317,6 +323,45 @@ public final class NtfyConfig {
   }
 
   /**
+   * What the opt-in startup self-test does once the engine has finished activating — see {@link
+   * StartupPingMode}. Defaults to {@link StartupPingMode#OFF}, which is a true no-op: no request is
+   * made and no diagnostic line is emitted, so the default path's diagnostic stream is unchanged.
+   * Never {@code null}.
+   */
+  public StartupPingMode getStartupPing() {
+    return startupPing;
+  }
+
+  /**
+   * True when a failed startup self-test must abort application startup (by throwing {@link
+   * NtfyStartupSelfTestException} out of {@code AlertEngine.start()}) rather than merely warn.
+   * Default {@code false}: a logging backend must never be able to kill the application it
+   * instruments, so failing the deployment is strictly opt-in.
+   *
+   * <p>Enabling this also makes the self-test run <em>inline</em> instead of on a background
+   * thread, because a start that has already returned can no longer be aborted. That is a bounded
+   * but real addition to startup time (at most {@code connect-timeout + request-timeout}), and is
+   * the reason this is aimed at CI/staging rather than production.
+   *
+   * <p>Inert when {@link #getStartupPing()} is {@link StartupPingMode#OFF}; the engine warns about
+   * that combination, since it is always a mistake.
+   */
+  public boolean isStartupPingFailFast() {
+    return startupPingFailFast;
+  }
+
+  /**
+   * True when a {@code startup-ping} value was supplied but matched no known mode, so the default
+   * was kept. Exists purely so the engine can warn about the typo at start: without it, a
+   * misspelled {@code startup-ping=prob} would be indistinguishable from an unset key and would
+   * silently behave as {@code off} — the exact class of silent misconfiguration this whole feature
+   * was added to eliminate.
+   */
+  public boolean isStartupPingValueRejected() {
+    return startupPingValueRejected;
+  }
+
+  /**
    * Language of the notification bodies and self-diagnostic messages the engine produces. Defaults
    * to {@link Locale#ENGLISH} and, deliberately, never follows the host JVM's default locale, so the
    * language of alerts is deterministic regardless of where the process runs. A locale with no
@@ -374,6 +419,9 @@ public final class NtfyConfig {
     private boolean requireHttpsForCredentials = true;
     private boolean endpointFromClasspathFile = false;
     private boolean allowClasspathEndpoint = false;
+    private StartupPingMode startupPing = StartupPingMode.OFF;
+    private boolean startupPingFailFast = false;
+    private boolean startupPingValueRejected = false;
     // Default English, NOT Locale.getDefault(): alert language must be deterministic and never
     // silently inherit whatever locale the host JVM happens to run under.
     private Locale locale = Locale.ENGLISH;
@@ -635,6 +683,53 @@ public final class NtfyConfig {
      */
     public Builder allowClasspathEndpoint(boolean allowClasspathEndpoint) {
       this.allowClasspathEndpoint = allowClasspathEndpoint;
+      return this;
+    }
+
+    /**
+     * Selects the opt-in startup self-test mode (see {@link NtfyConfig#getStartupPing()}). A {@code
+     * null} argument resets to the {@link StartupPingMode#OFF} default.
+     */
+    public Builder startupPing(StartupPingMode startupPing) {
+      this.startupPing = startupPing == null ? StartupPingMode.OFF : startupPing;
+      this.startupPingValueRejected = false;
+      return this;
+    }
+
+    /**
+     * Convenience overload parsing a configured string ({@code off}/{@code probe}/{@code publish},
+     * case-insensitive) so the XML and properties surfaces bind without carrying their own parser.
+     *
+     * <p>A {@code null}/blank tag keeps the current value, and an UNRECOGNISED value keeps it too
+     * rather than throwing — the same lenient contract as {@link #locale(String)} and the numeric
+     * setters, so one typo in a config file can never take down the host application. The engine
+     * warns about the typo at start (it can tell "unset" from "unparseable" because {@link
+     * StartupPingMode#fromValue} returns {@code null} only for the latter), and the caller may
+     * pre-check with {@code fromValue} when it wants to warn earlier.
+     */
+    public Builder startupPing(String startupPing) {
+      if (startupPing == null || startupPing.isBlank()) {
+        return this;
+      }
+      StartupPingMode parsed = StartupPingMode.fromValue(startupPing);
+      if (parsed == null) {
+        // Keep the current value, but remember that a value WAS supplied and rejected, so the
+        // engine can warn instead of letting the typo pass for a deliberate "off".
+        this.startupPingValueRejected = true;
+        return this;
+      }
+      this.startupPing = parsed;
+      this.startupPingValueRejected = false;
+      return this;
+    }
+
+    /**
+     * Toggles aborting application startup when the self-test fails; see {@link
+     * NtfyConfig#isStartupPingFailFast()}. Off by default, and also switches the self-test from
+     * background to inline execution when on.
+     */
+    public Builder startupPingFailFast(boolean startupPingFailFast) {
+      this.startupPingFailFast = startupPingFailFast;
       return this;
     }
 

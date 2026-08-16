@@ -51,6 +51,14 @@ public final class AlertEngine {
   private static final int MIN_ASYNC_QUEUE_CAPACITY = 1;
 
   /**
+   * How long {@code stop()} waits for any single worker (executor threads, the startup self-test
+   * thread) to actually exit before giving up on it. Bounded so shutdown can never hang on a stuck
+   * HTTP round-trip, but long enough that a normally-terminating worker is gone before {@code
+   * stop()} returns and a thread-leak scan sees a clean slate.
+   */
+  private static final long TERMINATION_AWAIT_MILLIS = 500L;
+
+  /**
    * This library's own package root is always excluded from alerting, independent of any
    * configured exclusion list — a belt-and-suspenders anti-loop guard that survives even a
    * blank/misconfigured exclude-list. A single root now covers every ntfy-logging module.
@@ -98,6 +106,11 @@ public final class AlertEngine {
   private volatile RouteState warnRoute;
 
   private ScheduledExecutorService digestScheduler;
+
+  // The one-shot startup self-test worker (async mode only), retained solely so stop() can interrupt
+  // and briefly join it. volatile: written by start() on the config thread, read by stop() which may
+  // run on a different one. Null whenever no self-test is in flight.
+  private volatile Thread selfTestThread;
 
   // volatile: submit() reads it on application threads while start()/stop() mutate it on the config
   // thread — the exact publication model that forces publisher/authMode/the routes to be volatile.
@@ -425,7 +438,84 @@ public final class AlertEngine {
     if (wr != null) {
       diagnostics.info(messages.statusWarnRoute(wr.topic()));
     }
+
+    runStartupSelfTest();
+  }
+
+  /**
+   * Runs the opt-in startup self-test and marks the engine started.
+   *
+   * <p>Called as the LAST statement of {@link #start()}, which is what gives the self-test every
+   * activation guard above it for free: an engine that is disabled, unconfigured, pointed at an
+   * invalid URL or topic, or refused for sending credentials over cleartext has already returned,
+   * so it can never issue a self-test request against a configuration the engine itself rejected.
+   *
+   * <p>Two execution shapes, because "never slow down startup" and "abort startup on failure" are
+   * not simultaneously satisfiable — a start() that has already returned cannot be aborted:
+   *
+   * <ul>
+   *   <li><b>default (fail-fast off)</b> — the engine is marked started FIRST and the round-trip
+   *       runs on a one-shot daemon thread, so boot is never delayed and the diagnostic simply
+   *       lands a moment later;
+   *   <li><b>fail-fast on</b> — the round-trip runs inline (bounded by the already-validated
+   *       connect + request timeouts) and, on failure, every resource {@code start()} acquired is
+   *       released BEFORE {@link NtfyStartupSelfTestException} propagates. Throwing without that
+   *       teardown would leave a half-initialized engine holding a live HTTP pool and a ticking
+   *       digest timer — the very leak the resource-ordering guards above are written to prevent.
+   * </ul>
+   */
+  private void runStartupSelfTest() {
+    if (config.isStartupPingValueRejected()) {
+      diagnostics.warn(messages.statusStartupPingInvalidMode());
+    }
+    StartupPingMode mode = config.getStartupPing();
+    if (mode == StartupPingMode.OFF) {
+      // Warn about the always-a-mistake combination, then stay completely silent: with the feature
+      // unset the diagnostic stream must be byte-identical to a build without it (same policy as
+      // the conditional include-mdc-keys line above).
+      if (config.isStartupPingFailFast()) {
+        diagnostics.warn(messages.statusStartupPingFailFastWithoutMode());
+      }
+      this.started = true;
+      return;
+    }
+
+    // Snapshot what the self-test needs. The async path must not re-read these fields later: a
+    // concurrent stop() nulls them, which would turn a benign shutdown race into an NPE.
+    NtfyPublisher p = this.publisher;
+    AuthMode auth = this.authMode;
+    AlertMessages msgs = this.messages;
+
+    if (config.isStartupPingFailFast()) {
+      PublishResult result = StartupSelfTest.execute(mode, config, p, auth, msgs);
+      if (!StartupSelfTest.report(mode, result, msgs, diagnostics)) {
+        String refusal = msgs.statusStartupPingFailFastRefused();
+        diagnostics.warn(refusal);
+        // Reentrant on the monitor already held by start() (both are synchronized on this), and
+        // safe on a never-started engine: every field stop() touches is null-guarded.
+        stop();
+        throw new NtfyStartupSelfTestException(refusal);
+      }
+      this.started = true;
+      return;
+    }
+
     this.started = true;
+    Thread selfTest =
+        new Thread(
+            () -> {
+              PublishResult result = StartupSelfTest.execute(mode, config, p, auth, msgs);
+              // Re-check liveness before speaking: a stop() during the round-trip makes the
+              // failure an artifact of the shutdown, and warning about an engine the operator just
+              // tore down is noise rather than diagnosis.
+              if (started) {
+                StartupSelfTest.report(mode, result, msgs, diagnostics);
+              }
+            },
+            "ntfy-alert-selftest");
+    selfTest.setDaemon(true);
+    this.selfTestThread = selfTest;
+    selfTest.start();
   }
 
   /**
@@ -435,6 +525,26 @@ public final class AlertEngine {
    * engine.
    */
   public synchronized void stop() {
+    // Clear `started` FIRST so an in-flight async self-test observes a stopping engine and reports
+    // nothing: its HTTP exchange is about to be torn down underneath it, and the resulting failure
+    // would be an artifact of this shutdown rather than a real configuration problem.
+    this.started = false;
+
+    // Then interrupt and briefly join the self-test worker, so it cannot still be running (and
+    // observably alive to a thread-leak scan) after stop() returns. Bounded by the same 500ms the
+    // executor awaits use, so a stuck round-trip delays shutdown but never hangs it. No deadlock
+    // risk despite holding the monitor: the worker never acquires this engine's lock.
+    Thread selfTest = selfTestThread;
+    if (selfTest != null) {
+      selfTest.interrupt();
+      try {
+        selfTest.join(TERMINATION_AWAIT_MILLIS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+    selfTestThread = null;
+
     // Ordering matters here: (1) cancel the digest timer FIRST so no new tick can race the
     // flush below; (2) synchronously flush any pending digest while the HTTP resources are
     // STILL LIVE; (3) only then release executor/httpClient/publisher/the routes. Flushing
@@ -896,7 +1006,7 @@ public final class AlertEngine {
    */
   private static void awaitTerminationQuietly(ExecutorService service) {
     try {
-      service.awaitTermination(500, TimeUnit.MILLISECONDS);
+      service.awaitTermination(TERMINATION_AWAIT_MILLIS, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }

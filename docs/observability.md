@@ -10,6 +10,14 @@ them can never re-enter the logging pipeline the engine publishes from.
 The counters cover the **alert pipeline** — `AlertEngine.submit()` plus the storm digest. The ad-hoc
 `NtfyClient` publish path is a user-invoked API, not the pipeline, and is intentionally uncounted.
 
+The opt-in [startup self-test](configuration.md#startup-self-test) is likewise uncounted, in either
+mode. These counters describe application alert traffic; a boot-time self-check is not that, and
+counting its publish as `published` (or its failure as `failed`) would put a fixed, meaningless
+offset into every dashboard and alert-on-`failed` rule. For the same reason the self-test never
+routes through the delivery path that folds failures into the storm digest, so it can never
+manufacture a phantom suppressed error either. Its outcome is reported exclusively as a diagnostic
+line — see [troubleshooting.md](troubleshooting.md).
+
 | Counter | Increments when |
 |---------|-----------------|
 | `published` | A notification is actually accepted by ntfy: a successful individual alert publish **and** a successful digest publish. The digest site also covers the synchronous digest flush on shutdown, so a stop-flush publish counts identically. |

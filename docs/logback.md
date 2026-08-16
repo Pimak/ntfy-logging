@@ -118,6 +118,27 @@ Or wire it explicitly. The `AsyncAppender` wrapper is a production-grade alterna
 </root>
 ```
 
+## Startup self-test
+
+Alerting only speaks when something breaks, so a revoked token or a wrong topic stays invisible
+until the first real error alert fails to deliver. The opt-in self-test makes one round-trip at
+boot and reports a clear diagnostic instead:
+
+```xml
+<appender name="NTFY_ALERT" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
+  <url>https://ntfy.example.com</url>
+  <topic>my-app-alerts</topic>
+  <startupPing>probe</startupPing>
+</appender>
+```
+
+`probe` is read-only and publishes nothing; `publish` sends one low-priority test notification
+through the production path and is the only mode that proves alerts are genuinely deliverable
+(ntfy grants read and write separately). It runs in the background and never delays startup. Add
+`<startupPingFailFast>true</startupPingFailFast>` to turn a failure into a failed
+startup in CI or staging. Full details, including the failure diagnostics, in
+[configuration.md](configuration.md#startup-self-test).
+
 ## Going further
 
 The base config above covers the common case. Everything else is shared across all adapters and

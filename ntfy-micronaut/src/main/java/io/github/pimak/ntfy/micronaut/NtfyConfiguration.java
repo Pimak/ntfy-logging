@@ -48,6 +48,8 @@ public class NtfyConfiguration {
   private boolean async = true;
   private int asyncQueueCapacity = 1024;
   private boolean requireHttpsForCredentials = true;
+  private String startupPing = "off";
+  private boolean startupPingFailFast = false;
 
   /**
    * Base URL of the ntfy server, e.g. {@code https://ntfy.sh}. Alerting stays off until both this
@@ -556,5 +558,48 @@ public class NtfyConfiguration {
    */
   public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
     this.requireHttpsForCredentials = requireHttpsForCredentials;
+  }
+
+  /**
+   * Opt-in startup self-test verifying at boot that the configured endpoint, credentials and topic
+   * actually work — instead of finding out when the first real error alert fails to deliver.
+   *
+   * @return {@code "off"} (default), {@code "probe"} or {@code "publish"}
+   */
+  public String getStartupPing() {
+    return startupPing;
+  }
+
+  /**
+   * Selects the startup self-test mode.
+   *
+   * <p>Bound as a {@code String} rather than the {@code StartupPingMode} enum on purpose: Micronaut
+   * fails bean instantiation on an unconvertible enum value, which would turn one typo in
+   * {@code application.yml} into a failed startup. The core parses it leniently and warns instead,
+   * matching every other surface.
+   *
+   * @param startupPing {@code "off"}, {@code "probe"} or {@code "publish"}
+   */
+  public void setStartupPing(String startupPing) {
+    this.startupPing = startupPing;
+  }
+
+  /**
+   * Whether a failed startup self-test aborts application startup instead of only warning. Enabling
+   * it also makes the self-test run inline, adding at most connect+request timeout to boot.
+   *
+   * @return whether to fail fast (default {@code false})
+   */
+  public boolean isStartupPingFailFast() {
+    return startupPingFailFast;
+  }
+
+  /**
+   * Turns fail-fast on a failed startup self-test on or off.
+   *
+   * @param startupPingFailFast whether a failed self-test aborts startup
+   */
+  public void setStartupPingFailFast(boolean startupPingFailFast) {
+    this.startupPingFailFast = startupPingFailFast;
   }
 }

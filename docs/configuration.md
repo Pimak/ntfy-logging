@@ -65,6 +65,8 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `allow-classpath-endpoint` | boolean | `false` | Opt-in for the zero-code auto-installs (Logback `Configurator`, JUL auto-handler/installer) and `NtfyLog4j2Installer` to accept an endpoint `url` that comes **only** from a classpath `ntfy.properties`. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately **not** readable from `ntfy.properties` itself — set it as `-Dntfy.allow-classpath-endpoint=true` or `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`. |
 | `async` | boolean | `true` | Delivery is offloaded to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. On by default since 2.0; set `false` for pre-2.0 synchronous, inline delivery (each publish then blocks the logging thread until the HTTP exchange completes — the guarantee short-lived batch/CLI processes may prefer). See [alert-behavior.md](alert-behavior.md). |
 | `async-queue-capacity` | int | `1024` | Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when `async` is `true`; a non-positive value is clamped to a minimum of `1`. |
+| `startup-ping` | enum (`off`/`probe`/`publish`) | `off` | **Opt-in startup self-test.** Verifies at boot that the configured endpoint, credentials and topic actually work, instead of discovering a revoked token when the first real error alert silently fails to deliver. `off` is a true no-op — no request, and no extra diagnostic line, so output stays byte-identical. `probe` makes a read-only `GET {url}/{topic}/json?poll=1&since=none`: it validates DNS, reachability, TLS and *read* access, and publishes nothing, so subscribers see no noise. `publish` sends a real `low`-priority test notification through the production publish path, which is the only mode that proves alerts are actually deliverable. Runs asynchronously and never delays startup (unless `startup-ping-fail-fast` is on). An unrecognized value keeps the default and is warned about. See [Startup self-test](#startup-self-test). |
+| `startup-ping-fail-fast` | boolean | `false` | Whether a failed self-test **aborts application startup** (throwing `NtfyStartupSelfTestException` out of engine start) rather than only warning. Off by default: a logging backend must never be able to kill the application it instruments. Enabling it also switches the self-test from background to **inline** execution — a start that has already returned cannot be aborted — which adds at most `connect-timeout + request-timeout` to boot. Intended for CI/staging; leaving it off in production means a flaky ntfy server can never block a deployment. Inert (and warned about) when `startup-ping` is `off`. |
 | `require-https-for-credentials` | boolean | `true` | Strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Log4j2 `<Ntfy requireHttpsForCredentials="false">`, Spring and Micronaut `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` (the default since 2.0) and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set `false` to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See [authentication.md](authentication.md). |
 
 `url` and `topic` are the only two settings without which alerting stays inactive (silently if both
@@ -93,6 +95,75 @@ Spring's converter.
 In **Micronaut** they likewise bind as native `java.time.Duration` values through Micronaut's own
 converter (`5s`, `3m`, `500ms`, `PT10S`), and the integration hands them to the appender in
 milliseconds — so the same spellings work there too.
+
+## Startup self-test
+
+Alerting is silent by design: it only speaks when something breaks. That makes a broken *alerting*
+configuration invisible — a revoked token, a renamed topic, a typo'd base URL and a blocked egress
+route all behave identically at boot (nothing happens) and are only discovered when the first real
+production error fails to deliver and nobody is paged.
+
+The engine's start-up validation is entirely local: URL syntax, topic charset, auth-pair
+completeness, transport policy, timeouts. It never touches the network, so it cannot tell a working
+setup apart from one whose token was revoked last week.
+
+`startup-ping` closes that gap by making one real round-trip at engine start:
+
+```properties
+ntfy.startup-ping=probe
+```
+
+| Mode | Request | Publishes? | Proves |
+|---|---|---|---|
+| `off` *(default)* | none | no | nothing — a true no-op, not even a diagnostic line |
+| `probe` | `GET {url}/{topic}/json?poll=1&since=none` | no | DNS, reachability, TLS, that the endpoint is really ntfy, and *read* access |
+| `publish` | the production `POST {url}/{topic}` | yes, one `low`-priority notification per boot | that alerts are genuinely deliverable end-to-end |
+
+On success you get one `info` line. On failure you get one `warn` line that names the probable cause
+and the fix rather than making you look the status code up:
+
+```
+ntfy startup self-test FAILED (HTTP 401) — the server rejected the credentials; the token may be
+revoked or expired, or it may not grant access to this topic
+```
+
+`404` points at the most common ntfy mistake (appending the topic to `url`, which must be the base
+URL), `429` and `5xx` explicitly absolve your configuration and blame the server, and a connection
+or DNS failure tells you to check egress. No diagnostic ever echoes a token, password or username.
+
+### Which mode should I use?
+
+**`publish`, if you can tolerate one notification per boot.** ntfy ACLs grant read and write
+separately, so `probe` has a real blind spot: a read-only token — or one revoked for writes only —
+passes the probe and still fails every real alert. And on an open server, where reads are anonymous,
+a probe proves nothing whatsoever about credentials. `probe` answers *"can I reach this server?"*;
+only `publish` answers *"will my alerts actually arrive?"*.
+
+Use `probe` when publishing on every boot would be too noisy for the topic's subscribers — a
+frequently-restarting service, or a topic real humans watch.
+
+### Fail-fast
+
+By default a failed self-test only warns: a logging backend must never be able to take down the
+application it instruments.
+
+```properties
+ntfy.startup-ping=probe
+ntfy.startup-ping-fail-fast=true
+```
+
+turns a failed self-test into a failed startup (`NtfyStartupSelfTestException` out of engine start,
+after every resource the engine had acquired is released).
+
+Two consequences worth knowing before you enable it:
+
+- **It makes the self-test synchronous.** A start that has already returned cannot be aborted, so
+  fail-fast runs the round-trip inline and adds up to `connect-timeout + request-timeout` (15s with
+  the defaults) to boot. Without fail-fast the ping runs on a daemon thread and startup is never
+  delayed.
+- **It couples your deployment to ntfy's availability.** A `5xx` or a network blip on the ntfy side
+  will block a rollout. That is usually the wrong trade in production and the right one in CI or
+  staging, which is what this flag is for.
 
 ## Notification language (translations)
 
@@ -153,6 +224,7 @@ export NTFY_TOPIC=my-app-alerts
 export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 export NTFY_APP_NAME=my-app
 export NTFY_SUPPRESSION_WINDOW=3m
+export NTFY_STARTUP_PING=probe
 ```
 
 or a classpath `ntfy.properties`:
@@ -165,6 +237,7 @@ ntfy.max-alerts-per-window=3
 ntfy.suppression-window=3m
 ntfy.include-mdc-keys=correlation-id,tenant
 ntfy.warn-topic=my-app-warnings
+ntfy.startup-ping=probe
 ```
 
 or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
@@ -178,6 +251,7 @@ or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
   <suppressionWindow>3m</suppressionWindow>
   <includeMdcKeys>correlation-id,tenant</includeMdcKeys>
   <warnTopic>my-app-warnings</warnTopic>
+  <startupPing>probe</startupPing>
 </appender>
 ```
 
@@ -195,7 +269,8 @@ spelling; unset attributes keep the engine defaults. See [log4j2.md](log4j2.md).
         appName="my-app"
         suppressionWindow="3m"
         includeMdcKeys="correlation-id,tenant"
-        warnTopic="my-app-warnings"/>
+        warnTopic="my-app-warnings"
+        startupPing="probe"/>
 </Appenders>
 ```
 
@@ -211,6 +286,7 @@ ntfy:
   excluded-loggers: org.apache.kafka, com.zaxxer.hikari
   include-mdc-keys: correlation-id, tenant
   warn-topic: my-app-warnings
+  startup-ping: probe
 ```
 
 ### Micronaut (`application.yml`)
@@ -228,6 +304,7 @@ ntfy:
   excluded-loggers: io.micronaut.http.server, com.zaxxer.hikari
   include-mdc-keys: correlation-id, tenant
   warn-topic: my-app-warnings
+  startup-ping: probe
 ```
 
 ### Quarkus (`application.properties`)
@@ -240,6 +317,7 @@ quarkus.ntfy.app-name=my-app
 quarkus.ntfy.suppression-window=3m
 quarkus.ntfy.include-mdc-keys=correlation-id,tenant
 quarkus.ntfy.warn-topic=my-app-warnings
+quarkus.ntfy.startup-ping=probe
 ```
 
 ## See also

@@ -339,6 +339,8 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String async;
     @PluginBuilderAttribute private String asyncQueueCapacity;
     @PluginBuilderAttribute private String requireHttpsForCredentials;
+    @PluginBuilderAttribute private String startupPing;
+    @PluginBuilderAttribute private String startupPingFailFast;
 
     /**
      * Base URL of the ntfy server, e.g. {@code https://ntfy.sh}.
@@ -664,6 +666,34 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * Opt-in startup self-test verifying at boot that the configured endpoint, credentials and
+     * topic actually work — instead of finding out when the first real error alert fails to
+     * deliver.
+     *
+     * @param startupPing {@code "off"} (default), {@code "probe"} (read-only reachability check,
+     *     publishes nothing) or {@code "publish"} (a real low-priority test notification); an
+     *     unrecognized value keeps the default and is reported on the status logger
+     * @return this builder
+     */
+    public Builder setStartupPing(String startupPing) {
+      this.startupPing = startupPing;
+      return asBuilder();
+    }
+
+    /**
+     * Whether a failed startup self-test aborts application startup instead of only warning. Off by
+     * default; enabling it also makes the self-test run inline, adding at most connect+request
+     * timeout to boot. Aimed at CI/staging rather than production.
+     *
+     * @param startupPingFailFast {@code "true"} or {@code "false"}
+     * @return this builder
+     */
+    public Builder setStartupPingFailFast(String startupPingFailFast) {
+      this.startupPingFailFast = startupPingFailFast;
+      return asBuilder();
+    }
+
+    /**
      * Instantiates the appender. Returns {@code null} — log4j2's contract for "this element cannot
      * be built", which drops the appender with a status error instead of failing the whole
      * configuration — when no {@code name} was given.
@@ -730,6 +760,16 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
           "requireHttpsForCredentials",
           builder::requireHttpsForCredentials,
           diagnostics);
+      applyBoolean(
+          startupPingFailFast,
+          "startupPingFailFast",
+          builder::startupPingFailFast,
+          diagnostics);
+
+      // Passed through as a raw string: the core owns the vocabulary and the lenient-parse policy,
+      // and flags an unrecognized value so the engine can warn about it at start with the same
+      // wording every other surface produces.
+      applyString(startupPing, builder::startupPing);
 
       return builder.build();
     }

@@ -92,6 +92,8 @@ class NtfyConfigurationBindingTest {
     properties.put("ntfy.async", false);
     properties.put("ntfy.async-queue-capacity", 64);
     properties.put("ntfy.require-https-for-credentials", false);
+    properties.put("ntfy.startup-ping", "probe");
+    properties.put("ntfy.startup-ping-fail-fast", true);
 
     try (ApplicationContext context = ApplicationContext.run(properties)) {
       NtfyConfiguration c = context.getBean(NtfyConfiguration.class);
@@ -126,6 +128,34 @@ class NtfyConfigurationBindingTest {
       assertThat(c.isAsync()).isFalse();
       assertThat(c.getAsyncQueueCapacity()).isEqualTo(64);
       assertThat(c.isRequireHttpsForCredentials()).isFalse();
+      assertThat(c.getStartupPing()).isEqualTo("probe");
+      assertThat(c.isStartupPingFailFast()).isTrue();
+    }
+  }
+
+  @Test
+  void startupPingDefaultsToOptedOut() {
+    try (ApplicationContext context =
+        ApplicationContext.run(Map.of("ntfy.url", "https://127.0.0.1:1", "ntfy.topic", "alerts"))) {
+      NtfyConfiguration c = context.getBean(NtfyConfiguration.class);
+
+      assertThat(c.getStartupPing()).isEqualTo("off");
+      assertThat(c.isStartupPingFailFast()).isFalse();
+    }
+  }
+
+  @Test
+  void anUnrecognizedStartupPingModeDoesNotFailBeanCreation() {
+    // Bound as a String, not an enum: Micronaut would fail bean instantiation on an unconvertible
+    // enum value, turning one typo in application.yml into a dead application. The core parses it
+    // leniently and the engine warns at start instead.
+    try (ApplicationContext context =
+        ApplicationContext.run(
+            Map.of(
+                "ntfy.url", "https://127.0.0.1:1",
+                "ntfy.topic", "alerts",
+                "ntfy.startup-ping", "prob"))) {
+      assertThat(context.getBean(NtfyConfiguration.class).getStartupPing()).isEqualTo("prob");
     }
   }
 

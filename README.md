@@ -29,6 +29,10 @@ The engine is:
 - **early** — the JUL, Logback, Log4j2 and Quarkus adapters install through the logging framework
   itself, so alerting is live before your Spring `ApplicationContext` (or any DI container) exists —
   exactly the startup window where early fatal errors are otherwise invisible;
+- **verifiable at boot** — an opt-in `startup-ping` self-test makes one real round-trip when the
+  engine starts and reports a clear diagnostic ("the token may be revoked or expired", "url must be
+  the base url with the topic NOT appended"), so a broken alerting config is found at deploy time
+  instead of when the first real error silently fails to deliver;
 - **GraalVM-native ready** — the Quarkus extension builds its HTTP client at runtime-init, and
   `ntfy-core` ships native-image metadata for hand-rolled native builds.
 

@@ -40,6 +40,8 @@ public class NtfyProperties {
   private boolean async = true;
   private int asyncQueueCapacity = 1024;
   private boolean requireHttpsForCredentials = true;
+  private String startupPing = "off";
+  private boolean startupPingFailFast = false;
 
   public String getUrl() {
     return url;
@@ -280,5 +282,27 @@ public class NtfyProperties {
 
   public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
     this.requireHttpsForCredentials = requireHttpsForCredentials;
+  }
+
+  public String getStartupPing() {
+    return startupPing;
+  }
+
+  /**
+   * Bound as a {@code String} rather than the {@code StartupPingMode} enum on purpose: Spring's
+   * relaxed binder throws on an unconvertible enum value, which would turn one typo in
+   * {@code application.yml} into a failed context refresh. The core parses it leniently and warns
+   * instead, matching every other surface.
+   */
+  public void setStartupPing(String startupPing) {
+    this.startupPing = startupPing;
+  }
+
+  public boolean isStartupPingFailFast() {
+    return startupPingFailFast;
+  }
+
+  public void setStartupPingFailFast(boolean startupPingFailFast) {
+    this.startupPingFailFast = startupPingFailFast;
   }
 }

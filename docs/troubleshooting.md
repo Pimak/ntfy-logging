@@ -76,12 +76,35 @@ runtime.
 | `configured priority/tags value contains non-printable-ASCII characters — the invalid header will be omitted from publishes` | warn | One of `error-priority`/`digest-priority`/`error-tags`/`digest-tags` contains a character outside printable ASCII (e.g. a literal emoji instead of a shortcode). That header is omitted from publishes instead of aborting them. | Use ntfy shortcodes (e.g. `rotating_light`), not literal emoji, and ASCII priority names/numbers. |
 | `ntfy: endpoint URL comes ONLY from a classpath ntfy.properties … refusing to auto-install alerting … for supply-chain safety` | warn (the Logback/JUL auto-installs and `NtfyLog4j2Installer` only) | The endpoint URL was supplied only by a `ntfy.properties` found on the classpath (no `NTFY_URL` env var or `ntfy.url` system property), and the `allow-classpath-endpoint` opt-in is not set. Any jar can carry such a file, so the auto-install refuses to activate rather than send your error logs to a destination the classpath chose. | If the file is yours, opt in with `-Dntfy.allow-classpath-endpoint=true` / `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`, or set the URL via env/sysprop. If you don't recognize it, find which dependency ships it — it is trying to redirect your error logs. |
 | `ntfy: endpoint URL comes from a classpath ntfy.properties … make sure that file is one you trust` | warn (the Logback/JUL auto-installs and `NtfyLog4j2Installer` only) | The zero-code auto-install activated from a `ntfy.properties` found on the classpath (with the `allow-classpath-endpoint` opt-in set), with no `NTFY_URL` env var or `ntfy.url` system property set. The destination is named loudly. | If the file is yours, no action. If you don't recognize it, find which dependency ships it — it is redirecting your error logs. |
+| `ntfy startup self-test PASSED (probe) — the server answered and accepted the credentials; …` | info (only when `startup-ping=probe`) | The boot-time reachability check succeeded. The message carries its own caveat: a read-only probe cannot prove **write** permission, because ntfy ACLs grant read and write separately. | Informational. If you need proof that alerts are genuinely deliverable, use `startup-ping=publish`. See [configuration.md](configuration.md#startup-self-test). |
+| `ntfy startup self-test PASSED (publish) — a test notification was accepted by the server, …` | info (only when `startup-ping=publish`) | A real test notification went out through the production publish path: endpoint, credentials and topic all work. | Informational — and the notification itself should have arrived on your device. |
+| `ntfy startup self-test FAILED (HTTP 401\|403) — the server rejected the credentials; the token may be revoked or expired, …` | warn | The self-test reached the server, which rejected the credentials. **This is the case the feature exists for** — caught at boot rather than when the first real error alert fails. | Check `token` (or `username`/`password`) and the topic's ACL. See [authentication.md](authentication.md). |
+| `ntfy startup self-test FAILED (HTTP 404) — no such endpoint on the server; url must be the ntfy BASE url with the topic NOT appended, …` | warn | The server answered but has no such endpoint. Overwhelmingly this means `url` already includes the topic (`https://ntfy.sh/my-topic` instead of `https://ntfy.sh`). | Set `url` to the server's base URL only, and put the topic in `topic`. |
+| `ntfy startup self-test FAILED (HTTP 429) — the server is rate-limiting this client; the configuration itself looks correct, …` | warn | Reachable and authorized, but throttled. Not a configuration error. | Retry later, or raise the ntfy server's rate limits. |
+| `ntfy startup self-test FAILED (HTTP 5xx) — the server reported an internal error; the configuration itself looks correct, …` | warn | Your configuration is fine; the ntfy server is unhealthy. | Check the ntfy server. |
+| `ntfy startup self-test FAILED (<reason>) — the ntfy server could not be reached; check url, DNS, and any egress firewall or proxy` | warn | The request never reached a server at all: connection refused, DNS failure, or timeout. `<reason>` is a fixed, type-derived word (`timeout`, `connection refused`, …) — never a raw exception message, which could embed a credential. | Check `url`'s host and port, DNS resolution from inside the container, and outbound firewall/proxy rules. |
+| `ntfy startup self-test failed and startup-ping-fail-fast is enabled — refusing to start` | warn, then `NtfyStartupSelfTestException` | A self-test failure aborted application startup, as explicitly requested by `startup-ping-fail-fast=true`. The engine released every resource it had acquired before throwing. | Fix the cause named by the preceding FAILED line. To stop alerting problems from blocking deployment, set `startup-ping-fail-fast=false` (the default). |
+| `startup-ping-fail-fast is enabled but startup-ping is off — no self-test will run, so the flag has no effect; …` | warn | Fail-fast was requested without a self-test to fail. Always a mistake. | Set `startup-ping` to `probe` or `publish`, or remove `startup-ping-fail-fast`. |
+| `startup-ping is not a recognized mode (expected off, probe, or publish) — keeping the default, no self-test will run` | warn | A `startup-ping` value was supplied but matched no mode (e.g. `prob`). The default is kept. The offending value is deliberately not echoed. | Fix the spelling: `off`, `probe` or `publish`. |
 
 ## Common scenarios
 
 **"I configured it but nothing happens."** Look for `ntfy alert engine not configured …` or `url set
 but topic missing …` — one of `url`/`topic` is probably missing. On JUL and Quarkus, grep stderr
 for `[ntfy]`.
+
+**"How do I know my alerting actually works, without waiting for a real outage?"** Turn on the
+startup self-test: `ntfy.startup-ping=publish` sends one low-priority test notification at boot
+through the exact code path real alerts use, and reports the outcome as a single diagnostic line.
+`probe` does the same check read-only if publishing on every boot would be too noisy — at the cost
+of not proving write access. See [configuration.md](configuration.md#startup-self-test).
+
+**"My token was revoked and I only found out during an incident."** That is precisely what
+`startup-ping` prevents: a revoked or expired token produces
+`ntfy startup self-test FAILED (HTTP 401)` at boot, naming the cause, instead of silently failing
+the first real alert. Add `startup-ping-fail-fast=true` in CI or staging to turn that into a failed
+deployment rather than a warning — but leave it off in production, where it would let a flaky ntfy
+server block a rollout.
 
 **"My Logback appender doesn't alert on WARN."** By design *unless you ask for it*: every adapter
 gates at ERROR (`SEVERE` on JUL/Quarkus) before submitting, so sub-ERROR log content is never

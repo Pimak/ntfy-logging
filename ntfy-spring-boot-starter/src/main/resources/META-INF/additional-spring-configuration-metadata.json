@@ -127,6 +127,18 @@
       "type": "java.lang.Boolean",
       "description": "Strict mode: refuse to activate alerting (instead of only warning) when credentials would be sent over a plain http:// endpoint. Set to false to restore the pre-2.0 warn-and-activate behavior.",
       "defaultValue": true
+    },
+    {
+      "name": "ntfy.startup-ping",
+      "type": "java.lang.String",
+      "description": "Opt-in startup self-test that verifies at boot that the configured endpoint, credentials and topic actually work, instead of finding out when the first real error alert fails to deliver. 'off' (default) does nothing at all; 'probe' makes a read-only reachability check that publishes nothing; 'publish' sends a real low-priority test notification through the production publish path.",
+      "defaultValue": "off"
+    },
+    {
+      "name": "ntfy.startup-ping-fail-fast",
+      "type": "java.lang.Boolean",
+      "description": "Whether a failed startup self-test aborts application startup instead of only warning. Enabling it also makes the self-test run inline, adding at most connect-timeout + request-timeout to boot. Intended for CI/staging; leave false in production so a flaky ntfy server can never block a deployment.",
+      "defaultValue": false
     }
   ]
 }

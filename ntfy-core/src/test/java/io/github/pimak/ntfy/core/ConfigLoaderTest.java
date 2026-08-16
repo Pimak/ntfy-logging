@@ -528,4 +528,82 @@ class ConfigLoaderTest {
     assertThat(config.isEnabled()).isEqualTo(defaults.isEnabled());
     assertThat(config.isEndpointFromClasspathFile()).isFalse();
   }
+
+  // --- startup-ping self-test -------------------------------------------------------------------
+
+  @Test
+  void startupPing_defaultsToOff() {
+    NtfyConfig config = ConfigLoader.load(null, null, null);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.OFF);
+    assertThat(config.isStartupPingFailFast()).isFalse();
+    assertThat(config.isStartupPingValueRejected()).isFalse();
+  }
+
+  @Test
+  void startupPing_fromSysprop() {
+    Properties sys = props("ntfy.startup-ping", "publish");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.PUBLISH);
+  }
+
+  @Test
+  void startupPing_fromEnv() {
+    Function<String, String> env = env(Map.of("NTFY_STARTUP_PING", "probe"));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.PROBE);
+  }
+
+  @Test
+  void startupPing_fromClasspathFile() {
+    // Unlike allow-classpath-endpoint, this key IS readable from the file layer: it only probes the
+    // endpoint the config already points at, so it can neither redirect alerts nor grant trust.
+    Properties file = props("ntfy.startup-ping", "probe");
+
+    NtfyConfig config = ConfigLoader.load(null, file, null);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.PROBE);
+  }
+
+  @Test
+  void startupPing_sysprop_winsOverEnv() {
+    Function<String, String> env = env(Map.of("NTFY_STARTUP_PING", "publish"));
+    Properties sys = props("ntfy.startup-ping", "probe");
+
+    NtfyConfig config = ConfigLoader.load(env, null, sys);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.PROBE);
+  }
+
+  @Test
+  void startupPing_unparseableValueKeepsTheDefaultButIsFlagged() {
+    Properties sys = props("ntfy.startup-ping", "prob");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.OFF);
+    assertThat(config.isStartupPingValueRejected()).isTrue();
+  }
+
+  @Test
+  void startupPingFailFast_fromSysprop() {
+    Properties sys = props("ntfy.startup-ping-fail-fast", "true");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    assertThat(config.isStartupPingFailFast()).isTrue();
+  }
+
+  @Test
+  void startupPingFailFast_fromEnv() {
+    Function<String, String> env = env(Map.of("NTFY_STARTUP_PING_FAIL_FAST", "true"));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    assertThat(config.isStartupPingFailFast()).isTrue();
+  }
 }
