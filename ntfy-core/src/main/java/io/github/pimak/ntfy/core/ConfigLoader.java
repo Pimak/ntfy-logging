@@ -69,6 +69,18 @@ public final class ConfigLoader {
     apply(builder::clickUrl, resolve("click-url", envLookup, fileProps, sysProps));
     apply(builder::actionsHeader, resolve("actions", envLookup, fileProps, sysProps));
 
+    // warn-topic names a DESTINATION and widens how much log content leaves the host, so it is
+    // tracked the same way `url` is above (:56-58) rather than the way `include-mdc-keys` is below:
+    // a classpath-only value is honored only once the operator has opted in via
+    // allow-classpath-endpoint. AlertEngine.start() enforces that; here we only record the origin.
+    String warnTopic = resolve("warn-topic", envLookup, fileProps, sysProps);
+    apply(builder::warnTopic, warnTopic);
+    if (warnTopic != null && resolve("warn-topic", envLookup, null, sysProps) == null) {
+      builder.warnTopicFromClasspathFile(true);
+    }
+    apply(builder::warnPriority, resolve("warn-priority", envLookup, fileProps, sysProps));
+    apply(builder::warnTags, resolve("warn-tags", envLookup, fileProps, sysProps));
+
     String excludedLoggers = resolve("excluded-loggers", envLookup, fileProps, sysProps);
     if (excludedLoggers != null) {
       builder.excludedLoggers(excludedLoggers);

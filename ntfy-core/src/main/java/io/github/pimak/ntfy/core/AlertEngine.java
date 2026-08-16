@@ -88,13 +88,19 @@ public final class AlertEngine {
   private volatile AuthMode authMode;
 
   // volatile: same submit()-vs-stop() concurrency model as `publisher` — a digest-timer tick or a
-  // submit() call may race a concurrent stop() nulling this field.
-  private volatile AlertRateLimiter rateLimiter;
+  // submit() call may race a concurrent stop() nulling this field. Non-null exactly while the
+  // engine is started, so it doubles as the "engine is live" sentinel the old `rateLimiter` field
+  // was.
+  private volatile RouteState errorRoute;
+
+  // volatile: same model as `errorRoute`. Non-null ONLY when a warn-topic is configured — a null
+  // here is what makes a WARN event a no-op, so submit() needs no separate feature flag.
+  private volatile RouteState warnRoute;
 
   private ScheduledExecutorService digestScheduler;
 
   // volatile: submit() reads it on application threads while start()/stop() mutate it on the config
-  // thread — the exact publication model that forces publisher/authMode/rateLimiter to be volatile.
+  // thread — the exact publication model that forces publisher/authMode/the routes to be volatile.
   // A plain field risks a stale-null read (silent fallback to sync delivery) or a stale non-null
   // read of a torn-down executor after stop(). Non-null only when async delivery is enabled;
   // submit() snapshots it into a local before branching.
@@ -110,7 +116,7 @@ public final class AlertEngine {
   // for null guards. Reassigned to the configured locale as the FIRST statement of start(), before
   // the earliest diagnostic is emitted. volatile: start() writes it on the config thread while
   // submit()/deliver()/emitDigest() read it on application/worker threads — the same publication
-  // model as publisher/rateLimiter. It is immutable and stateless, so stop() deliberately does NOT
+  // model as publisher/the routes. It is immutable and stateless, so stop() deliberately does NOT
   // null it: a late async-path call after stop() must render a message rather than NPE.
   private volatile AlertMessages messages = AlertMessages.forLocale(Locale.ENGLISH);
 
@@ -234,12 +240,33 @@ public final class AlertEngine {
         || !isSendableHeaderValue(config.getDigestPriority())
         || !isSendableHeaderValue(config.getErrorTags())
         || !isSendableHeaderValue(config.getDigestTags())
+        || !isSendableHeaderValue(config.getWarnPriority())
+        || !isSendableHeaderValue(config.getWarnTags())
         || !isSendableHeaderValue(config.getClickUrl())
         || !isSendableHeaderValue(config.getActions())) {
       // One-time, specific diagnostic: the publisher silently omits such headers, and without
       // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
       // invisible.
       diagnostics.warn(messages.statusInvalidPriorityOrTags());
+    }
+
+    // Whether the opt-in WARN route survives its own preconditions. Both failures below withdraw
+    // ONLY the warn route and let activation continue: unlike `topic`, which IS the alerting, a
+    // misconfigured optional extra must never cost the operator their error alerts.
+    boolean warnRoutingEnabled = config.isWarnRoutingEnabled();
+    if (warnRoutingEnabled && !NtfyPublisher.isValidTopic(config.getWarnTopic())) {
+      diagnostics.warn(messages.statusInvalidWarnTopic());
+      warnRoutingEnabled = false;
+    }
+    if (warnRoutingEnabled
+        && config.isWarnTopicFromClasspathFile()
+        && !config.isAllowClasspathEndpoint()) {
+      // Same supply-chain reasoning as the endpoint guard the auto-installs apply: any jar on the
+      // classpath can ship a ntfy.properties, and warn-topic both names a destination and widens
+      // how much log content leaves the host. Withdraw the route rather than refuse the install —
+      // the questionable extra goes, ERROR alerting stays.
+      diagnostics.warn(messages.statusWarnTopicFromClasspathRefused());
+      warnRoutingEnabled = false;
     }
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());
@@ -294,7 +321,16 @@ public final class AlertEngine {
             .build();
     this.publisher = new NtfyPublisher(httpClient, effectiveRequestTimeout);
 
-    this.rateLimiter = new AlertRateLimiter(config.getMaxAlertsPerWindow(), windowMillis);
+    // One limiter per route, each with the same allowance: a warning storm draws down its own
+    // budget and can never push a genuine error into a digest. See RouteState.
+    this.errorRoute =
+        RouteState.forError(
+            config, new AlertRateLimiter(config.getMaxAlertsPerWindow(), windowMillis));
+    this.warnRoute =
+        warnRoutingEnabled
+            ? RouteState.forWarn(
+                config, new AlertRateLimiter(config.getMaxAlertsPerWindow(), windowMillis))
+            : null;
     this.digestScheduler =
         Executors.newSingleThreadScheduledExecutor(
             r -> {
@@ -310,7 +346,10 @@ public final class AlertEngine {
     digestScheduler.scheduleWithFixedDelay(
         () -> {
           try {
-            emitDigest();
+            // One tick drives both routes: they share the same suppression window, so a second
+            // scheduler would buy nothing but another thread.
+            emitDigest(errorRoute);
+            emitDigest(warnRoute);
           } catch (RuntimeException e) {
             diagnostics.error(messages.publishUnexpectedError(), e);
           }
@@ -321,7 +360,7 @@ public final class AlertEngine {
 
     // Async delivery worker (the default since 2.0): a single daemon thread draining a bounded
     // queue, so a slow or unreachable ntfy server never back-pressures application threads. Built
-    // AFTER publisher and rateLimiter are assigned (the worker and the rejection handler read
+    // AFTER publisher and the routes are assigned (the worker and the rejection handler read
     // them) and BEFORE started
     // is set. A ThreadPoolExecutor gives us two free primitives: shutdownNow() returns the list of
     // never-started queued tasks (what stop() must drain) and a RejectedExecutionHandler is the
@@ -358,6 +397,13 @@ public final class AlertEngine {
     if (!config.getIncludeMdcKeys().isEmpty()) {
       diagnostics.info(messages.statusIncludeMdcKeys(config.getIncludeMdcKeys()));
     }
+    // Conditional for the same reason as the include-mdc-keys line: WARN routing is opt-in, and the
+    // default path's diagnostic stream must stay byte-identical to before this feature existed.
+    // Naming the destination is the point — an unexpected warn topic should be caught on sight.
+    RouteState wr = this.warnRoute;
+    if (wr != null) {
+      diagnostics.info(messages.statusWarnRoute(wr.topic()));
+    }
     this.started = true;
   }
 
@@ -370,7 +416,7 @@ public final class AlertEngine {
   public synchronized void stop() {
     // Ordering matters here: (1) cancel the digest timer FIRST so no new tick can race the
     // flush below; (2) synchronously flush any pending digest while the HTTP resources are
-    // STILL LIVE; (3) only then release executor/httpClient/publisher/rateLimiter. Flushing
+    // STILL LIVE; (3) only then release executor/httpClient/publisher/the routes. Flushing
     // after releasing the HTTP executor would leave the flush publish with no transport.
     if (digestScheduler != null) {
       // Graceful shutdown() first, shutdownNow() second: an in-flight digest tick must be allowed
@@ -400,23 +446,22 @@ public final class AlertEngine {
       awaitTerminationQuietly(de);
       unsent.addAll(de.shutdownNow());
       awaitTerminationQuietly(de);
-      AlertRateLimiter rlDrain = rateLimiter;
-      if (rlDrain != null) {
-        for (Runnable r : unsent) {
-          if (r instanceof DeliveryTask t) {
-            rlDrain.recordSuppressed(t.loggerName());
-            // A queued-but-unsent event never published — count it `failed`, consistent with the
-            // overflow handler below and with every other never-published path.
-            counters.incrementFailed();
-          }
+      for (Runnable r : unsent) {
+        // Each task folds into the budget of the route it was headed for, so the two digests
+        // flushed below each report their own losses.
+        if (r instanceof DeliveryTask t && t.route() != null) {
+          t.route().limiter().recordSuppressed(t.loggerName());
+          // A queued-but-unsent event never published — count it `failed`, consistent with the
+          // overflow handler below and with every other never-published path.
+          counters.incrementFailed();
         }
       }
     }
 
-    AlertRateLimiter rl = rateLimiter;
-    if (rl != null && rl.hasPending()) {
-      emitDigest();
-    }
+    // Per route, so a shutdown mid-incident reports warnings and errors on their own topics
+    // instead of merging them into one count.
+    emitDigestIfPending(errorRoute);
+    emitDigestIfPending(warnRoute);
 
     if (executor != null) {
       executor.shutdownNow();
@@ -437,9 +482,17 @@ public final class AlertEngine {
     httpClient = null;
     publisher = null;
     authMode = null;
-    rateLimiter = null;
+    errorRoute = null;
+    warnRoute = null;
     deliveryExecutor = null;
     this.started = false;
+  }
+
+  /** Flushes {@code route}'s digest when it has a pending suppression count; no-op otherwise. */
+  private void emitDigestIfPending(RouteState route) {
+    if (route != null && route.limiter().hasPending()) {
+      emitDigest(route);
+    }
   }
 
   /**
@@ -453,24 +506,30 @@ public final class AlertEngine {
     if (isExcluded(event.loggerName()) || hasNoAlertMarker(event)) {
       return;
     }
-    // Snapshot the volatile fields once: a concurrent stop() nulling `publisher`/`rateLimiter`
+    // Snapshot the volatile fields once: a concurrent stop() nulling `publisher`/the routes
     // between a null-check and use would otherwise NPE and be misreported as an ERROR-level
     // "unexpected" failure during a benign shutdown race.
     NtfyPublisher p = publisher;
     if (p == null) {
       return;
     }
-    AlertRateLimiter rl = rateLimiter;
-    if (rl == null) {
+    // Route selection. A WARN event arriving while `warnRoute` is null is dropped here — the
+    // adapters already gate on the same condition, so this is the engine's own half of the
+    // double floor: no configuration mistake, and no third-party adapter, can publish warnings to
+    // a topic the operator never named.
+    RouteState route = event.level() == AlertLevel.WARN ? warnRoute : errorRoute;
+    if (route == null) {
       return;
     }
+    AlertRateLimiter rl = route.limiter();
     AuthMode auth = authMode;
     if (auth == null) {
       return;
     }
     // The rate-limiter gate runs AFTER the exclusion/marker gates above, so it only
     // ever sees non-excluded events. Over-allowance events are counted, never individually
-    // published — they surface later as part of the aggregated digest.
+    // published — they surface later as part of the aggregated digest. The budget is this ROUTE's:
+    // warnings and errors never draw from the same allowance.
     if (!rl.tryAcquire()) {
       rl.recordSuppressed(event.loggerName());
       // Observability tally: the rate-limiter gate is the ONLY site incrementing `suppressed`, so
@@ -486,11 +545,12 @@ public final class AlertEngine {
       ThreadPoolExecutor de = deliveryExecutor;
       if (de != null) {
         // Async: hand off to the daemon worker. A full queue routes to the overflow handler (drop
-        // + fold into the suppression count), never blocking the submitting thread.
-        de.execute(new DeliveryTask(payload, event.loggerName()));
+        // + fold into the suppression count), never blocking the submitting thread. The task
+        // carries its route so a drop or a late drain folds into the right budget.
+        de.execute(new DeliveryTask(payload, event.loggerName(), route));
       } else {
         // Sync (explicit opt-out): publish inline on the calling thread.
-        deliver(payload, event.loggerName());
+        deliver(payload, event.loggerName(), route);
       }
     } catch (RuntimeException e) {
       // Fixed generic message — never e.getMessage() here, it could embed a credential.
@@ -501,35 +561,35 @@ public final class AlertEngine {
   /**
    * The single shared error-alert delivery path, invoked inline by {@link #submit} in sync mode and
    * from the {@code ntfy-alert-delivery} worker in async mode. Snapshots {@link #publisher}/{@link
-   * #authMode}/{@link #rateLimiter} defensively (a worker task may run after a concurrent {@code
+   * #authMode} defensively (a worker task may run after a concurrent {@code
    * stop()} nulled them, and must no-op rather than NPE). A failed publish folds into the
    * suppression count so it surfaces in the next digest rather than being lost; an unexpected
    * exception is reported through diagnostics with a fixed, credential-safe message.
    */
-  private void deliver(AlertPayload payload, String loggerName) {
+  private void deliver(AlertPayload payload, String loggerName, RouteState route) {
     NtfyPublisher p = publisher;
     AuthMode auth = authMode;
-    AlertRateLimiter rl = rateLimiter;
-    if (p == null || auth == null || rl == null) {
+    if (p == null || auth == null || route == null) {
       return;
     }
+    AlertRateLimiter rl = route.limiter();
     try {
       PublishResult result =
           p.publish(
               config.getUrl(),
-              config.getTopic(),
+              route.topic(),
               payload.title(),
               auth,
               payload.body(),
-              config.getErrorPriority(),
-              config.getErrorTags(),
+              route.priority(),
+              route.tags(),
               config.getClickUrl(),
               config.getActions());
       if (result.success()) {
         counters.incrementPublished();
       } else {
         counters.incrementFailed();
-        diagnostics.warn(messages.publishFailed(config.getTopic(), result.httpStatus()));
+        diagnostics.warn(messages.publishFailed(route.topic(), result.httpStatus()));
         // A failed individual publish folds into the suppression count instead of being
         // lost — it will surface in the next digest. This digest-accounting fold is separate from
         // the observability counters: the event is counted `failed` (above), never `suppressed`.
@@ -545,25 +605,32 @@ public final class AlertEngine {
   /**
    * Carries a gated, payload-assembled error alert from {@link #submit} to the async delivery
    * worker. An inner (non-static) class so {@code run()} can call the enclosing engine's {@link
-   * #deliver}; {@link #loggerName()} is read back by the overflow handler and by {@link #stop()}'s
-   * drain so a dropped/unsent task still folds into the suppression count.
+   * #deliver}; {@link #loggerName()} and {@link #route()} are read back by the overflow handler and
+   * by {@link #stop()}'s drain so a dropped/unsent task still folds into the suppression count of
+   * the route it was headed for.
    */
   private final class DeliveryTask implements Runnable {
     private final AlertPayload payload;
     private final String loggerName;
+    private final RouteState route;
 
-    DeliveryTask(AlertPayload payload, String loggerName) {
+    DeliveryTask(AlertPayload payload, String loggerName, RouteState route) {
       this.payload = payload;
       this.loggerName = loggerName;
+      this.route = route;
     }
 
     String loggerName() {
       return loggerName;
     }
 
+    RouteState route() {
+      return route;
+    }
+
     @Override
     public void run() {
-      deliver(payload, loggerName);
+      deliver(payload, loggerName, route);
     }
   }
 
@@ -571,17 +638,17 @@ public final class AlertEngine {
    * Builds the async worker's {@link RejectedExecutionHandler}. On a full queue it folds the dropped
    * event into the suppression count (so it still surfaces in the next digest — never a silent drop)
    * and emits a throttled overflow warning (at most once per {@code warnWindowMillis} so the handler
-   * cannot become its own diagnostics storm). Two hardening cases: (1) the volatile {@link
-   * #rateLimiter} is snapshotted and null-checked, because a {@code submit()} racing a concurrent
-   * {@code stop()} lands here after {@code shutdownNow()}; (2) a rejection caused by executor
+   * cannot become its own diagnostics storm). Two hardening cases: (1) the limiter is read off the
+   * task's own captured route rather than an engine field, so a {@code submit()} racing a
+   * concurrent {@code stop()} still folds its count into the right budget instead of finding a
+   * nulled field; (2) a rejection caused by executor
    * shutdown is teardown, not overflow, so the warn is skipped (the count is still recorded, since a
    * shutdown-rejected task is not in {@code stop()}'s drained queue list).
    */
   private RejectedExecutionHandler asyncOverflowHandler(long warnWindowMillis) {
     return (r, executor) -> {
-      AlertRateLimiter rl = rateLimiter;
-      if (rl != null && r instanceof DeliveryTask t) {
-        rl.recordSuppressed(t.loggerName());
+      if (r instanceof DeliveryTask t && t.route() != null) {
+        t.route().limiter().recordSuppressed(t.loggerName());
         // A dropped event never published — count it `failed`, mirroring the stop()-drain path.
         counters.incrementFailed();
       }
@@ -673,41 +740,39 @@ public final class AlertEngine {
 
   /**
    * The single shared digest-publish code path, invoked both by the digest-scheduler tick and by
-   * {@link #stop()}'s synchronous flush. Snapshots {@link #rateLimiter}/{@link #publisher}
+   * {@link #stop()}'s synchronous flush. Snapshots {@link #publisher}
    * defensively (a tick racing {@code stop()} must no-op). Drains the accumulated suppression
    * tally; a zero count means nothing to report, so no digest is sent. If the digest publish itself
-   * fails, the drained count is re-folded back into {@link #rateLimiter} rather than silently
+   * fails, the drained count is re-folded back into the route's own limiter rather than silently
    * dropped, so it survives into the next window/flush.
    */
-  private void emitDigest() {
-    AlertRateLimiter rl = rateLimiter;
+  private void emitDigest(RouteState route) {
     NtfyPublisher p = publisher;
     AuthMode auth = authMode;
-    if (rl == null || p == null || auth == null) {
+    if (route == null || p == null || auth == null) {
       return;
     }
+    AlertRateLimiter rl = route.limiter();
     AlertRateLimiter.DigestSnapshot snap = rl.drainAndReset();
     if (snap.count() == 0) {
       return;
     }
-    String digestTitleText =
-        messages.digestTitle(
-            config.getTitle() != null ? config.getTitle() : config.getAppName(), snap.count());
+    String name = config.getTitle() != null ? config.getTitle() : config.getAppName();
+    String digestTitleText = messages.digestTitle(name, snap.count(), route.level());
+    String window =
+        messages.describeWindow(config.getSuppressionWindow(), DEFAULT_SUPPRESSION_WINDOW);
     String body =
-        messages.digestBody(
-            snap.count(),
-            snap.perLoggerTally(),
-            messages.describeWindow(config.getSuppressionWindow(), DEFAULT_SUPPRESSION_WINDOW));
+        messages.digestBody(snap.count(), snap.perLoggerTally(), window, route.level());
     String truncatedBody = PayloadTruncator.truncate(body, PayloadTruncator.NTFY_MAX_BYTES);
     PublishResult r =
         p.publish(
             config.getUrl(),
-            config.getTopic(),
+            route.topic(),
             digestTitleText,
             auth,
             truncatedBody,
-            config.getDigestPriority(),
-            config.getDigestTags(),
+            route.digestPriority(),
+            route.digestTags(),
             config.getClickUrl(),
             config.getActions());
     if (r.success()) {
@@ -720,7 +785,7 @@ public final class AlertEngine {
     // Mirror the submit() path — a persistently failing digest (auth revoked, topic
     // ACL change, sustained 429) must be visible in the engine's own diagnostics.
     // Composer interpolates only topic + HTTP status, never a credential.
-    diagnostics.warn(messages.publishFailed(config.getTopic(), r.httpStatus()));
+    diagnostics.warn(messages.publishFailed(route.topic(), r.httpStatus()));
     // Carry the lost count forward instead of dropping it — one atomic bulk
     // merge restores the global count from the snapshot's own count() (single source of truth)
     // and the per-logger breakdown, so the next window's digest stays accurate. This affects only

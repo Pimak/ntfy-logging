@@ -48,8 +48,13 @@ class AlertMessagesBundleSafetyTest {
     m.put("publish.failed.noStatus", 1);
     m.put("status.exclusions.list", 1);
     m.put("status.includeMdcKeys.list", 1);
+    m.put("status.warnRoute", 1);
     m.put("digest.title", 2);
+    // The WARN route's digest keys take exactly the same arguments as their ERROR counterparts —
+    // only the noun differs — so a translation cannot make one carry more than the other.
+    m.put("digest.title.warn", 2);
     m.put("digest.body.summary", 2);
+    m.put("digest.body.summary.warn", 2);
     m.put("digest.body.loggerLine", 2);
     m.put("digest.body.overflow", 1);
     m.put("window.minute", 1);
