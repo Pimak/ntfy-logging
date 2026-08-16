@@ -7,6 +7,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
 
 import io.github.pimak.ntfy.core.AlertEngine;
+import io.github.pimak.ntfy.core.AlertLevel;
 import io.github.pimak.ntfy.core.DurationParser;
 import io.github.pimak.ntfy.core.NtfyConfig;
 import io.github.pimak.ntfy.core.PipelineCounters;
@@ -51,6 +52,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String digestPriority;
   private String errorTags;
   private String digestTags;
+  private String warnTopic;
+  private String warnPriority;
+  private String warnTags;
   private String clickUrl;
   private String actions;
   private String locale;
@@ -77,6 +81,14 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
    * path.
    */
   private volatile List<String> mdcKeys = List.of();
+
+  /**
+   * Whether the started engine actually activated a WARN route, i.e. whether {@link #append} should
+   * let WARN events through. False until {@code start()} resolves it and false again after {@code
+   * stop()}, so an appender that never activated — or one whose warn topic the engine rejected —
+   * can never publish a warning. {@code volatile} for the same reason as {@link #mdcKeys}.
+   */
+  private volatile boolean warnRoutingActive = false;
 
   // Read-only pipeline observability counters. Owned by the appender (which outlives individual
   // engines) and handed to every engine built in start(), so the tallies survive stop()/start()
@@ -149,6 +161,26 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
 
   public void setDigestTags(String digestTags) {
     this.digestTags = digestTags;
+  }
+
+  /**
+   * The topic WARN-level events are published to. Setting it to a non-blank value is the entire
+   * opt-in for WARN alerting: unset (the default), this appender alerts on ERROR and above only.
+   * Set it to the same value as {@code <topic>} to alert on warnings through the main topic at a
+   * different priority. XML: {@code <warnTopic>my-app-warnings</warnTopic>}.
+   */
+  public void setWarnTopic(String warnTopic) {
+    this.warnTopic = warnTopic;
+  }
+
+  /** ntfy {@code Priority} header for WARN alerts and the WARN digest; default {@code default}. */
+  public void setWarnPriority(String warnPriority) {
+    this.warnPriority = warnPriority;
+  }
+
+  /** ntfy {@code Tags} header for WARN alerts and the WARN digest; default {@code warning}. */
+  public void setWarnTags(String warnTags) {
+    this.warnTags = warnTags;
   }
 
   /** URL opened when a notification is tapped (ntfy {@code Click} header). */
@@ -235,6 +267,16 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Whether this appender is currently letting WARN events through — the engine's post-{@code
+   * start()} decision, not the configured request. False before {@code start()} and after {@code
+   * stop()}. Package-private for the same reason as {@link #resolvedMdcKeys()}: it lets the
+   * setter&rarr;config&rarr;engine binding be asserted without standing up an HTTP endpoint.
+   */
+  boolean warnRoutingActive() {
+    return warnRoutingActive;
+  }
+
+  /**
    * Builds an {@link AlertEngine} from the injected config (if present) or from the JavaBean
    * setters, starts it, and marks this appender started ONLY if the engine actually activated. A
    * silently/partially unconfigured engine leaves the appender {@code isStarted()==false} (the
@@ -256,6 +298,10 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     this.mdcKeys = config.getIncludeMdcKeys();
     this.engine = new AlertEngine(config, new LogbackDiagnostics(this), counters);
     engine.start();
+    // The ENGINE's decision, not the config's request: start() withdraws the warn route for an
+    // invalid warn topic or a classpath-only one, and gating on the request would leave this
+    // appender submitting warnings the engine just drops.
+    this.warnRoutingActive = engine.isWarnRoutingActive();
     if (engine.isStarted()) {
       super.start();
     }
@@ -272,6 +318,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .title(title)
             .appName(appName)
             .excludedLoggers(excludedLoggers)
+            .warnTopic(warnTopic)
             // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
             // treats null/blank as "no keys", which is exactly the unset default.
             .includeMdcKeysCsv(includeMdcKeys);
@@ -302,6 +349,15 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     if (digestTags != null) {
       builder.digestTags(digestTags);
     }
+    // Conditional like the other styling values: these carry non-null engine defaults, so passing
+    // an unset setter straight through would null them out. warnTopic above is unconditional
+    // because its default IS null — it is the opt-in switch.
+    if (warnPriority != null) {
+      builder.warnPriority(warnPriority);
+    }
+    if (warnTags != null) {
+      builder.warnTags(warnTags);
+    }
     if (clickUrl != null) {
       builder.clickUrl(clickUrl);
     }
@@ -327,10 +383,14 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
-   * Gates on ERROR, then maps the event and hands it to the engine, which owns all further gating
-   * and publishing. The level gate lives here (mirroring the Quarkus adapter's SEVERE gate) so the
-   * documented "ERROR-level events alert" contract holds on every install path — without it, a
-   * root-logger auto-install would push every INFO/WARN line verbatim to the ntfy topic.
+   * Gates on level, then maps the event and hands it to the engine, which owns all further gating
+   * and publishing. The gate lives here (mirroring the Quarkus adapter's SEVERE gate) so the
+   * documented level contract holds on every install path — without it, a root-logger auto-install
+   * would push every INFO/DEBUG line verbatim to the ntfy topic.
+   *
+   * <p>ERROR and above always alert. WARN alerts only when the engine activated a warn route; below
+   * WARN nothing ever does, on any configuration. Sub-ERROR events therefore cost a level
+   * comparison and nothing else in the default setup.
    */
   @Override
   protected void append(ILoggingEvent event) {
@@ -338,10 +398,19 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     if (e == null) {
       return;
     }
-    if (event.getLevel() == null || !event.getLevel().isGreaterOrEqual(Level.ERROR)) {
+    Level level = event.getLevel();
+    if (level == null) {
       return;
     }
-    e.submit(LogbackEventMapper.map(event, mdcKeys));
+    AlertLevel routed;
+    if (level.isGreaterOrEqual(Level.ERROR)) {
+      routed = AlertLevel.ERROR;
+    } else if (warnRoutingActive && level.isGreaterOrEqual(Level.WARN)) {
+      routed = AlertLevel.WARN;
+    } else {
+      return;
+    }
+    e.submit(LogbackEventMapper.map(event, mdcKeys).withLevel(routed));
   }
 
   /**
@@ -355,8 +424,10 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     engine = null;
     // Torn down with the engine: a stopped appender holds no resolved configuration, so a restart
-    // that fails to activate cannot keep projecting MDC values from the previous configuration.
+    // that fails to activate cannot keep projecting MDC values from the previous configuration —
+    // nor keep routing WARN after a restart that withdrew the warn route.
     mdcKeys = List.of();
+    warnRoutingActive = false;
     super.stop();
   }
 
