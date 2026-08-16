@@ -39,10 +39,19 @@ class NtfyProcessorMetricsGateTest {
     assertThat(produced).isEmpty();
   }
 
+  /**
+   * A neighbouring metrics capability must not open the gate — only {@code io.quarkus.metrics} does.
+   *
+   * <p>Named by string rather than through {@code Capability.OPENTELEMETRY_METRICS}: that constant
+   * does not exist in older Quarkus (3.15 has {@code SMALLRYE_METRICS} where newer releases have the
+   * OpenTelemetry one), and referencing it would make this test — and therefore the whole deployment
+   * module — fail to compile against a Quarkus the extension itself supports perfectly well. A
+   * capability IS a string; the constant is only a convenience.
+   */
   @Test
   void otherCapabilitiesDoNotEnableTheBinding() {
     new NtfyProcessor()
-        .ntfyMetricsBinder(new Capabilities(Set.of(Capability.OPENTELEMETRY_METRICS)), producer);
+        .ntfyMetricsBinder(new Capabilities(Set.of("io.quarkus.opentelemetry.metrics")), producer);
 
     assertThat(produced).isEmpty();
   }
