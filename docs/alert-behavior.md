@@ -27,10 +27,14 @@ Rate limiting is **always on** by default — configuring only `url` and `topic`
 against a runaway error loop out of the box. Setting `max-alerts-per-window` to `0` (or negative)
 disables the limiter and reverts to publish-everything behavior.
 
-The limiter's scope is global to the engine instance: a single shared counter, not one per logger.
-When a new window opens the allowance fully refills, so a sustained storm still lets a few fresh
-individual alerts through every window — you keep seeing real error content as the incident evolves,
-rather than only ever digests.
+The limiter's scope is one counter per ROUTE, not one per logger. When a new window opens the
+allowance fully refills, so a sustained storm still lets a few fresh individual alerts through every
+window — you keep seeing real error content as the incident evolves, rather than only ever digests.
+
+With no `warn-topic` configured there is exactly one route, and therefore one counter, as there
+always was. When a WARN route is active it draws on its **own** allowance of the same size: a flood
+of warnings can never spend the error budget and push genuine errors into a digest. See
+[level-routing.md](level-routing.md).
 
 ## The aggregated digest
 
@@ -42,6 +46,8 @@ per-logger tally (e.g. `9× com.example.MyService`) so you can see which compone
 without opening a log file.
 
 If nothing was suppressed in a window, no digest is sent — silence during a quiet window is expected.
+A configured WARN route digests separately, on its own topic and in its own words ("N warnings
+suppressed"), driven by the same timer.
 
 The suppressed count is never silently dropped. Three mechanisms guarantee this:
 
@@ -65,6 +71,11 @@ error arrives as `high`/🚨 while a digest arrives as `urgent`/🔥, so the rec
 tell "one error happened" from "this service is having a bad time" without opening the notification.
 Both are pass-through values (no local validation), so future ntfy priority or tag values work
 automatically without a library update.
+
+When a [WARN route](level-routing.md) is configured, its alerts use `warn-priority`/`warn-tags`
+(default `default`/⚠️) — and so does its digest. That route is deliberately uniform: escalating a
+warn digest to `urgent`/🔥 would undo the point of sending warnings to a quiet channel, exactly when
+a burst of them is the last thing that should page anyone.
 
 ## What an individual alert body contains
 
@@ -144,6 +155,8 @@ completes before the logging call returns. See [configuration.md](configuration.
 
 - [configuration.md](configuration.md) — the settings (`max-alerts-per-window`, `suppression-window`,
   `error-priority`, `digest-priority`, `error-tags`, `digest-tags`) that control this behavior.
+- [level-routing.md](level-routing.md) — the optional WARN route, its separate storm budget, and its
+  separate digest.
 - [mdc-context.md](mdc-context.md) — the `include-mdc-keys` allow-list behind the body's context block,
   its per-value guards, and why it has no wildcard.
 - [troubleshooting.md](troubleshooting.md) — what each diagnostic the engine emits means.

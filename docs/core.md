@@ -106,6 +106,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and what a
   hand-built `AlertEvent` is and is not filtered by.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits.
 - **[Compatibility](compatibility.md)** — tested JDK / GraalVM versions and the ntfy server API

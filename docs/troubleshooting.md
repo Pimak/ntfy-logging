@@ -68,6 +68,9 @@ runtime.
 | `ntfy publish failed for topic '<topic>' (HTTP <status>)` (the HTTP part is omitted for a non-HTTP failure, e.g. a connection error) | warn | A publish attempt (individual or digest) did not succeed. The failure is folded into the suppression count so it surfaces in the next digest rather than being lost. | Check the server/topic and status: 401/403 → auth (see [authentication.md](authentication.md)); 404 → topic/URL wrong; 429 → ntfy is rate-limiting you; 5xx → server-side. |
 | `ntfy publish threw unexpectedly` | error (with the causing exception attached) | An unexpected `RuntimeException` occurred during publish. The text is always this fixed string — the real exception is attached separately, but its message is never concatenated in, since it could embed a credential. | Inspect the attached exception's stack trace for the real cause. |
 | `topic is not a valid ntfy topic name (allowed: A-Z, a-z, 0-9, '-', '_'; max 64 chars) — engine disabled` | warn | The configured `topic` contains characters ntfy itself rejects (or is over 64 chars). The engine refuses activation rather than build request paths from it. The rejected value is deliberately not echoed. | Fix the `topic` to match `[-_A-Za-z0-9]{1,64}`. |
+| `ntfy alert engine: WARN events are routed to topic '<topic>'` | info | A [WARN route](level-routing.md) is active, emitted once at startup alongside `ACTIVE`. Nothing is emitted when `warn-topic` is unset. | Informational — and the line to look for first when warnings are not arriving. If the destination is not one you chose, find which layer supplies `warn-topic`. |
+| `warn-topic is not a valid ntfy topic name … — WARN routing disabled, ERROR alerting unaffected` | warn | `warn-topic` is set but contains characters ntfy rejects (or is over 64 chars). Unlike an invalid `topic`, this does **not** refuse activation: a mistyped optional extra must never cost you your error alerts. | Fix `warn-topic` to match `[-_A-Za-z0-9]{1,64}`, or remove it. |
+| `warn-topic comes ONLY from a classpath ntfy.properties … refusing to route WARN for supply-chain safety` | warn | `warn-topic` reached the engine solely through a classpath `ntfy.properties` — no `NTFY_WARN_TOPIC` env var, no `ntfy.warn-topic` system property — and `allow-classpath-endpoint` is not set. `warn-topic` names a destination and widens how much log content leaves the host, so it gets the same guard `url` does. ERROR alerting is unaffected. | If that file is yours, opt in with `-Dntfy.allow-classpath-endpoint=true` / `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`, or set the topic yourself via `NTFY_WARN_TOPIC` / `-Dntfy.warn-topic`. If you don't recognise it, find which dependency ships it. |
 | `credentials configured with a plain http:// URL and require-https-for-credentials is enabled — refusing to send credentials unencrypted; use https:// — engine disabled` | warn | A token, username/password pair, or URL-embedded userinfo is configured with an `http://` `url`, and `require-https-for-credentials` is `true` (the default since 2.0). The engine refuses activation rather than send a secret in cleartext. | Switch the ntfy server URL to `https://`, or — for a deliberate plain-HTTP setup — set `require-https-for-credentials=false`. See [authentication.md](authentication.md). |
 | `credentials configured with a plain http:// URL — the token/password and alert content are sent unencrypted; use https://` | warn | A token or username/password is configured but `url` is `http://`, and `require-https-for-credentials` was explicitly set to `false` — the `Authorization` header and every alert body travel in cleartext. Activation still proceeds. | Switch the ntfy server URL to `https://`, or accept the risk knowingly (private network). |
 | `configured priority/tags value contains non-printable-ASCII characters — the invalid header will be omitted from publishes` | warn | One of `error-priority`/`digest-priority`/`error-tags`/`digest-tags` contains a character outside printable ASCII (e.g. a literal emoji instead of a shortcode). That header is omitted from publishes instead of aborting them. | Use ntfy shortcodes (e.g. `rotating_light`), not literal emoji, and ASCII priority names/numbers. |
@@ -80,9 +83,16 @@ runtime.
 but topic missing …` — one of `url`/`topic` is probably missing. On JUL and Quarkus, grep stderr
 for `[ntfy]`.
 
-**"My Logback appender doesn't alert on WARN."** By design: every adapter gates at ERROR
-(`SEVERE` on JUL/Quarkus) before submitting, so sub-ERROR log content is never published off-host.
-See [filtering.md](filtering.md).
+**"My Logback appender doesn't alert on WARN."** By design *unless you ask for it*: every adapter
+gates at ERROR (`SEVERE` on JUL/Quarkus) before submitting, so sub-ERROR log content is never
+published off-host. Set `warn-topic` to route warnings to their own topic — then check the startup
+line `WARN events are routed to topic '…'`; if it is missing, the engine withdrew the route (invalid
+topic name, or a classpath-only value without `allow-classpath-endpoint`). On Log4j2 also check the
+`level` on the `<Logger>`/`<Root>` element referencing the appender: log4j2's own level applies
+before ours. See [level-routing.md](level-routing.md).
+
+**"Nothing below WARN alerts, whatever I configure."** Correct, and there is no setting that changes
+it — the engine's level type has only `WARN` and `ERROR`, so INFO and below cannot be routed at all.
 
 **"My own logs from `io.github.pimak.ntfy.*` never alert."** That package root is always
 self-excluded to prevent feedback loops — rename the logger or see [filtering.md](filtering.md).

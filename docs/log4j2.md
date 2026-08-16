@@ -9,6 +9,7 @@ storm digests, priorities/tags, truncation, sync-vs-async delivery, `excluded-lo
 and `locale` behave identically to every other adapter in the family.
 
 **Use this when** you log through Log4j2 (with or without SLF4J in front of it) and want ERROR logs
+(and, with `warnTopic`, WARN logs too — see [level-routing.md](level-routing.md))
 to alert — declaratively in `log4j2.xml`, or with one line in `main`.
 
 **Runnable example:** [`examples/log4j2`](../examples/log4j2) — a plain Log4j2 app wired through
@@ -156,9 +157,15 @@ interacts with the 4096-byte body limit.
 
 ## Behavior notes specific to this adapter
 
-- **Level gate:** the appender submits only events at `ERROR` or above
-  (`Level.isMoreSpecificThan(Level.ERROR)`), matching the Logback appender's ERROR floor and the JUL
-  handler's `SEVERE`. See [filtering.md](filtering.md).
+- **Level gate:** by default the appender submits only events at `ERROR` or above
+  (`Level.isMoreSpecificThan(Level.ERROR)`), matching the Logback appender's floor and the JUL
+  handler's `SEVERE`. With `warnTopic` set, WARN also alerts, on that topic. See
+  [level-routing.md](level-routing.md) and [filtering.md](filtering.md).
+- **Two level floors:** the installer, the reattach listener and the Spring starter attach the
+  appender at `ERROR` — or `WARN` when a warn route is active — so log4j2 never dispatches
+  sub-threshold events to it in the first place; the in-appender gate above is the second floor. If
+  you declare `<Ntfy>` yourself, the `level` on the referencing `<Logger>`/`<Root>` applies before
+  either of them.
 - **`NO_ALERT` marker:** supported, including markers that reach it through `Marker.getParents()`.
   See [filtering.md](filtering.md).
 - **Diagnostics** go to Log4j2's `StatusLogger`, never back through the logging pipeline the
@@ -177,6 +184,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
   is no wildcard.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits via Log4j2's
   `StatusLogger`, and how to surface them.

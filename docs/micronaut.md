@@ -5,6 +5,7 @@
 
 A Micronaut integration that binds the `ntfy.*` keys from your application configuration, installs an
 `ntfy-auto` appender on the root **Logback** logger when the context starts so your ERROR logs
+(and, with `ntfy.warn-topic`, your WARN logs — see [level-routing.md](level-routing.md))
 publish with no code, and exposes an injectable `NtfyClient` singleton for manual notifications.
 
 **Use this when** you run Micronaut on its default Logback stack and want alerting configured from
@@ -146,6 +147,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
   is no wildcard.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Observability](observability.md)** — the pipeline counters, and why there is no Micrometer
   binding on Micronaut yet.

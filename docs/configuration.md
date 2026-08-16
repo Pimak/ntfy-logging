@@ -53,6 +53,9 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `digest-priority` | String | `urgent` | ntfy `Priority` header for storm digests. |
 | `error-tags` | String | `rotating_light` | ntfy `Tags` header (comma-separated) for individual error alerts. |
 | `digest-tags` | String | `fire` | ntfy `Tags` header for storm digests. |
+| `warn-topic` | String | *(none)* | ntfy topic that WARN-level events are published to. **Setting this is the entire opt-in for WARN alerting** — unset, alerting stays ERROR-only and every path is byte-identical to before the option existed. Same topic rule as `topic`; an invalid value drops the WARN route with a warning and leaves ERROR alerting untouched. See [level-routing.md](level-routing.md). |
+| `warn-priority` | String | `default` | ntfy `Priority` header for WARN alerts **and the WARN digest**. Only consulted when `warn-topic` is set. |
+| `warn-tags` | String | `warning` | ntfy `Tags` header for WARN alerts and the WARN digest. Only consulted when `warn-topic` is set. |
 | `click-url` | String | *(none)* | URL ntfy opens when the notification is tapped (ntfy `Click` header). Applies to both error alerts and digests; sent as-is (no header when unset). |
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
@@ -67,6 +70,10 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 `url` and `topic` are the only two settings without which alerting stays inactive (silently if both
 are unset; with a warning if only one is set — see [troubleshooting.md](troubleshooting.md)). Every
 other setting has a safe default and can be omitted.
+
+`warn-topic` is the one setting whose *presence* changes which events alert at all. There is
+deliberately no `alert-on-warn` boolean beside it: a route needs a destination, so naming the
+destination is the only thing the engine actually has to be told.
 
 ## Duration syntax
 
@@ -157,6 +164,7 @@ ntfy.app-name=my-app
 ntfy.max-alerts-per-window=3
 ntfy.suppression-window=3m
 ntfy.include-mdc-keys=correlation-id,tenant
+ntfy.warn-topic=my-app-warnings
 ```
 
 or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
@@ -169,6 +177,7 @@ or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
   <appName>my-app</appName>
   <suppressionWindow>3m</suppressionWindow>
   <includeMdcKeys>correlation-id,tenant</includeMdcKeys>
+  <warnTopic>my-app-warnings</warnTopic>
 </appender>
 ```
 
@@ -185,7 +194,8 @@ spelling; unset attributes keep the engine defaults. See [log4j2.md](log4j2.md).
         token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         appName="my-app"
         suppressionWindow="3m"
-        includeMdcKeys="correlation-id,tenant"/>
+        includeMdcKeys="correlation-id,tenant"
+        warnTopic="my-app-warnings"/>
 </Appenders>
 ```
 
@@ -200,6 +210,7 @@ ntfy:
   suppression-window: 3m
   excluded-loggers: org.apache.kafka, com.zaxxer.hikari
   include-mdc-keys: correlation-id, tenant
+  warn-topic: my-app-warnings
 ```
 
 ### Micronaut (`application.yml`)
@@ -216,6 +227,7 @@ ntfy:
   suppression-window: 3m
   excluded-loggers: io.micronaut.http.server, com.zaxxer.hikari
   include-mdc-keys: correlation-id, tenant
+  warn-topic: my-app-warnings
 ```
 
 ### Quarkus (`application.properties`)
@@ -227,12 +239,15 @@ quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 quarkus.ntfy.app-name=my-app
 quarkus.ntfy.suppression-window=3m
 quarkus.ntfy.include-mdc-keys=correlation-id,tenant
+quarkus.ntfy.warn-topic=my-app-warnings
 ```
 
 ## See also
 
 - [authentication.md](authentication.md) — `token` vs `username`/`password` precedence and the
   `None` (unauthenticated) mode.
+- [level-routing.md](level-routing.md) — the `warn-topic` opt-in: which levels alert, where their
+  alerts go, and why the two routes keep separate storm budgets.
 - [filtering.md](filtering.md) — how `excluded-loggers` combines with the always-on self-exclusion
   and the `NO_ALERT` per-event opt-out (Logback and Log4j2).
 - [mdc-context.md](mdc-context.md) — the `include-mdc-keys` allow-list: which MDC values are

@@ -7,7 +7,8 @@ A Logback appender plus a zero-code auto-install via a Logback `Configurator` SP
 installs through the logging framework itself, alerting is live at startup — before any DI container
 exists.
 
-**Use this when** you use Logback (with or without Spring) and want ERROR logs to alert — via XML, or
+**Use this when** you use Logback (with or without Spring) and want ERROR logs to alert (and, with
+`warnTopic`, WARN logs too — see [level-routing.md](level-routing.md)) — via XML, or
 with no config at all.
 
 **Runnable example:** [`examples/logback`](../examples/logback) — a plain SLF4J app wired through
@@ -128,6 +129,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
   is no wildcard.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits via Logback's
   `StatusManager`, and how to surface them.

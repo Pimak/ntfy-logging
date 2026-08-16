@@ -6,22 +6,29 @@ the adapters whose framework has markers — and one is always on.
 
 > Looking for `include-mdc-keys`? It is the opposite mechanism — it does not gate events at all, it
 > selects which MDC context is attached to an event that already alerts — and it has its own page:
-> **[mdc-context.md](mdc-context.md)**.
+> **[mdc-context.md](mdc-context.md)**. Looking for `warn-topic`? Level routing decides *which
+> levels* alert and *where*, rather than filtering within a level, and it too has its own page:
+> **[level-routing.md](level-routing.md)**.
 
-> **Alerting is ERROR-only on every adapter.** The core `AlertEngine` does no level gating — it
-> alerts on every event handed to it (subject to the gates below) — but each adapter gates before
-> submitting:
+> **Alerting is ERROR-only by default on every adapter.** The core `AlertEngine` does no level
+> gating of its own beyond routing — it alerts on every event handed to it (subject to the gates
+> below) — but each adapter gates before submitting:
 >
 > - **JUL** (`ntfy-jul`, standalone or installed by Quarkus) — the handler forwards only `SEVERE`
 >   (ERROR-equivalent) records and above.
 > - **Logback** (raw appender and the zero-code auto-install) — the appender submits only events
->   at `ERROR` or above. This is a hard floor, not a default: without it, a root-logger
->   auto-install would push every INFO/WARN line — request details, user identifiers, anything
->   the app logs — verbatim to the ntfy topic. To alert on a *subset* of errors, scope the
->   appender to specific loggers or use `excluded-loggers`/the `NO_ALERT` marker below.
-> - **Log4j2** (`<Ntfy>` appender and `NtfyLog4j2Installer`) — the same hard floor, expressed as
+>   at `ERROR` or above. Without this floor, a root-logger auto-install would push every INFO/WARN
+>   line — request details, user identifiers, anything the app logs — verbatim to the ntfy topic.
+>   To alert on a *subset* of errors, scope the appender to specific loggers or use
+>   `excluded-loggers`/the `NO_ALERT` marker below.
+> - **Log4j2** (`<Ntfy>` appender and `NtfyLog4j2Installer`) — the same floor, expressed as
 >   `Level.isMoreSpecificThan(Level.ERROR)`, so a `<Root level="info">` referencing the appender
 >   still alerts only on ERROR and above.
+>
+> The one way to widen this is [`warn-topic`](level-routing.md), which adds a WARN route to its own
+> topic with its own storm budget. It is an opt-in that must name its own destination, and it never
+> touches the floor below it: **INFO and under can never alert, on any configuration.** That is not
+> a validation rule but a property of the engine's level type, which has exactly two constants.
 
 ## 1. `excluded-loggers` — configurable logger-name exclusion
 
@@ -114,6 +121,8 @@ allowlist.
 ## See also
 
 - [configuration.md](configuration.md) — where `excluded-loggers` lives in each framework.
+- [level-routing.md](level-routing.md) — the `warn-topic` opt-in: which levels alert and where their
+  alerts go. Everything on this page applies to both routes.
 - [mdc-context.md](mdc-context.md) — the `include-mdc-keys` allow-list: attaching MDC context to the
   alerts that do get through.
 - [alert-behavior.md](alert-behavior.md) — how surviving events are rate-limited and digested.

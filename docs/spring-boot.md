@@ -5,6 +5,7 @@
 
 Spring Boot auto-configuration that binds the `ntfy.*` properties, installs an `ntfy-auto` appender
 onto the logging backend your application runs on — Logback or Log4j2 — so your ERROR logs publish
+(and, with `ntfy.warn-topic`, your WARN logs too — see [level-routing.md](level-routing.md))
 with no code, and exposes an injectable `NtfyClient` bean for manual notifications.
 
 **Use this when** you run Spring Boot and want alerting configured from `application.yml` and an
@@ -120,6 +121,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
   is no wildcard.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits and where Spring
   surfaces them (Logback's `StatusManager`, or Log4j2's `StatusLogger` on a Log4j2 stack).

@@ -8,7 +8,8 @@ logging-framework dependency at all. It is both a standalone adapter (plain JUL 
 Helidon, zero-dependency tools) and the handler the [Quarkus extension](quarkus.md) installs.
 
 **Use this when** your application logs through `java.util.logging` and you want SEVERE logs to
-alert — declaratively via `logging.properties`, with one line of code, or fully wired by hand.
+alert (and, with `warn-topic`, WARNING logs too — see [level-routing.md](level-routing.md)) —
+declaratively via `logging.properties`, with one line of code, or fully wired by hand.
 (On Quarkus, use the [extension](quarkus.md) instead: it installs this same handler with
 `quarkus.ntfy.*` config and native support.)
 
@@ -128,6 +129,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, and why plain JUL always
   renders an empty block.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers` and self-exclusion (JUL has no marker concept,
   so the `NO_ALERT` marker — available on Logback and Log4j2 — does not apply; nor, on plain JUL,
   does the `include-mdc-keys` context allow-list — see [mdc-context.md](mdc-context.md)).
