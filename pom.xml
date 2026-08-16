@@ -70,7 +70,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <logback.version>1.6.1</logback.version>
+        <logback.version>1.6.2</logback.version>
         <!--
             Latest stable of the maintained Log4j 2.x line (3.x is still 3.0.0-beta*). Consumed
             provided-scope by ntfy-log4j2, so this pin only fixes what the adapter COMPILES
