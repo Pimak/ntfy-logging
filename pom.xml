@@ -95,7 +95,7 @@
             Runtime". Micronaut 4.10.x is Java 17 bytecode and runs on both JDKs CI builds with
             (21 and 25). Revisit only together with maven.compiler.release above.
         -->
-        <micronaut.version>4.10.17</micronaut.version>
+        <micronaut.version>5.1.0</micronaut.version>
     </properties>
 
     <dependencyManagement>
