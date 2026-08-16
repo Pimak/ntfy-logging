@@ -289,6 +289,11 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String async;
     @PluginBuilderAttribute private String asyncQueueCapacity;
     @PluginBuilderAttribute private String requireHttpsForCredentials;
+    @PluginBuilderAttribute private String proxy;
+    @PluginBuilderAttribute private String truststorePath;
+    // sensitive: keeps the value out of any plugin/config dump, exactly like token and password.
+    @PluginBuilderAttribute(sensitive = true) private String truststorePassword;
+    @PluginBuilderAttribute private String truststoreType;
 
     /**
      * Base URL of the ntfy server, e.g. {@code https://ntfy.sh}.
@@ -577,6 +582,52 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * How to reach the ntfy server. Note the default is not "no proxy": a JDK HTTP client already
+     * honors {@code -Dhttps.proxyHost} and {@code -Dhttp.nonProxyHosts}, so set this only to route
+     * ntfy differently from the rest of the JVM.
+     *
+     * @param proxy {@code "system"} (default), {@code "none"}, or {@code "host:port"}
+     * @return this builder
+     */
+    public Builder setProxy(String proxy) {
+      this.proxy = proxy;
+      return asBuilder();
+    }
+
+    /**
+     * Trust store holding the CA that signed the ntfy server's certificate — for a self-hosted
+     * server behind a private CA or a TLS-inspecting proxy. Replaces the default trust anchors for
+     * ntfy traffic only.
+     *
+     * @param truststorePath filesystem path to the trust store
+     * @return this builder
+     */
+    public Builder setTruststorePath(String truststorePath) {
+      this.truststorePath = truststorePath;
+      return asBuilder();
+    }
+
+    /**
+     * @param truststorePassword password for {@link #setTruststorePath}; omit for an unprotected
+     *     store or for PEM
+     * @return this builder
+     */
+    public Builder setTruststorePassword(String truststorePassword) {
+      this.truststorePassword = truststorePassword;
+      return asBuilder();
+    }
+
+    /**
+     * @param truststoreType {@code "PKCS12"} (default), {@code "JKS"}, or {@code "PEM"} for a plain
+     *     {@code ca.crt} certificate file
+     * @return this builder
+     */
+    public Builder setTruststoreType(String truststoreType) {
+      this.truststoreType = truststoreType;
+      return asBuilder();
+    }
+
+    /**
      * Instantiates the appender. Returns {@code null} — log4j2's contract for "this element cannot
      * be built", which drops the appender with a status error instead of failing the whole
      * configuration — when no {@code name} was given.
@@ -622,6 +673,10 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
       applyString(clickUrl, builder::clickUrl);
       applyString(actions, builder::actionsHeader);
       applyString(locale, builder::locale);
+      applyString(proxy, builder::proxy);
+      applyString(truststorePath, builder::truststorePath);
+      applyString(truststorePassword, builder::truststorePassword);
+      applyString(truststoreType, builder::truststoreType);
 
       applyInt(maxStackFrames, "maxStackFrames", builder::maxStackFrames, diagnostics);
       applyInt(maxAlertsPerWindow, "maxAlertsPerWindow", builder::maxAlertsPerWindow, diagnostics);

@@ -91,6 +91,12 @@ final class Log4j2NtfyBackend implements NtfyBackend {
             .setAsync(String.valueOf(p.isAsync()))
             .setAsyncQueueCapacity(String.valueOf(p.getAsyncQueueCapacity()))
             .setRequireHttpsForCredentials(String.valueOf(p.isRequireHttpsForCredentials()))
+            // No String.valueOf here, unlike the primitives above: these are nullable Strings, and
+            // wrapping a null would produce the literal "null" as a proxy host / trust store path.
+            .setProxy(p.getProxy())
+            .setTruststorePath(p.getTruststorePath())
+            .setTruststorePassword(p.getTruststorePassword())
+            .setTruststoreType(p.getTruststoreType())
             .build();
     appender.start();
     if (!appender.isStarted()) {

@@ -138,6 +138,7 @@ bytecode) · GraalVM native (via the Quarkus extension). See
 | [docs/alert-behavior.md](docs/alert-behavior.md) | Why alerting behaves the way it does: immediate single-error alerts, storm suppression, digest-on-window-close, digest-on-shutdown |
 | [docs/observability.md](docs/observability.md) | The read-only `published`/`suppressed`/`failed` pipeline counters, reading them programmatically, and the classpath-conditional Micrometer binding in the Spring Boot starter |
 | [docs/authentication.md](docs/authentication.md) | The three auth modes (`BearerToken`, `BasicAuth`, `None`) and the "token wins" precedence rule |
+| [docs/network.md](docs/network.md) | Corporate proxies and private CAs: what the JVM already does for you, the `proxy` and `truststore-*` keys that scope both to ntfy alone, the `httpClientCustomizer` escape hatch, and why there is no trust-all switch |
 | [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), and the always-on self-exclusion |
 | [docs/mdc-context.md](docs/mdc-context.md) | `include-mdc-keys` — attaching allow-listed MDC context to alert bodies, its guards, and why there is no wildcard |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |

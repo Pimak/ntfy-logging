@@ -50,6 +50,12 @@ class NtfyConfigurationBindingTest {
       assertThat(c.isEnabled()).isTrue();
       assertThat(c.isAsync()).isTrue();
       assertThat(c.isRequireHttpsForCredentials()).isTrue();
+      // Transport settings stay unset, which is what leaves the JDK's own proxy selector and SSL
+      // context in place — so -Dhttps.proxyHost and -Djavax.net.ssl.trustStore keep working.
+      assertThat(c.getProxy()).isNull();
+      assertThat(c.getTruststorePath()).isNull();
+      assertThat(c.getTruststorePassword()).isNull();
+      assertThat(c.getTruststoreType()).isNull();
     }
   }
 
@@ -82,6 +88,10 @@ class NtfyConfigurationBindingTest {
     properties.put("ntfy.async", false);
     properties.put("ntfy.async-queue-capacity", 64);
     properties.put("ntfy.require-https-for-credentials", false);
+    properties.put("ntfy.proxy", "proxy.corp.example.com:3128");
+    properties.put("ntfy.truststore-path", "/etc/ssl/corp/ca.p12");
+    properties.put("ntfy.truststore-password", "binding-truststore-secret");
+    properties.put("ntfy.truststore-type", "PKCS12");
 
     try (ApplicationContext context = ApplicationContext.run(properties)) {
       NtfyConfiguration c = context.getBean(NtfyConfiguration.class);
@@ -112,6 +122,10 @@ class NtfyConfigurationBindingTest {
       assertThat(c.isAsync()).isFalse();
       assertThat(c.getAsyncQueueCapacity()).isEqualTo(64);
       assertThat(c.isRequireHttpsForCredentials()).isFalse();
+      assertThat(c.getProxy()).isEqualTo("proxy.corp.example.com:3128");
+      assertThat(c.getTruststorePath()).isEqualTo("/etc/ssl/corp/ca.p12");
+      assertThat(c.getTruststorePassword()).isEqualTo("binding-truststore-secret");
+      assertThat(c.getTruststoreType()).isEqualTo("PKCS12");
     }
   }
 

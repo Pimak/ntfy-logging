@@ -129,6 +129,18 @@ public final class ConfigLoader {
       builder.requireHttpsForCredentials(Boolean.parseBoolean(requireHttps.trim()));
     }
 
+    // Transport settings, resolved from ALL THREE layers, classpath ntfy.properties included —
+    // unlike allow-classpath-endpoint above. Same distinction as include-mdc-keys: none of these
+    // can redirect where alerts go. The endpoint stays whatever `url` says; a trust store only
+    // decides which CA is accepted when connecting to it, and a proxy only decides the route taken
+    // to reach it. Neither can send an alert somewhere the operator did not configure.
+    apply(builder::proxy, resolve("proxy", envLookup, fileProps, sysProps));
+    apply(builder::truststorePath, resolve("truststore-path", envLookup, fileProps, sysProps));
+    apply(
+        builder::truststorePassword,
+        resolve("truststore-password", envLookup, fileProps, sysProps));
+    apply(builder::truststoreType, resolve("truststore-type", envLookup, fileProps, sysProps));
+
     return builder.build();
   }
 

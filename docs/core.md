@@ -107,6 +107,8 @@ lives in the cross-cutting reference pages:
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and what a
   hand-built `AlertEvent` is and is not filtered by.
 - **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
+- **[Network](network.md)** — corporate proxies and private CAs, plus the
+  `httpClientCustomizer` escape hatch for anything the declarative keys cannot express.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits.
 - **[Compatibility](compatibility.md)** — tested JDK / GraalVM versions and the ntfy server API
   surface.

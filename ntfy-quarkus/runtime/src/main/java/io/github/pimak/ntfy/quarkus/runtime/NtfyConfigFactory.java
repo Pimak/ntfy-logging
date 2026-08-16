@@ -43,6 +43,10 @@ final class NtfyConfigFactory {
     config.locale().ifPresent(b::locale);
     config.excludedLoggers().ifPresent(b::excludedLoggers);
     config.includeMdcKeys().ifPresent(b::includeMdcKeysCsv);
+    config.proxy().ifPresent(b::proxy);
+    config.truststorePath().ifPresent(b::truststorePath);
+    config.truststorePassword().ifPresent(b::truststorePassword);
+    config.truststoreType().ifPresent(b::truststoreType);
 
     return b.build();
   }

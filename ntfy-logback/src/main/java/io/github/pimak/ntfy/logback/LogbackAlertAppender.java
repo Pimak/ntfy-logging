@@ -54,6 +54,10 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String clickUrl;
   private String actions;
   private String locale;
+  private String proxy;
+  private String truststorePath;
+  private String truststorePassword;
+  private String truststoreType;
   private Integer maxStackFrames;
   private Integer maxAlertsPerWindow;
   private Boolean enabled;
@@ -188,6 +192,42 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     this.locale = locale;
   }
 
+  /**
+   * How to reach the ntfy server: {@code system} (the default) to inherit the JVM's proxy settings,
+   * {@code none} to force a direct connection, or {@code host:port}. XML: {@code
+   * <proxy>proxy.corp.example.com:3128</proxy>}.
+   *
+   * <p>Note the default is not "no proxy": a JDK HTTP client already honors {@code
+   * -Dhttps.proxyHost} and {@code -Dhttp.nonProxyHosts}. Set this only to route ntfy differently
+   * from the rest of the JVM.
+   */
+  public void setProxy(String proxy) {
+    this.proxy = proxy;
+  }
+
+  /**
+   * Trust store holding the CA that signed the ntfy server's certificate — for a self-hosted server
+   * behind a private CA or a TLS-inspecting proxy. Replaces the default trust anchors for ntfy
+   * traffic only, leaving what the rest of the application trusts untouched. XML: {@code
+   * <truststorePath>/etc/ssl/corp/ca.p12</truststorePath>}.
+   */
+  public void setTruststorePath(String truststorePath) {
+    this.truststorePath = truststorePath;
+  }
+
+  /** Password for {@link #setTruststorePath}; omit for an unprotected store or for PEM. */
+  public void setTruststorePassword(String truststorePassword) {
+    this.truststorePassword = truststorePassword;
+  }
+
+  /**
+   * Format of {@link #setTruststorePath}: {@code PKCS12} (the default), {@code JKS}, or {@code PEM}
+   * for a plain {@code ca.crt} certificate file.
+   */
+  public void setTruststoreType(String truststoreType) {
+    this.truststoreType = truststoreType;
+  }
+
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
   }
@@ -274,7 +314,13 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .excludedLoggers(excludedLoggers)
             // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
             // treats null/blank as "no keys", which is exactly the unset default.
-            .includeMdcKeysCsv(includeMdcKeys);
+            .includeMdcKeysCsv(includeMdcKeys)
+            // Also unconditional: core treats null/blank as "unset" for each of these, which leaves
+            // the JDK's own proxy selector and SSL context in place.
+            .proxy(proxy)
+            .truststorePath(truststorePath)
+            .truststorePassword(truststorePassword)
+            .truststoreType(truststoreType);
     if (maxStackFrames != null) {
       builder.maxStackFrames(maxStackFrames);
     }

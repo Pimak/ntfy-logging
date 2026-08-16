@@ -132,6 +132,10 @@ public class NtfyAutoConfiguration implements DisposableBean {
         .asyncEnabled(p.isAsync())
         .asyncQueueCapacity(p.getAsyncQueueCapacity())
         .requireHttpsForCredentials(p.isRequireHttpsForCredentials())
+        .proxy(p.getProxy())
+        .truststorePath(p.getTruststorePath())
+        .truststorePassword(p.getTruststorePassword())
+        .truststoreType(p.getTruststoreType())
         .build();
     return new NtfyClient(config);
   }

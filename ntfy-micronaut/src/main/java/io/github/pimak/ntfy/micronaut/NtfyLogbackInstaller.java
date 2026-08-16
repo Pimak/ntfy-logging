@@ -145,6 +145,10 @@ public class NtfyLogbackInstaller implements ApplicationEventListener<StartupEve
     appender.setAsync(configuration.isAsync());
     appender.setAsyncQueueCapacity(configuration.getAsyncQueueCapacity());
     appender.setRequireHttpsForCredentials(configuration.isRequireHttpsForCredentials());
+    appender.setProxy(configuration.getProxy());
+    appender.setTruststorePath(configuration.getTruststorePath());
+    appender.setTruststorePassword(configuration.getTruststorePassword());
+    appender.setTruststoreType(configuration.getTruststoreType());
     appender.start();
     if (!appender.isStarted()) {
       // The engine declined to activate and has already said why through the StatusManager (an

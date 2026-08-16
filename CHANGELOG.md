@@ -8,6 +8,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Corporate proxy and private-CA support, via a new `proxy` key, a `truststore-path`/
+  `truststore-password`/`truststore-type` trio, and a programmatic `httpClientCustomizer` escape
+  hatch.** A self-hosted ntfy behind a TLS-inspecting proxy or an internal CA is the single most
+  common way this library becomes unusable in an enterprise, and the symptom — `PKIX path building
+  failed`, or a connection that simply never completes — looks like a bug in the alerting rather
+  than a trust problem. Worth stating precisely what was and was not possible before, because it is
+  not what it looks like: the JDK's `HttpClient`, which the engine has always built bare, **already**
+  routes through `ProxySelector.getDefault()` and already uses `SSLContext.getDefault()`, so
+  `-Dhttps.proxyHost`, `-Dhttp.nonProxyHosts` and `-Djavax.net.ssl.trustStore` have been honored all
+  along with no code at all. What was impossible was **scoping** either of them. `javax.net.ssl.trustStore`
+  does not add a corporate CA to the JDK's roots, it replaces `cacerts` wholesale — so trusting an
+  internal CA that way breaks every other TLS connection the application makes, and the honest
+  workaround (a merged store rebuilt on each JDK upgrade) is worse than the problem. Equally, a
+  JVM-wide proxy set for internet egress often cannot reach an *internal* ntfy server, and on many
+  platforms an operator owns `application.yml` but not the container entrypoint. The new keys apply
+  to the ntfy client and nothing else. `proxy` takes `system` (the default, and a genuine no-op that
+  inherits the JVM's selector), `none` to force a direct connection out from under a JVM-wide proxy,
+  or `host:port` (IPv6 bracketed). `truststore-type` accepts `PKCS12` (default), `JKS`, and **`PEM`**
+  — the last one deliberately, because on Kubernetes a corporate CA arrives as a `ca.crt` mounted
+  from a ConfigMap or projected by cert-manager, and reading it directly removes a `keytool -import`
+  step and a second artifact from every image. The configured store **replaces** the default anchors
+  rather than extending them; that is the point of scoping it, and it is documented as such. The two
+  settings get deliberately opposite failure policies, matched to what a bad value costs: a
+  malformed `proxy` warns and falls back to the JVM default selector, because a typo in a routing
+  hint must never silence alerting, while an unloadable trust store **refuses activation** the way
+  an invalid `url`/`topic` does — silently reverting to the default CAs would publish over trust the
+  operator explicitly did not pin, and every handshake would have failed anyway. Neither diagnostic
+  echoes the store path or its password. Two things are deliberately **not** offered, and both are
+  documented with their reasoning: proxy Basic authentication, which the JDK disables on HTTPS
+  `CONNECT` by default (`jdk.http.auth.tunneling.disabledSchemes=Basic` in `conf/net.properties`) so
+  that the `Authenticator` is never consulted and the failure is silent — undoing it is a JVM-global
+  security change that is the operator's call, and setting `Proxy-Authorization` on the request
+  instead would leak proxy credentials *to the ntfy server*, since that header rides inside the
+  tunnel; and any `insecure-skip-tls-verify`/trust-all switch, which would contradict
+  `require-https-for-credentials` outright and turn anyone on the network path into a credential
+  harvester with a full view of your stack traces — `truststore-path` solves the legitimate
+  self-signed case at the same operator effort. Both are reachable through `httpClientCustomizer`
+  (`UnaryOperator<HttpClient.Builder>`, applied last so it can override every declarative setting),
+  which also covers mutual TLS, a hand-built `SSLContext`, and PAC-driven routing; it is
+  builder-only and has no XML/YAML spelling on purpose, since a reflectively-instantiated class name
+  would be hostile to GraalVM native image. Native image is otherwise unaffected: the store is read
+  and the `SSLContext` built at RUNTIME_INIT, and a proxy address is kept unresolved, so nothing from
+  the build machine is baked into the image. Available on every surface: `-Dntfy.proxy` /
+  `NTFY_PROXY` / `ntfy.properties` `ntfy.proxy` (and likewise `truststore-path`,
+  `truststore-password`, `truststore-type`), Logback XML `<proxy>`/`<truststorePath>`/
+  `<truststorePassword>`/`<truststoreType>`, the Log4j2 `<Ntfy>` element's `proxy`/`truststorePath`/
+  `truststorePassword` (marked `sensitive`)/`truststoreType` attributes, Spring `ntfy.proxy` and
+  `ntfy.truststore-*`, Micronaut the same, Quarkus `quarkus.ntfy.proxy` and
+  `quarkus.ntfy.truststore-*`, and `NtfyConfig.Builder.proxy(String)` /
+  `.truststorePath(String)` / `.truststorePassword(String)` / `.truststoreType(String)` /
+  `.httpClientCustomizer(UnaryOperator)` for programmatic core users. All five are unset by default,
+  and unset means the HTTP client's proxy selector and SSL context are not touched at all — so
+  existing deployments, including those relying on the JVM-wide switches, are byte-for-byte
+  unchanged. See [docs/network.md](docs/network.md), the feature's own page.
 - **MDC context in alert bodies, via a new opt-in `include-mdc-keys` allow-list.** Until now an alert
   said WHAT broke — message, logger, cause chain, root-cause frames — but never for WHOM or in WHICH
   request, so acting on one still meant going back to centralized logs, exactly the trip the alert

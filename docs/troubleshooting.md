@@ -73,6 +73,8 @@ runtime.
 | `configured priority/tags value contains non-printable-ASCII characters — the invalid header will be omitted from publishes` | warn | One of `error-priority`/`digest-priority`/`error-tags`/`digest-tags` contains a character outside printable ASCII (e.g. a literal emoji instead of a shortcode). That header is omitted from publishes instead of aborting them. | Use ntfy shortcodes (e.g. `rotating_light`), not literal emoji, and ASCII priority names/numbers. |
 | `ntfy: endpoint URL comes ONLY from a classpath ntfy.properties … refusing to auto-install alerting … for supply-chain safety` | warn (the Logback/JUL auto-installs and `NtfyLog4j2Installer` only) | The endpoint URL was supplied only by a `ntfy.properties` found on the classpath (no `NTFY_URL` env var or `ntfy.url` system property), and the `allow-classpath-endpoint` opt-in is not set. Any jar can carry such a file, so the auto-install refuses to activate rather than send your error logs to a destination the classpath chose. | If the file is yours, opt in with `-Dntfy.allow-classpath-endpoint=true` / `NTFY_ALLOW_CLASSPATH_ENDPOINT=true`, or set the URL via env/sysprop. If you don't recognize it, find which dependency ships it — it is trying to redirect your error logs. |
 | `ntfy: endpoint URL comes from a classpath ntfy.properties … make sure that file is one you trust` | warn (the Logback/JUL auto-installs and `NtfyLog4j2Installer` only) | The zero-code auto-install activated from a `ntfy.properties` found on the classpath (with the `allow-classpath-endpoint` opt-in set), with no `NTFY_URL` env var or `ntfy.url` system property set. The destination is named loudly. | If the file is yours, no action. If you don't recognize it, find which dependency ships it — it is redirecting your error logs. |
+| `truststore could not be loaded (unreadable path, wrong password, or wrong truststore-type) — engine disabled` | warn | `truststore-path` is set but the file cannot be read or parsed. The engine refuses activation rather than fall back to the default trust material, which would publish over a CA you never pinned without saying so. The path and password are deliberately not echoed. | Check the path is readable by the application user, that `truststore-password` matches, and that `truststore-type` matches the file (`PKCS12` for `.p12`, `JKS` for a legacy keystore, `PEM` for a text `ca.crt`). See [network.md](network.md). |
+| `proxy must be 'system', 'none', or 'host:port' — falling back to the JVM default proxy selector` | warn | `proxy` is neither keyword nor a valid `host:port`. Alerting still activates on the JVM's default proxy selector — a routing typo must not silence alerts. The offending value is not echoed (a proxy URL can carry embedded userinfo). | Fix the value, or remove it to inherit the JVM's proxy settings. Bracket IPv6 literals: `[2001:db8::1]:3128`. See [network.md](network.md). |
 
 ## Common scenarios
 
@@ -101,6 +103,26 @@ dropping from the end — so a large context block costs trailing frames by desi
 **"Alerts stopped during a burst of errors."** Expected storm-resilience (rate limiting), not a
 failure — the suppressed count is folded into the next periodic digest. See
 [alert-behavior.md](alert-behavior.md).
+
+**"`PKIX path building failed` / `unable to find valid certification path to requested target`."**
+The ntfy server presents a certificate signed by a CA the JDK does not trust — a self-hosted server
+with a private CA, or a TLS-inspecting proxy re-signing traffic. The publish fails and the failure
+shows up as `ntfy publish failed for topic '<topic>'` with no HTTP status (it never got that far).
+Point `truststore-path` at the signing CA (`truststore-type: PEM` reads a plain `ca.crt` directly).
+See [network.md](network.md).
+
+**"Publishing times out or is refused, but the server is up."** If a corporate proxy is required for
+outbound traffic, check whether the JVM already knows about it: `-Dhttps.proxyHost`/`-Dhttps.proxyPort`
+are honored with no configuration on our side. If the JVM-wide proxy exists but cannot reach an
+*internal* ntfy server, set `proxy: none` to bypass it for ntfy only; to use a different proxy than
+the rest of the JVM, set `proxy: host:port`. Note that `HttpClient.proxy()` reports empty even while
+proxying, so it cannot be used to check. See [network.md](network.md).
+
+**"The `NtfyClient` bean fails the application startup with `ntfy truststore could not be loaded`."**
+Deliberate: the bean exists only because you asked for it, so a trust store you pinned but that
+cannot be read is a hard error rather than a silent fall back to the default CAs. Fix the path,
+password or type — the diagnostic omits all three on purpose. The *appender* path degrades more
+gently, refusing only to activate alerting and leaving the application running.
 
 ## See also
 

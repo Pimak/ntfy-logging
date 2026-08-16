@@ -64,6 +64,10 @@ public class NtfyClientFactory {
         .asyncEnabled(configuration.isAsync())
         .asyncQueueCapacity(configuration.getAsyncQueueCapacity())
         .requireHttpsForCredentials(configuration.isRequireHttpsForCredentials())
+        .proxy(configuration.getProxy())
+        .truststorePath(configuration.getTruststorePath())
+        .truststorePassword(configuration.getTruststorePassword())
+        .truststoreType(configuration.getTruststoreType())
         .build();
     return new NtfyClient(config);
   }

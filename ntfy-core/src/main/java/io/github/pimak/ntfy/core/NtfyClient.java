@@ -24,9 +24,23 @@ public final class NtfyClient implements AutoCloseable {
   private final NtfyPublisher publisher;
   private final AuthMode authMode;
 
+  /**
+   * @throws IllegalStateException if a {@code truststore-path} is configured but cannot be loaded.
+   *     Fail-fast is right here, unlike in {@link AlertEngine}: this client is constructed only
+   *     because someone explicitly asked for it (a Spring/Micronaut/Quarkus bean, or a direct
+   *     {@code new}), so silently publishing with the default trust material — against a CA the
+   *     operator did not pin — would be worse than not starting. The message carries no store path
+   *     and no password.
+   */
   public NtfyClient(NtfyConfig config) {
     this.config = config;
-    this.httpClient = HttpClient.newBuilder().connectTimeout(config.getConnectTimeout()).build();
+    try {
+      this.httpClient = NtfyHttpClients.create(config, config.getConnectTimeout(), null);
+    } catch (NtfyHttpClients.NtfyTlsException e) {
+      throw new IllegalStateException(
+          "ntfy truststore could not be loaded (unreadable path, wrong password, or wrong"
+              + " truststore-type)", e);
+    }
     this.publisher = new NtfyPublisher(httpClient, config.getRequestTimeout());
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());

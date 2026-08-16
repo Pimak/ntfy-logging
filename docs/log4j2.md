@@ -61,8 +61,9 @@ keeps the engine default. All attributes are string-valued (durations use the sa
 
 `url`, `topic`, `token`, `username`, `password`, `title`, `appName`, `maxStackFrames`,
 `connectTimeout`, `requestTimeout`, `maxAlertsPerWindow`, `suppressionWindow`, `errorPriority`,
-`digestPriority`, `errorTags`, `digestTags`, `clickUrl`, `actions`, `excludedLoggers`, `locale`,
-`enabled`, `async`, `asyncQueueCapacity`, `requireHttpsForCredentials`.
+`digestPriority`, `errorTags`, `digestTags`, `clickUrl`, `actions`, `excludedLoggers`,
+`includeMdcKeys`, `locale`, `enabled`, `async`, `asyncQueueCapacity`,
+`requireHttpsForCredentials`, `proxy`, `truststorePath`, `truststorePassword`, `truststoreType`.
 
 This is the same roster as the Logback appender's XML setters — the camelCase spelling of each
 canonical key — so the per-key reference in [configuration.md](configuration.md) applies unchanged.

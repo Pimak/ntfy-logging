@@ -278,6 +278,31 @@ public final class AlertEngine {
       diagnostics.warn(messages.statusInvalidRequestTimeout());
     }
 
+    // Transport validation, still BEFORE any resource is acquired — same rule as the timeouts
+    // above. The two settings get opposite policies, matched to what a bad value actually costs:
+    //
+    //  - A malformed `proxy` warns and falls back to the JVM default selector. The default may
+    //    well reach the server anyway, and a typo in a routing hint must not silence alerting.
+    //  - An unloadable trust store REFUSES activation, like an invalid url/topic. Falling back to
+    //    the default trust material would silently change WHO the process trusts — an operator who
+    //    pinned a private CA would get public-CA trust instead and never be told. Every publish
+    //    would fail the handshake regardless, so refusing loudly is also the honest outcome.
+    if (config.getProxy() != null && !config.getProxy().isBlank()) {
+      try {
+        NtfyHttpClients.proxySelector(config.getProxy());
+      } catch (IllegalArgumentException e) {
+        diagnostics.warn(messages.statusInvalidProxy());
+      }
+    }
+    if (config.getTruststorePath() != null && !config.getTruststorePath().isBlank()) {
+      try {
+        NtfyHttpClients.sslContext(config);
+      } catch (NtfyHttpClients.NtfyTlsException e) {
+        diagnostics.warn(messages.statusInvalidTruststore());
+        return;
+      }
+    }
+
     this.executor =
         Executors.newFixedThreadPool(
             2,
@@ -286,11 +311,7 @@ public final class AlertEngine {
               t.setDaemon(true);
               return t;
             });
-    this.httpClient =
-        HttpClient.newBuilder()
-            .connectTimeout(effectiveConnectTimeout)
-            .executor(executor)
-            .build();
+    this.httpClient = NtfyHttpClients.create(config, effectiveConnectTimeout, executor);
     this.publisher = new NtfyPublisher(httpClient, effectiveRequestTimeout);
 
     this.rateLimiter = new AlertRateLimiter(config.getMaxAlertsPerWindow(), windowMillis);

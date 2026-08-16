@@ -121,3 +121,5 @@ JUL/Quarkus paths) — see [troubleshooting.md](troubleshooting.md).
   live in each framework.
 - [troubleshooting.md](troubleshooting.md) — the exact wording of the token-wins warning and every
   other diagnostic the engine can produce.
+- [network.md](network.md) — reaching the server at all: corporate proxies, and trusting a private
+  CA so an `https://` endpoint verifies instead of failing with `PKIX path building failed`.

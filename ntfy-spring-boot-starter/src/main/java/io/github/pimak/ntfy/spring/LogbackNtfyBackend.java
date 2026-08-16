@@ -81,6 +81,10 @@ final class LogbackNtfyBackend implements NtfyBackend {
     appender.setAsync(p.isAsync());
     appender.setAsyncQueueCapacity(p.getAsyncQueueCapacity());
     appender.setRequireHttpsForCredentials(p.isRequireHttpsForCredentials());
+    appender.setProxy(p.getProxy());
+    appender.setTruststorePath(p.getTruststorePath());
+    appender.setTruststorePassword(p.getTruststorePassword());
+    appender.setTruststoreType(p.getTruststoreType());
     appender.start();
     if (!appender.isStarted()) {
       // The engine declined to activate and has already said why through the StatusManager (an

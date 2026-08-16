@@ -92,6 +92,13 @@ scheduler are all created at `RUNTIME_INIT` (never build-time / static-init), wh
 extension native-safe. The `ntfy-quarkus/integration-tests` module native-compiles a real app and
 runs its `@QuarkusIntegrationTest` against the native binary in the CI `native-smoke` job.
 
+A configured `truststore-path` is native-safe for the same reason: the trust store is read and the
+`SSLContext` built inside `AlertEngine.start()` / the `NtfyClient` constructor, at image **run**
+time, never in a static initializer — so the store is the one present on the deployed container's
+filesystem, not whatever existed on the build machine. The same applies to `proxy`, whose address is
+kept deliberately unresolved so no DNS result is baked into the image. See
+[network.md](network.md).
+
 For a **hand-rolled** (non-Quarkus) native build of `ntfy-core` / `ntfy-logback`, `ntfy-core` ships
 native-image metadata under
 `META-INF/native-image/io.github.pimak/ntfy-core/` — `--enable-url-protocols=https` (so the JDK

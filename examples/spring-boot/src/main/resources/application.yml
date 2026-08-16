@@ -20,3 +20,11 @@ ntfy:
   # application context closes, so suppressed errors are never lost.
   # max-alerts-per-window: 3
   # suppression-window: 3m
+
+  # Self-hosted ntfy behind a corporate proxy or a private CA. Neither is needed by default: a JDK
+  # HttpClient already honors -Dhttps.proxyHost and -Djavax.net.ssl.trustStore. Set these to scope
+  # either to ntfy alone — notably, a JVM-wide truststore REPLACES cacerts for every TLS connection
+  # the application makes, while truststore-path affects only ntfy. See docs/network.md.
+  # proxy: proxy.corp.example.com:3128   # or 'none' to bypass a JVM-wide proxy for ntfy only
+  # truststore-path: /etc/ssl/corp/ca.crt
+  # truststore-type: PEM                 # PKCS12 (default), JKS, or PEM for a plain ca.crt

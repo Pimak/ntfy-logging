@@ -227,6 +227,27 @@ final class AlertMessages {
   }
 
   /**
+   * Fixed message emitted from {@code start()} when a configured {@code truststore-path} cannot be
+   * turned into a trust store — the engine REFUSES activation rather than fall back to the default
+   * trust material, which would silently change who the process trusts. Credential-safe: fixed text
+   * only, never echoing the store path or its password.
+   */
+  String statusInvalidTruststore() {
+    return get("status.invalidTruststore");
+  }
+
+  /**
+   * Fixed message emitted from {@code start()} when {@code proxy} is neither {@code system}/{@code
+   * none} nor a valid {@code host:port} — the engine falls back to the JVM's default proxy selector.
+   * Warn-and-continue rather than refuse: a mistyped proxy must not silence alerting outright, since
+   * the default selector may well reach the server anyway. Credential-safe: fixed text only, never
+   * interpolating the offending value (a proxy URL can carry embedded userinfo).
+   */
+  String statusInvalidProxy() {
+    return get("status.invalidProxy");
+  }
+
+  /**
    * Fixed, generic message for an unexpected {@code RuntimeException} inside {@code submit()}.
    * Deliberately never concatenates {@code e.getMessage()} — the exception itself is still passed to
    * {@code error(String, Throwable)} for the diagnostics sink to record, but the *text* here never

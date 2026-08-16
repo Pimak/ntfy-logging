@@ -138,4 +138,30 @@ public interface NtfyRuntimeConfig {
    */
   @WithDefault("true")
   boolean requireHttpsForCredentials();
+
+  /**
+   * How to reach the ntfy server: {@code system} (the default when unset) to inherit the JVM's proxy
+   * settings, {@code none} to force a direct connection, or {@code host:port}.
+   *
+   * <p>Optional rather than {@code @WithDefault("system")} on purpose: "unset" must mean "do not
+   * touch the client's proxy selector at all", which is what leaves the JDK default — and therefore
+   * {@code -Dhttps.proxyHost} / {@code -Dhttp.nonProxyHosts} — working exactly as before.
+   */
+  Optional<String> proxy();
+
+  /**
+   * Path to a trust store holding the CA that signed the ntfy server's certificate, for a
+   * self-hosted server behind a private CA or a TLS-inspecting proxy. Replaces the default trust
+   * anchors for ntfy traffic only. Unset uses the JDK default trust material.
+   */
+  Optional<String> truststorePath();
+
+  /** Password for {@link #truststorePath()}; omit for an unprotected store or for PEM. */
+  Optional<String> truststorePassword();
+
+  /**
+   * Format of {@link #truststorePath()}: {@code PKCS12} (assumed when unset), {@code JKS}, or
+   * {@code PEM} for a plain {@code ca.crt} certificate file.
+   */
+  Optional<String> truststoreType();
 }

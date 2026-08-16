@@ -110,6 +110,27 @@
       "type": "java.lang.Boolean",
       "description": "Strict mode: refuse to activate alerting (instead of only warning) when credentials would be sent over a plain http:// endpoint. Set to false to restore the pre-2.0 warn-and-activate behavior.",
       "defaultValue": true
+    },
+    {
+      "name": "ntfy.proxy",
+      "type": "java.lang.String",
+      "description": "How to reach the ntfy server: 'system' (default) to inherit the JVM's proxy settings, 'none' to force a direct connection, or 'host:port'. Note the default is not 'no proxy' — a JDK HTTP client already honors -Dhttps.proxyHost and -Dhttp.nonProxyHosts; set this only to route ntfy differently from the rest of the JVM."
+    },
+    {
+      "name": "ntfy.truststore-path",
+      "type": "java.lang.String",
+      "description": "Path to a trust store holding the CA that signed the ntfy server's certificate, for a self-hosted server behind a private CA or a TLS-inspecting proxy. Replaces the default trust anchors for ntfy traffic only, leaving the rest of the application's TLS trust untouched. Unset uses the JDK default trust material."
+    },
+    {
+      "name": "ntfy.truststore-password",
+      "type": "java.lang.String",
+      "description": "Password for ntfy.truststore-path. Omit for an unprotected store or when truststore-type is PEM."
+    },
+    {
+      "name": "ntfy.truststore-type",
+      "type": "java.lang.String",
+      "description": "Format of ntfy.truststore-path: PKCS12 (default), JKS, or PEM for a plain ca.crt certificate file.",
+      "defaultValue": "PKCS12"
     }
   ]
 }

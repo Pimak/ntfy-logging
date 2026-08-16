@@ -45,6 +45,12 @@ public class NtfyConfiguration {
   private boolean async = true;
   private int asyncQueueCapacity = 1024;
   private boolean requireHttpsForCredentials = true;
+  // Transport settings default to null ("unset"), which leaves the JDK's own proxy selector and SSL
+  // context in place — so -Dhttps.proxyHost and -Djavax.net.ssl.trustStore keep working untouched.
+  private String proxy;
+  private String truststorePath;
+  private String truststorePassword;
+  private String truststoreType;
 
   /**
    * Base URL of the ntfy server, e.g. {@code https://ntfy.sh}. Alerting stays off until both this
@@ -503,5 +509,81 @@ public class NtfyConfiguration {
    */
   public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
     this.requireHttpsForCredentials = requireHttpsForCredentials;
+  }
+
+  /**
+   * How to reach the ntfy server: {@code system} to inherit the JVM's proxy settings, {@code none}
+   * to force a direct connection, or {@code host:port}. Unset behaves as {@code system}, which is
+   * not the same as "no proxy": a JDK HTTP client already honors {@code -Dhttps.proxyHost}.
+   *
+   * @return the proxy setting, or {@code null} when unset
+   */
+  public String getProxy() {
+    return proxy;
+  }
+
+  /**
+   * Sets how to reach the ntfy server.
+   *
+   * @param proxy {@code system}, {@code none}, or {@code host:port}
+   */
+  public void setProxy(String proxy) {
+    this.proxy = proxy;
+  }
+
+  /**
+   * Trust store holding the CA that signed the ntfy server's certificate — for a self-hosted server
+   * behind a private CA or a TLS-inspecting proxy. Replaces the default trust anchors for ntfy
+   * traffic only, leaving the rest of the application's TLS trust untouched.
+   *
+   * @return the trust store path, or {@code null} to use the JDK default trust material
+   */
+  public String getTruststorePath() {
+    return truststorePath;
+  }
+
+  /**
+   * Sets the trust store used for ntfy connections.
+   *
+   * @param truststorePath filesystem path to the trust store
+   */
+  public void setTruststorePath(String truststorePath) {
+    this.truststorePath = truststorePath;
+  }
+
+  /**
+   * Password protecting {@link #getTruststorePath()}.
+   *
+   * @return the trust store password, or {@code null} for an unprotected store or for PEM
+   */
+  public String getTruststorePassword() {
+    return truststorePassword;
+  }
+
+  /**
+   * Sets the trust store password.
+   *
+   * @param truststorePassword the password, or {@code null} when none is needed
+   */
+  public void setTruststorePassword(String truststorePassword) {
+    this.truststorePassword = truststorePassword;
+  }
+
+  /**
+   * Format of {@link #getTruststorePath()}.
+   *
+   * @return {@code PKCS12}, {@code JKS}, or {@code PEM}; {@code null} means {@code PKCS12}
+   */
+  public String getTruststoreType() {
+    return truststoreType;
+  }
+
+  /**
+   * Sets the trust store format.
+   *
+   * @param truststoreType {@code PKCS12} (default), {@code JKS}, or {@code PEM}
+   */
+  public void setTruststoreType(String truststoreType) {
+    this.truststoreType = truststoreType;
   }
 }

@@ -719,6 +719,84 @@ class AlertEngineStartValidationTest {
   }
 
   @Test
+  void malformedProxy_warnsButStillActivates() {
+    // Opposite policy to the trust store below, and deliberately so: a mistyped route hint must not
+    // silence alerting, because the JVM's default proxy selector may well reach the server anyway.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    NtfyConfig config = NtfyConfig.builder()
+        .url("https://ntfy.example.com")
+        .topic("alerts")
+        .proxy("proxy.corp.example.com")  // no port
+        .build();
+    AlertEngine engine = new AlertEngine(config, diagnostics);
+
+    engine.start();
+    try {
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(messages.statusInvalidProxy());
+    } finally {
+      engine.stop();
+    }
+  }
+
+  @Test
+  void validProxyKeywords_produceNoWarning() {
+    for (String value : List.of("system", "none", "proxy.corp.example.com:3128")) {
+      CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+      NtfyConfig config = NtfyConfig.builder()
+          .url("https://ntfy.example.com")
+          .topic("alerts")
+          .proxy(value)
+          .build();
+      AlertEngine engine = new AlertEngine(config, diagnostics);
+
+      engine.start();
+      try {
+        assertThat(diagnostics.warns).as("proxy=%s", value)
+            .doesNotContain(messages.statusInvalidProxy());
+      } finally {
+        engine.stop();
+      }
+    }
+  }
+
+  @Test
+  void unloadableTruststore_refusesActivationWithWarning() {
+    // Refuse, never fall back: silently reverting to the default trust material would publish over
+    // a CA the operator did not pin, with no diagnostic saying so. Sibling of the invalid-url and
+    // invalid-topic refusals — no resource is acquired and `started` stays false.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    NtfyConfig config = NtfyConfig.builder()
+        .url("https://ntfy.example.com")
+        .topic("alerts")
+        .truststorePath("/nonexistent/corp-ca.p12")
+        .build();
+    AlertEngine engine = new AlertEngine(config, diagnostics);
+
+    engine.start();
+
+    assertThat(engine.isStarted()).isFalse();
+    assertThat(diagnostics.warns).contains(messages.statusInvalidTruststore());
+  }
+
+  @Test
+  void truststoreDiagnostic_neverEchoesThePathOrPassword() {
+    // The catalog is credential-safe by construction; this message must not become the exception.
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    NtfyConfig config = NtfyConfig.builder()
+        .url("https://ntfy.example.com")
+        .topic("alerts")
+        .truststorePath("/very/secret/location/corp-ca.p12")
+        .truststorePassword("hunter2")
+        .build();
+
+    new AlertEngine(config, diagnostics).start();
+
+    assertThat(diagnostics.warns)
+        .noneMatch(line -> line.contains("hunter2") || line.contains("/very/secret/location"));
+  }
+
+  @Test
   void includeMdcKeys_listForm_normalizesLikeTheCsvForm() {
     // The two spellings of one setting must not disagree about what the allow-list contains.
     assertThat(

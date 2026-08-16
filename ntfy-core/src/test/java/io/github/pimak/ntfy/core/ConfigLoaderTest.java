@@ -440,6 +440,70 @@ class ConfigLoaderTest {
         .isFalse();
   }
 
+  // --- Transport (proxy / trust store) ----------------------------------------------------------
+
+  // All four default to "unset" rather than to a value, and that distinction is load-bearing: unset
+  // means the JDK's own default proxy selector and default SSL context stay in place, so
+  // -Dhttps.proxyHost and -Djavax.net.ssl.trustStore keep working exactly as they did before these
+  // keys existed. A non-null default here would silently take that over.
+  @Test
+  void transportSettings_defaultToUnset() {
+    NtfyConfig config = ConfigLoader.load(k -> null, null, null);
+
+    assertThat(config.getProxy()).isNull();
+    assertThat(config.getTruststorePath()).isNull();
+    assertThat(config.getTruststorePassword()).isNull();
+    assertThat(config.getTruststoreType()).isNull();
+    assertThat(config.getHttpClientCustomizer()).isNull();
+  }
+
+  @Test
+  void transportSettings_areWiredThroughFromEnv() {
+    Map<String, String> vars = new HashMap<>();
+    vars.put("NTFY_PROXY", "proxy.corp.example.com:3128");
+    vars.put("NTFY_TRUSTSTORE_PATH", "/etc/ssl/corp/ca.p12");
+    vars.put("NTFY_TRUSTSTORE_PASSWORD", "s3cret");
+    vars.put("NTFY_TRUSTSTORE_TYPE", "PKCS12");
+
+    NtfyConfig config = ConfigLoader.load(env(vars), null, null);
+
+    assertThat(config.getProxy()).isEqualTo("proxy.corp.example.com:3128");
+    assertThat(config.getTruststorePath()).isEqualTo("/etc/ssl/corp/ca.p12");
+    assertThat(config.getTruststorePassword()).isEqualTo("s3cret");
+    assertThat(config.getTruststoreType()).isEqualTo("PKCS12");
+  }
+
+  @Test
+  void transportSettings_areWiredThroughFromSystemProperties() {
+    Properties sys = props(
+        "ntfy.proxy", "none",
+        "ntfy.truststore-path", "/etc/ssl/corp/ca.crt",
+        "ntfy.truststore-password", "s3cret",
+        "ntfy.truststore-type", "PEM");
+
+    NtfyConfig config = ConfigLoader.load(k -> null, null, sys);
+
+    assertThat(config.getProxy()).isEqualTo("none");
+    assertThat(config.getTruststorePath()).isEqualTo("/etc/ssl/corp/ca.crt");
+    assertThat(config.getTruststorePassword()).isEqualTo("s3cret");
+    assertThat(config.getTruststoreType()).isEqualTo("PEM");
+  }
+
+  @Test
+  void transportSettings_areReadableFromAClasspathPropertiesFile() {
+    // Deliberately resolved from ALL THREE layers, unlike allow-classpath-endpoint. Neither key can
+    // redirect where an alert goes: the endpoint stays whatever `url` says, a trust store only
+    // decides which CA is accepted on the way there, and a proxy only decides the route taken.
+    Properties file = props(
+        "ntfy.proxy", "proxy.corp.example.com:8080",
+        "ntfy.truststore-path", "/etc/ssl/corp/ca.p12");
+
+    NtfyConfig config = ConfigLoader.load(k -> null, file, null);
+
+    assertThat(config.getProxy()).isEqualTo("proxy.corp.example.com:8080");
+    assertThat(config.getTruststorePath()).isEqualTo("/etc/ssl/corp/ca.p12");
+  }
+
   @Test
   void allNullLayers_yieldAllDefaultsWithoutNpe() {
     NtfyConfig defaults = NtfyConfig.builder().build();

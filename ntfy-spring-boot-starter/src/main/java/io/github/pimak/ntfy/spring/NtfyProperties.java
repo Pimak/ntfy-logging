@@ -37,6 +37,12 @@ public class NtfyProperties {
   private boolean async = true;
   private int asyncQueueCapacity = 1024;
   private boolean requireHttpsForCredentials = true;
+  // Transport settings default to null ("unset"), which leaves the JDK's own proxy selector and SSL
+  // context in place — so -Dhttps.proxyHost and -Djavax.net.ssl.trustStore keep working untouched.
+  private String proxy;
+  private String truststorePath;
+  private String truststorePassword;
+  private String truststoreType;
 
   public String getUrl() {
     return url;
@@ -246,5 +252,37 @@ public class NtfyProperties {
 
   public void setRequireHttpsForCredentials(boolean requireHttpsForCredentials) {
     this.requireHttpsForCredentials = requireHttpsForCredentials;
+  }
+
+  public String getProxy() {
+    return proxy;
+  }
+
+  public void setProxy(String proxy) {
+    this.proxy = proxy;
+  }
+
+  public String getTruststorePath() {
+    return truststorePath;
+  }
+
+  public void setTruststorePath(String truststorePath) {
+    this.truststorePath = truststorePath;
+  }
+
+  public String getTruststorePassword() {
+    return truststorePassword;
+  }
+
+  public void setTruststorePassword(String truststorePassword) {
+    this.truststorePassword = truststorePassword;
+  }
+
+  public String getTruststoreType() {
+    return truststoreType;
+  }
+
+  public void setTruststoreType(String truststoreType) {
+    this.truststoreType = truststoreType;
   }
 }

@@ -1,10 +1,12 @@
 package io.github.pimak.ntfy.core;
 
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 
 /**
  * Immutable, framework-neutral configuration for the ntfy engine and client. Built exclusively
@@ -46,6 +48,11 @@ public final class NtfyConfig {
   private final boolean endpointFromClasspathFile;
   private final boolean allowClasspathEndpoint;
   private final Locale locale;
+  private final String proxy;
+  private final String truststorePath;
+  private final String truststorePassword;
+  private final String truststoreType;
+  private final UnaryOperator<HttpClient.Builder> httpClientCustomizer;
 
   private NtfyConfig(Builder b) {
     this.url = b.url;
@@ -76,6 +83,11 @@ public final class NtfyConfig {
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
     this.allowClasspathEndpoint = b.allowClasspathEndpoint;
     this.locale = b.locale;
+    this.proxy = b.proxy;
+    this.truststorePath = b.truststorePath;
+    this.truststorePassword = b.truststorePassword;
+    this.truststoreType = b.truststoreType;
+    this.httpClientCustomizer = b.httpClientCustomizer;
   }
 
   /** Returns a fresh {@link Builder} pre-loaded with every default. */
@@ -258,6 +270,60 @@ public final class NtfyConfig {
   }
 
   /**
+   * How the outbound HTTP client reaches the ntfy server: {@code "system"} (or {@code null}/blank —
+   * the default) to inherit the JVM's default proxy selector, {@code "none"} to connect directly, or
+   * a literal {@code "host:port"} to route through that proxy.
+   *
+   * <p>Note that the default is NOT "no proxy": a JDK {@code HttpClient} already routes through
+   * {@link java.net.ProxySelector#getDefault()}, so {@code -Dhttps.proxyHost} and {@code
+   * -Dhttp.nonProxyHosts} are honored out of the box. The value of this setting is scoping — routing
+   * ntfy through a proxy the rest of the JVM does not use, or forcing ntfy direct when the JVM-wide
+   * proxy cannot reach it.
+   */
+  public String getProxy() {
+    return proxy;
+  }
+
+  /**
+   * Filesystem path to a trust store holding the CA that signed the ntfy server's certificate, or
+   * {@code null}/blank (the default) to use the JDK's default trust material — which already honors
+   * {@code -Djavax.net.ssl.trustStore}.
+   *
+   * <p>The configured store REPLACES the default trust anchors for ntfy traffic rather than adding
+   * to them. That scoping is the point: unlike the JVM-wide switch, which swaps {@code cacerts} out
+   * from under every TLS connection the application makes, this affects only the ntfy client.
+   */
+  public String getTruststorePath() {
+    return truststorePath;
+  }
+
+  /**
+   * Password protecting {@link #getTruststorePath()}. {@code null}/blank skips the integrity check,
+   * which is valid for an unprotected store and always correct for {@code PEM}.
+   */
+  public String getTruststorePassword() {
+    return truststorePassword;
+  }
+
+  /**
+   * Format of {@link #getTruststorePath()}: {@code PKCS12} (the default when unset), {@code JKS}, or
+   * {@code PEM}. {@code PEM} reads one or more X.509 certificates from a text file — the shape a
+   * corporate CA arrives in on Kubernetes, where {@code ca.crt} is mounted from a ConfigMap.
+   */
+  public String getTruststoreType() {
+    return truststoreType;
+  }
+
+  /**
+   * Caller-supplied hook applied to the {@link HttpClient.Builder} last, after every declarative
+   * setting, or {@code null} (the default) for none. See {@link
+   * Builder#httpClientCustomizer(UnaryOperator)}.
+   */
+  public UnaryOperator<HttpClient.Builder> getHttpClientCustomizer() {
+    return httpClientCustomizer;
+  }
+
+  /**
    * True when this config should actually deliver alerts: it is {@link #enabled}, and both {@link
    * #getUrl()} and {@link #getTopic()} are non-blank. A config that is disabled or missing either
    * endpoint half is inactive (the engine reports why via {@link Diagnostics} at start).
@@ -301,6 +367,13 @@ public final class NtfyConfig {
     // Default English, NOT Locale.getDefault(): alert language must be deterministic and never
     // silently inherit whatever locale the host JVM happens to run under.
     private Locale locale = Locale.ENGLISH;
+    // Transport settings all default to "unset" so an untouched builder yields exactly the client
+    // the library built before they existed: JDK default proxy selector, JDK default SSL context.
+    private String proxy;
+    private String truststorePath;
+    private String truststorePassword;
+    private String truststoreType;
+    private UnaryOperator<HttpClient.Builder> httpClientCustomizer;
 
     private Builder() {}
 
@@ -559,6 +632,61 @@ public final class NtfyConfig {
         return this;
       }
       this.locale = parsed;
+      return this;
+    }
+
+    /**
+     * Routes ntfy traffic through a proxy: {@code "system"} (the default) to inherit the JVM's
+     * default proxy selector, {@code "none"} to force a direct connection, or {@code "host:port"}.
+     * See {@link NtfyConfig#getProxy()}; a malformed value is reported by the engine at start and
+     * falls back to {@code "system"}.
+     */
+    public Builder proxy(String proxy) {
+      this.proxy = proxy;
+      return this;
+    }
+
+    /**
+     * Trust store holding the CA that signed the ntfy server's certificate — the fix for a
+     * self-hosted server behind a private CA or a TLS-inspecting proxy, scoped to ntfy alone. See
+     * {@link NtfyConfig#getTruststorePath()}.
+     */
+    public Builder truststorePath(String truststorePath) {
+      this.truststorePath = truststorePath;
+      return this;
+    }
+
+    /** Password for {@link #truststorePath(String)}; omit for an unprotected store or for PEM. */
+    public Builder truststorePassword(String truststorePassword) {
+      this.truststorePassword = truststorePassword;
+      return this;
+    }
+
+    /**
+     * Format of {@link #truststorePath(String)}: {@code PKCS12} (default), {@code JKS}, or {@code
+     * PEM}. See {@link NtfyConfig#getTruststoreType()}.
+     */
+    public Builder truststoreType(String truststoreType) {
+      this.truststoreType = truststoreType;
+      return this;
+    }
+
+    /**
+     * Escape hatch: applies {@code customizer} to the {@link HttpClient.Builder} AFTER every
+     * declarative setting, so it can override any of them.
+     *
+     * <p>This exists so the config surface never has to grow a key for every transport need. Proxy
+     * authentication, mutual TLS, a hand-built {@link javax.net.ssl.SSLContext}, a dynamic {@link
+     * java.net.ProxySelector} — all of them are reachable here without the library shipping (and
+     * then having to support) a setting for each. It is deliberately builder-only and has no
+     * XML/YAML spelling: exposing it as a class name to instantiate reflectively would be hostile to
+     * GraalVM native image.
+     *
+     * <p>A customizer returning {@code null} is treated as "no change" rather than allowed to fail
+     * the build with an opaque NPE.
+     */
+    public Builder httpClientCustomizer(UnaryOperator<HttpClient.Builder> customizer) {
+      this.httpClientCustomizer = customizer;
       return this;
     }
 
