@@ -26,16 +26,26 @@ import com.github.tomakehurst.wiremock.verification.LoggedRequest;
  * from a {@code <Root level="info">} — INFO/WARN log content (request details, user identifiers,
  * anything the app logs) must never leave the host, and sub-ERROR noise must not be counted into
  * the suppression digest either. FATAL, being MORE specific than ERROR, must pass.
+ *
+ * <p>Since the optional WARN route, the floor is ERROR by DEFAULT and WARN only once {@code
+ * warnTopic} names a destination. Both halves are pinned here, including the ATTACH level the
+ * installer reads — on log4j2 that is a second floor, and an appender attached at ERROR would never
+ * be handed a warning for its own gate to consider.
  */
 @WireMockTest
 class NtfyLog4j2AppenderLevelGateIT {
 
   private static NtfyLog4j2Appender startedAppender(int wireMockPort) {
+    return startedAppender(wireMockPort, null);
+  }
+
+  private static NtfyLog4j2Appender startedAppender(int wireMockPort, String warnTopic) {
     NtfyLog4j2Appender appender =
         NtfyLog4j2Appender.newBuilder()
             .setName("ntfy")
             .setUrl("http://localhost:" + wireMockPort)
             .setTopic("alerts")
+            .setWarnTopic(warnTopic)
             // Pinned synchronous so the assertions below observe publish/suppress semantics
             // deterministically; the async default is covered by NtfyLog4j2AppenderAsyncIT.
             .setAsync("false")
@@ -88,6 +98,57 @@ class NtfyLog4j2AppenderLevelGateIT {
 
     NtfyLog4j2Appender appender = startedAppender(wm.getHttpPort());
     appender.append(eventAt(Level.FATAL, "the end"));
+    appender.stop();
+
+    verify(1, postRequestedFor(urlEqualTo("/alerts")));
+  }
+
+  @Test
+  void withoutWarnTopic_theAppenderIsAttachedAtError(WireMockRuntimeInfo wm) {
+    NtfyLog4j2Appender appender = startedAppender(wm.getHttpPort());
+    try {
+      // What NtfyLog4j2Installer/NtfyLog4j2ReattachListener pass to root.addAppender.
+      assertThat(appender.attachLevel()).isEqualTo(Level.ERROR);
+    } finally {
+      appender.stop();
+    }
+  }
+
+  @Test
+  void withWarnTopic_theAppenderIsAttachedAtWarn_andWarningsRouteToTheWarnTopic(
+      WireMockRuntimeInfo wm) {
+    stubFor(post(urlEqualTo("/alerts")).willReturn(aResponse().withStatus(200)));
+    stubFor(post(urlEqualTo("/alerts-warn")).willReturn(aResponse().withStatus(200)));
+
+    NtfyLog4j2Appender appender = startedAppender(wm.getHttpPort(), "alerts-warn");
+    assertThat(appender.attachLevel()).isEqualTo(Level.WARN);
+    appender.append(eventAt(Level.INFO, "user 42 logged in"));
+    appender.append(eventAt(Level.WARN, "disk almost full"));
+    appender.append(eventAt(Level.ERROR, "boom"));
+    appender.stop();
+
+    // Opening the WARN gate must not open anything below it.
+    verify(1, postRequestedFor(urlEqualTo("/alerts")));
+    verify(1, postRequestedFor(urlEqualTo("/alerts-warn")));
+
+    LoggedRequest warn = findAll(postRequestedFor(urlEqualTo("/alerts-warn"))).get(0);
+    assertThat(warn.getBodyAsString()).contains("disk almost full");
+    assertThat(warn.getHeader("Priority")).isEqualTo("default");
+    assertThat(warn.getHeader("Tags")).isEqualTo("warning");
+  }
+
+  @Test
+  void anInvalidWarnTopic_keepsTheAttachLevelAtError_soNoWarningIsEverDispatched(
+      WireMockRuntimeInfo wm) {
+    stubFor(post(urlEqualTo("/alerts")).willReturn(aResponse().withStatus(200)));
+
+    NtfyLog4j2Appender appender = startedAppender(wm.getHttpPort(), "not/valid");
+    // The engine withdrew the route it was asked for; the attach level must follow that decision,
+    // not the configuration's request, or log4j2 would dispatch warnings the appender only drops.
+    assertThat(appender.isStarted()).isTrue();
+    assertThat(appender.attachLevel()).isEqualTo(Level.ERROR);
+    appender.append(eventAt(Level.WARN, "disk almost full"));
+    appender.append(eventAt(Level.ERROR, "boom"));
     appender.stop();
 
     verify(1, postRequestedFor(urlEqualTo("/alerts")));
