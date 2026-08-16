@@ -35,6 +35,10 @@ public final class NtfyConfig {
   private final String digestPriority;
   private final String errorTags;
   private final String digestTags;
+  private final String warnTopic;
+  private final String warnPriority;
+  private final String warnTags;
+  private final boolean warnTopicFromClasspathFile;
   private final String clickUrl;
   private final String actions;
   private final List<String> excludedLoggerPrefixes;
@@ -64,6 +68,10 @@ public final class NtfyConfig {
     this.digestPriority = b.digestPriority;
     this.errorTags = b.errorTags;
     this.digestTags = b.digestTags;
+    this.warnTopic = b.warnTopic;
+    this.warnPriority = b.warnPriority;
+    this.warnTags = b.warnTags;
+    this.warnTopicFromClasspathFile = b.warnTopicFromClasspathFile;
     this.clickUrl = b.clickUrl;
     this.actions = b.actions;
     this.excludedLoggerPrefixes =
@@ -145,6 +153,68 @@ public final class NtfyConfig {
 
   public String getDigestTags() {
     return digestTags;
+  }
+
+  /**
+   * The ntfy topic WARN-level events are published to, or {@code null}/blank when WARN alerting is
+   * off (the default).
+   *
+   * <p>This single value is the whole opt-in switch — see {@link #isWarnRoutingEnabled()}. Set it
+   * to the same value as {@link #getTopic()} to alert on warnings through the main topic at a
+   * different priority.
+   */
+  public String getWarnTopic() {
+    return warnTopic;
+  }
+
+  /**
+   * The ntfy {@code Priority} header for WARN alerts (default {@code default}). Consulted only when
+   * {@link #isWarnRoutingEnabled()} is true, and used for the WARN storm digest as well as
+   * individual WARN alerts — the warn route is deliberately uniform, so routing warnings to a quiet
+   * channel is not undone by its own digest arriving at {@code urgent}.
+   */
+  public String getWarnPriority() {
+    return warnPriority;
+  }
+
+  /** The ntfy {@code Tags} header for WARN alerts and the WARN digest (default {@code warning}). */
+  public String getWarnTags() {
+    return warnTags;
+  }
+
+  /**
+   * True when a non-blank {@link #getWarnTopic()} is configured, i.e. WARN-level events should be
+   * alerted. False by default: alerting is ERROR-only unless an operator names a destination for
+   * warnings.
+   *
+   * <p>Adapters gate on this before submitting a WARN event, and {@link AlertEngine} refuses WARN
+   * events again on its own when it is false — the same double-floor discipline the Log4j2 adapter
+   * already applies to its attach level.
+   */
+  public boolean isWarnRoutingEnabled() {
+    return warnTopic != null && !warnTopic.isBlank();
+  }
+
+  /**
+   * True when {@link #getWarnTopic()} was supplied ONLY by a classpath {@code ntfy.properties} —
+   * no {@code ntfy.warn-topic} system property and no {@code NTFY_WARN_TOPIC} environment variable.
+   * Set by {@link ConfigLoader} only.
+   *
+   * <p>Mirrors {@link #isEndpointFromClasspathFile()} and exists for the same reason: {@code
+   * warn-topic} names a destination and widens the volume of log content leaving the host, so on
+   * the zero-code auto-install paths it is subject to the same {@code allow-classpath-endpoint}
+   * opt-in. (Contrast {@code include-mdc-keys}, which is read from all three layers precisely
+   * because it cannot redirect where alerts go.)
+   *
+   * <p>The refusal itself lives in {@link AlertEngine#start()} rather than in the three per-adapter
+   * ambient guards that handle the endpoint case. Those guards must refuse INSTALLATION outright,
+   * which only they can do; dropping an optional extra route is a decision the engine can make once
+   * for every adapter. Configs built explicitly — a {@code <Ntfy warnTopic="…">} attribute, a
+   * {@code <warnTopic>} element, {@code application.yml} — never set this flag and are never
+   * affected.
+   */
+  public boolean isWarnTopicFromClasspathFile() {
+    return warnTopicFromClasspathFile;
   }
 
   /**
@@ -288,6 +358,12 @@ public final class NtfyConfig {
     private String digestPriority = "urgent";
     private String errorTags = "rotating_light";
     private String digestTags = "fire";
+    private String warnTopic;
+    // Quieter than the error route on purpose: `default` is ntfy's no-op priority (no sound or
+    // vibration escalation) and `warning` its ⚠️ tag, so a warning never looks or feels like a page.
+    private String warnPriority = "default";
+    private String warnTags = "warning";
+    private boolean warnTopicFromClasspathFile = false;
     private String clickUrl;
     private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
@@ -381,6 +457,34 @@ public final class NtfyConfig {
 
     public Builder digestTags(String digestTags) {
       this.digestTags = digestTags;
+      return this;
+    }
+
+    /**
+     * The topic WARN-level events are published to. Setting it to a non-blank value is the entire
+     * opt-in for WARN alerting — see {@link NtfyConfig#isWarnRoutingEnabled()}. {@code null}/blank
+     * (the default) keeps alerting ERROR-only.
+     */
+    public Builder warnTopic(String warnTopic) {
+      this.warnTopic = warnTopic;
+      return this;
+    }
+
+    /** ntfy {@code Priority} header for WARN alerts and the WARN digest; default {@code default}. */
+    public Builder warnPriority(String warnPriority) {
+      this.warnPriority = warnPriority;
+      return this;
+    }
+
+    /** ntfy {@code Tags} header for WARN alerts and the WARN digest; default {@code warning}. */
+    public Builder warnTags(String warnTags) {
+      this.warnTags = warnTags;
+      return this;
+    }
+
+    /** See {@link NtfyConfig#isWarnTopicFromClasspathFile()}; set by {@link ConfigLoader} only. */
+    public Builder warnTopicFromClasspathFile(boolean warnTopicFromClasspathFile) {
+      this.warnTopicFromClasspathFile = warnTopicFromClasspathFile;
       return this;
     }
 

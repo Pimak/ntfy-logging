@@ -361,6 +361,77 @@ class ConfigLoaderTest {
     assertThat(ConfigLoader.load(null, null, null).getIncludeMdcKeys()).isEmpty();
   }
 
+  // --- Level routing (warn-topic / warn-priority / warn-tags) -----------------------------------
+
+  @Test
+  void warnRoutingKeys_absent_leaveAlertingErrorOnly() {
+    NtfyConfig config = ConfigLoader.load(null, null, null);
+
+    assertThat(config.getWarnTopic()).isNull();
+    assertThat(config.isWarnRoutingEnabled()).isFalse();
+    // The styling defaults exist regardless, but are only ever consulted once a topic is named.
+    assertThat(config.getWarnPriority()).isEqualTo("default");
+    assertThat(config.getWarnTags()).isEqualTo("warning");
+  }
+
+  @Test
+  void warnTopic_aloneEnablesWarnRouting() {
+    Function<String, String> env = env(Map.of("NTFY_WARN_TOPIC", "alerts-warn"));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    // No separate boolean: naming a destination IS the opt-in.
+    assertThat(config.isWarnRoutingEnabled()).isTrue();
+    assertThat(config.getWarnTopic()).isEqualTo("alerts-warn");
+  }
+
+  @Test
+  void warnRoutingKeys_sysPropBeatsEnvBeatsFile() {
+    Function<String, String> env =
+        env(Map.of("NTFY_WARN_TOPIC", "fromEnv", "NTFY_WARN_PRIORITY", "low"));
+    Properties file = props("ntfy.warn-topic", "fromFile", "ntfy.warn-tags", "eyes");
+    Properties sys = props("ntfy.warn-topic", "fromSysProp");
+
+    assertThat(ConfigLoader.load(env, file, sys).getWarnTopic()).isEqualTo("fromSysProp");
+    assertThat(ConfigLoader.load(env, file, null).getWarnTopic()).isEqualTo("fromEnv");
+    assertThat(ConfigLoader.load(null, file, null).getWarnTopic()).isEqualTo("fromFile");
+    assertThat(ConfigLoader.load(env, file, null).getWarnPriority()).isEqualTo("low");
+    assertThat(ConfigLoader.load(env, file, null).getWarnTags()).isEqualTo("eyes");
+  }
+
+  @Test
+  void warnTopic_blankValue_isTreatedAsAbsent() {
+    Function<String, String> env = env(Map.of("NTFY_WARN_TOPIC", "   "));
+    Properties file = props("ntfy.warn-topic", "fromFile");
+
+    assertThat(ConfigLoader.load(env, file, null).getWarnTopic()).isEqualTo("fromFile");
+  }
+
+  @Test
+  void warnTopicFromClasspathFileAlone_isFlagged() {
+    // warn-topic names a DESTINATION, so its origin is tracked exactly like `url`'s — the engine
+    // refuses a classpath-only value unless allow-classpath-endpoint is set.
+    Properties file = props("ntfy.warn-topic", "fromFile");
+
+    assertThat(ConfigLoader.load(null, file, null).isWarnTopicFromClasspathFile()).isTrue();
+  }
+
+  @Test
+  void warnTopicFromEnvOrSysprop_isNotFlagged_evenWhenTheFileAlsoSetsIt() {
+    Function<String, String> env = env(Map.of("NTFY_WARN_TOPIC", "fromEnv"));
+    Properties file = props("ntfy.warn-topic", "fromFile");
+    Properties sys = props("ntfy.warn-topic", "fromSysProp");
+
+    // An operator-supplied value wins and carries no supply-chain doubt with it.
+    assertThat(ConfigLoader.load(env, file, null).isWarnTopicFromClasspathFile()).isFalse();
+    assertThat(ConfigLoader.load(null, file, sys).isWarnTopicFromClasspathFile()).isFalse();
+  }
+
+  @Test
+  void warnTopicAbsentEverywhere_isNotFlagged() {
+    assertThat(ConfigLoader.load(null, null, null).isWarnTopicFromClasspathFile()).isFalse();
+  }
+
   @Test
   void errorPriority_isWiredThrough() {
     Function<String, String> env = env(Map.of("NTFY_ERROR_PRIORITY", "max"));

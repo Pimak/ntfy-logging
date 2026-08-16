@@ -184,6 +184,36 @@ final class AlertMessages {
   }
 
   /**
+   * Fixed warning emitted from {@code start()} when {@code warn-topic} is set but is not a valid
+   * ntfy topic name. Unlike {@link #statusInvalidTopic()} this does not refuse activation — only
+   * the optional WARN route is withdrawn — so the wording must say so. Deliberately does NOT
+   * interpolate the rejected value (it could contain control characters).
+   */
+  String statusInvalidWarnTopic() {
+    return get("status.invalidWarnTopic");
+  }
+
+  /**
+   * Fixed warning emitted from {@code start()} when {@code warn-topic} was supplied only by a
+   * classpath {@code ntfy.properties} and {@code allow-classpath-endpoint} is not set: the WARN
+   * route is withdrawn, ERROR alerting continues. Deliberately does NOT interpolate the topic — the
+   * point is that the value is untrusted.
+   */
+  String statusWarnTopicFromClasspathRefused() {
+    return get("status.warnTopicFromClasspathRefused");
+  }
+
+  /**
+   * Composes the "WARN route active" status line emitted once from {@code start()}, and only when a
+   * {@code warn-topic} is configured (the feature is opt-in, so there is deliberately no {@code
+   * .none} counterpart key). Credential-safe — it interpolates the topic name only, never the URL
+   * or a credential.
+   */
+  String statusWarnRoute(String warnTopic) {
+    return fmt("status.warnRoute", warnTopic);
+  }
+
+  /**
    * Fixed message emitted from {@code start()} when {@code suppressionWindow} is unset, zero, or
    * negative — the engine falls back to the default window. Credential-safe: fixed text only.
    */
@@ -296,8 +326,18 @@ final class AlertMessages {
    * count (pre-stringified so no digit-grouping is applied).
    */
   String digestTitle(String titleOrAppName, int count) {
+    return digestTitle(titleOrAppName, count, AlertLevel.ERROR);
+  }
+
+  /**
+   * Level-aware storm-digest title. The WARN route gets its own key so a burst of warnings is not
+   * announced as "N errors suppressed"; everything else is identical, including the
+   * credential-safety properties above.
+   */
+  String digestTitle(String titleOrAppName, int count, AlertLevel level) {
     String base = titleOrAppName == null ? "" : titleOrAppName;
-    return fmt("digest.title", base, String.valueOf(count));
+    String key = level == AlertLevel.WARN ? "digest.title.warn" : "digest.title";
+    return fmt(key, base, String.valueOf(count));
   }
 
   /**
@@ -311,8 +351,20 @@ final class AlertMessages {
    */
   String digestBody(
       int count, Map<String, Integer> perLoggerTally, String windowDescription) {
+    return digestBody(count, perLoggerTally, windowDescription, AlertLevel.ERROR);
+  }
+
+  /**
+   * Level-aware storm-digest body. Only the SUMMARY line differs by level ("N errors" vs "N
+   * warnings"); the per-logger lines and the overflow marker are level-neutral and share their keys,
+   * so a translator has one extra sentence to write rather than a duplicated block.
+   */
+  String digestBody(
+      int count, Map<String, Integer> perLoggerTally, String windowDescription, AlertLevel level) {
     StringBuilder sb = new StringBuilder();
-    sb.append(fmt("digest.body.summary", String.valueOf(count), windowDescription));
+    String summaryKey =
+        level == AlertLevel.WARN ? "digest.body.summary.warn" : "digest.body.summary";
+    sb.append(fmt(summaryKey, String.valueOf(count), windowDescription));
 
     List<Map.Entry<String, Integer>> sorted =
         perLoggerTally.entrySet().stream()
