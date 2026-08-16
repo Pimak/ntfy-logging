@@ -87,7 +87,7 @@ and therefore correct even behind an `AsyncAppender`.
 
 This is an explicit allow-list with no wildcard and no "include everything" mode: nothing from the
 MDC is published unless you name its key. Unset (the default) means alert bodies are exactly what
-they were before. See [filtering.md](filtering.md) for the per-value guards and the rationale.
+they were before. See [mdc-context.md](mdc-context.md) for the per-value guards and the rationale.
 
 ## Manual notifications
 
@@ -118,8 +118,9 @@ lives in the cross-cutting reference pages:
   Spring's relaxed binding, plus duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, self-exclusion, and the
-  `include-mdc-keys` context allow-list.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
+  is no wildcard.
+- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits and where Spring
   surfaces them (Logback's `StatusManager`, or Log4j2's `StatusLogger` on a Log4j2 stack).
 - **[Compatibility](compatibility.md)** — tested Spring Boot / JDK / Logback / Log4j2 versions.

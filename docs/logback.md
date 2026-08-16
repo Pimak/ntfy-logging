@@ -86,7 +86,7 @@ after the `Logger:` line, in the order listed:
 This is an explicit allow-list with no wildcard: nothing from the MDC is published unless you name
 its key. Values are read from `ILoggingEvent.getMDCPropertyMap()`, which Logback captures when the
 event is constructed, so the context is correct even behind an `AsyncAppender`. Values are scrubbed
-and length-capped before rendering. See [filtering.md](filtering.md) for the guards and
+and length-capped before rendering. See [mdc-context.md](mdc-context.md) for the guards and
 [alert-behavior.md](alert-behavior.md) for where the block sits in the body.
 
 ### Explicit `logback.xml`
@@ -126,8 +126,9 @@ lives in the cross-cutting reference pages:
   `ntfy.properties`), the Logback XML setters, and duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, self-exclusion, and the
-  `include-mdc-keys` context allow-list.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
+  is no wildcard.
+- **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits via Logback's
   `StatusManager`, and how to surface them.
 - **[Compatibility](compatibility.md)** — tested Logback / JDK versions.

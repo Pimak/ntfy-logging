@@ -60,7 +60,7 @@ Quarkus logs through **JBoss LogManager**, so the extension has a real MDC to re
 per key from `org.jboss.logmanager.ExtLogRecord`, and this works the same in JVM and native mode.
 (This is the one capability the shared JUL handler gains under Quarkus that it cannot have on plain
 `java.util.logging` — see [jul.md](jul.md).) It is an explicit allow-list with no wildcard: nothing
-from the MDC is published unless you name its key. See [filtering.md](filtering.md) for the per-value
+from the MDC is published unless you name its key. See [mdc-context.md](mdc-context.md) for the per-value
 guards and the rationale, and [alert-behavior.md](alert-behavior.md) for where the block sits in the
 body.
 
@@ -90,8 +90,9 @@ lives in the cross-cutting reference pages:
   (types, defaults), plus duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers`, the always-on self-exclusion, and the
-  `include-mdc-keys` context allow-list.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
+  is no wildcard.
+- **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits; on Quarkus they go to
   `System.err`, each line prefixed `[ntfy]`.
 - **[Compatibility](compatibility.md)** — tested Quarkus / JDK / GraalVM versions.

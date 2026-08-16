@@ -150,7 +150,7 @@ default — bodies are byte-identical to before.
 The values are read from the event's captured context data (`LogEvent.getContextData()`), not from
 the `ThreadContext` thread-local. That distinction is what keeps the projection correct behind an
 `<Async>` appender or this appender's own async delivery, where the publishing thread is not the
-thread that logged. See **[filtering.md](filtering.md)** for the guards (key cap, value truncation,
+thread that logged. See **[mdc-context.md](mdc-context.md)** for the guards (key cap, value truncation,
 control-character scrubbing) and **[alert-behavior.md](alert-behavior.md)** for how the context block
 interacts with the 4096-byte body limit.
 
@@ -175,6 +175,8 @@ lives in the cross-cutting reference pages:
   `ntfy.properties`), the `<Ntfy>` attribute spellings, and duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
+  is no wildcard.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits via Log4j2's
   `StatusLogger`, and how to surface them.

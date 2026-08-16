@@ -108,7 +108,7 @@ simply inert.
 The exception is **JBoss LogManager**, where this same handler *does* render MDC context, read per
 key from `org.jboss.logmanager.ExtLogRecord`. That is the configuration [Quarkus](quarkus.md) uses,
 so `quarkus.ntfy.include-mdc-keys` is fully supported there. If you run the standalone handler on
-JBoss LogManager yourself, you get the same support. See [filtering.md](filtering.md) for the
+JBoss LogManager yourself, you get the same support. See [mdc-context.md](mdc-context.md) for the
 allow-list semantics and the per-value guards.
 
 > ntfy's own `async=true` is safe for MDC fidelity: the alert payload — context block included — is
@@ -126,9 +126,11 @@ lives in the cross-cutting reference pages:
   `ntfy.properties`), and duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, and why plain JUL always
+  renders an empty block.
 - **[Filtering](filtering.md)** — `excluded-loggers` and self-exclusion (JUL has no marker concept,
   so the `NO_ALERT` marker — available on Logback and Log4j2 — does not apply; nor, on plain JUL,
-  does the `include-mdc-keys` context allow-list).
+  does the `include-mdc-keys` context allow-list — see [mdc-context.md](mdc-context.md)).
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits on `System.err`
   (`[ntfy]`-prefixed), and what each line means.
 - **[Compatibility](compatibility.md)** — tested JDK versions and GraalVM notes.

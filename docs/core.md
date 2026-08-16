@@ -74,8 +74,8 @@ is unreachable from every CSV surface.
 
 Core itself defines the allow-list and the rendering; it is the *adapter* that supplies the values.
 `AlertEvent` carries them in its `mdcValues` component, populated by the Logback adapter from
-`ILoggingEvent.getMDCPropertyMap()` and by the JUL handler from `ExtLogRecord` under JBoss
-LogManager.
+`ILoggingEvent.getMDCPropertyMap()`, by the Log4j2 appender from `LogEvent.getContextData()`, and by
+the JUL handler from `ExtLogRecord` under JBoss LogManager.
 
 If you build `AlertEvent`s yourself and drive `AlertEngine.submit` directly, **you own the
 allow-list step**. The engine renders whatever `mdcValues` holds; it does not intersect that map
@@ -93,7 +93,7 @@ engine.submit(new AlertEvent(logger, message, millis, causes, frames, markers, m
 ```
 
 The six-argument constructor, which omits `mdcValues` entirely, remains the right choice when you
-have no context to attach. See [filtering.md](filtering.md) for the guards themselves.
+have no context to attach. See [mdc-context.md](mdc-context.md) for the guards themselves.
 
 ## Going further
 
@@ -104,8 +104,9 @@ lives in the cross-cutting reference pages:
   defaults), `ConfigLoader` resolution, and duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
-- **[Filtering](filtering.md)** — `excluded-loggers`, the always-on self-exclusion, and the
-  `include-mdc-keys` context allow-list.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and what a
+  hand-built `AlertEvent` is and is not filtered by.
+- **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits.
 - **[Compatibility](compatibility.md)** — tested JDK / GraalVM versions and the ntfy server API
   surface.

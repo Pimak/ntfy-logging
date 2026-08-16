@@ -86,7 +86,7 @@ present only for the MDC keys you named in `include-mdc-keys` (unset by default,
 body is exactly what it was before the setting existed), and only for keys that actually carry a
 non-blank value on the erroring thread. Its position is not cosmetic — see the truncation order
 below. Storm digests have their own layout and never carry MDC context. For the allow-list semantics,
-the per-value guards, and why there is no wildcard, see [filtering.md](filtering.md).
+the per-value guards, and why there is no wildcard, see [mdc-context.md](mdc-context.md).
 
 ## Content truncation
 
@@ -110,7 +110,7 @@ correlation-id that lets you pull the whole request in one query is worth more t
 frame. The consequence to be aware of is that **a large context block can reduce the number of stack
 frames actually visible**, even though `max-stack-frames` itself has not changed: that setting is
 applied when the body is built, and truncation runs afterwards on the assembled result. The
-1024-character aggregate budget on the context block ([filtering.md](filtering.md)) is what bounds
+1024-character aggregate budget on the context block ([mdc-context.md](mdc-context.md)) is what bounds
 this to roughly a quarter of the payload.
 
 Because ntfy's limit is measured in **bytes** while the context budget is measured in **characters**,
@@ -144,6 +144,6 @@ completes before the logging call returns. See [configuration.md](configuration.
 
 - [configuration.md](configuration.md) — the settings (`max-alerts-per-window`, `suppression-window`,
   `error-priority`, `digest-priority`, `error-tags`, `digest-tags`) that control this behavior.
-- [filtering.md](filtering.md) — the `include-mdc-keys` allow-list behind the body's context block,
+- [mdc-context.md](mdc-context.md) — the `include-mdc-keys` allow-list behind the body's context block,
   its per-value guards, and why it has no wildcard.
 - [troubleshooting.md](troubleshooting.md) — what each diagnostic the engine emits means.

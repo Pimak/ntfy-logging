@@ -102,7 +102,7 @@ from anywhere in your application is what populates them.
 
 It is an **allow-list with no wildcard form**: a key you have not named is never published, so an MDC
 carrying a session token or an e-mail address cannot leak into a topic. Unset — the default — bodies
-are byte-identical to before. See **[filtering.md](filtering.md)** for the guards and
+are byte-identical to before. See **[mdc-context.md](mdc-context.md)** for the guards and
 **[configuration.md](configuration.md)** for the key's spelling on every other surface.
 
 ## Scope: Logback only
@@ -144,6 +144,8 @@ lives in the cross-cutting reference pages:
   Micronaut's relaxed binding, plus duration syntax.
 - **[Authentication](authentication.md)** — `token` vs `username`/`password` and the token-wins rule.
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
+- **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
+  is no wildcard.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Observability](observability.md)** — the pipeline counters, and why there is no Micrometer
   binding on Micronaut yet.
