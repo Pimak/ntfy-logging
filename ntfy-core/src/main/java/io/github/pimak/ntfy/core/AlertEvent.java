@@ -23,6 +23,8 @@ import java.util.Set;
  *     scrubbed/truncated/capped by {@link MdcProjector} — adapters must project via {@link
  *     MdcProjector#project} and never pass a raw MDC map; empty on frameworks with no MDC (plain
  *     JUL) and whenever {@code include-mdc-keys} is unset
+ * @param level the route this event belongs to; {@code null} is normalized to {@link
+ *     AlertLevel#ERROR}
  */
 public record AlertEvent(
     String loggerName,
@@ -31,7 +33,8 @@ public record AlertEvent(
     List<Cause> causeChain,
     List<String> rootCauseFrames,
     Set<String> markerNames,
-    Map<String, String> mdcValues) {
+    Map<String, String> mdcValues,
+    AlertLevel level) {
 
   /**
    * Validates the mandatory fields and normalizes the optional collections so every construction
@@ -43,6 +46,10 @@ public record AlertEvent(
    * produced passes through untouched while an event hand-built by a third party that handed over a
    * raw MDC map is still capped, scrubbed, and truncated here. Only the allow-list SELECTION is the
    * adapter's job; the safety of what ends up in a body is enforced at this boundary.
+   *
+   * <p>A {@code null} {@code level} normalizes to {@link AlertLevel#ERROR}, never {@link
+   * AlertLevel#WARN}: an adapter (or third-party caller) that omits the field must fall back to the
+   * always-on route, not silently divert its events onto the opt-in quiet channel.
    */
   public AlertEvent {
     if (loggerName == null || loggerName.isBlank()) {
@@ -55,6 +62,21 @@ public record AlertEvent(
     rootCauseFrames = rootCauseFrames == null ? List.of() : List.copyOf(rootCauseFrames);
     markerNames = markerNames == null ? Set.of() : Set.copyOf(markerNames);
     mdcValues = MdcProjector.sanitize(mdcValues);
+    level = level == null ? AlertLevel.ERROR : level;
+  }
+
+  /**
+   * The pre-{@code level} signature, kept as an explicit constructor for
+   * <strong>compatibility</strong>, exactly like the pre-{@code mdcValues} one below: preserving
+   * the {@code (String, String, long, List, List, Set, Map)} descriptor keeps adapters compiled
+   * against an earlier release both source- AND binary-compatible. Delegates at {@link
+   * AlertLevel#ERROR}, which is the only level those callers could ever have meant.
+   */
+  public AlertEvent(String loggerName, String formattedMessage, long timestampMillis,
+      List<Cause> causeChain, List<String> rootCauseFrames, Set<String> markerNames,
+      Map<String, String> mdcValues) {
+    this(loggerName, formattedMessage, timestampMillis, causeChain, rootCauseFrames, markerNames,
+        mdcValues, AlertLevel.ERROR);
   }
 
   /**
@@ -62,12 +84,13 @@ public record AlertEvent(
    * <strong>compatibility</strong>: {@link AlertEvent} is public API, and preserving the original
    * {@code (String, String, long, List, List, Set)} descriptor keeps adapters compiled against an
    * earlier release both source- AND binary-compatible — they keep linking without recompilation.
-   * Delegates with an empty MDC map, which is exactly the behavior those callers already had.
+   * Delegates with an empty MDC map at {@link AlertLevel#ERROR}, which is exactly the behavior
+   * those callers already had.
    */
   public AlertEvent(String loggerName, String formattedMessage, long timestampMillis,
       List<Cause> causeChain, List<String> rootCauseFrames, Set<String> markerNames) {
     this(loggerName, formattedMessage, timestampMillis, causeChain, rootCauseFrames, markerNames,
-        Map.of());
+        Map.of(), AlertLevel.ERROR);
   }
 
   /**
@@ -81,10 +104,23 @@ public record AlertEvent(
 
   /**
    * Convenience factory for the "no throwable, no markers" case: {@code causeChain}, {@code
-   * rootCauseFrames}, {@code markerNames} and {@code mdcValues} default to empty collections.
+   * rootCauseFrames}, {@code markerNames} and {@code mdcValues} default to empty collections, and
+   * the event is an {@link AlertLevel#ERROR} one.
    */
   public static AlertEvent of(String loggerName, String formattedMessage, long timestampMillis) {
     return new AlertEvent(
-        loggerName, formattedMessage, timestampMillis, List.of(), List.of(), Set.of(), Map.of());
+        loggerName, formattedMessage, timestampMillis, List.of(), List.of(), Set.of(), Map.of(),
+        AlertLevel.ERROR);
+  }
+
+  /**
+   * Returns a copy of this event on {@code level}, leaving every other component untouched. Lets an
+   * adapter build the event once and then stamp the route onto it, rather than threading the level
+   * through every mapper signature.
+   */
+  public AlertEvent withLevel(AlertLevel level) {
+    return new AlertEvent(
+        loggerName, formattedMessage, timestampMillis, causeChain, rootCauseFrames, markerNames,
+        mdcValues, level);
   }
 }
