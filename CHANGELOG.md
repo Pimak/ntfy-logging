@@ -46,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   engine emits one extra startup INFO line next to its `ACTIVE` and excluded-loggers lines —
   `ntfy alert engine: MDC keys included in alert bodies: correlation-id, tenant` — listing key names
   only, never a value. Unset (the default) leaves alert bodies byte-for-byte identical to before. See
-  [docs/filtering.md](docs/filtering.md) and [docs/alert-behavior.md](docs/alert-behavior.md).
+  [docs/mdc-context.md](docs/mdc-context.md), the feature's own page, and
+  [docs/alert-behavior.md](docs/alert-behavior.md).
 - **New `ntfy-jul` module: a framework-neutral `java.util.logging` adapter.** The JUL handler,
   event mapper, and stderr diagnostics sink previously private to the Quarkus runtime now live in
   their own artifact (`io.github.pimak:ntfy-jul`, package `io.github.pimak.ntfy.jul`), usable from

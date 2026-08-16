@@ -96,7 +96,7 @@ loggers — whose values are rendered into the alert body as `key: value` lines,
 There is deliberately no wildcard: nothing from the MDC leaves the process unless you named its key,
 and the setting is unset by default. Values are scrubbed and length-capped before rendering.
 Supported on Logback/Spring Boot and on Quarkus (JBoss LogManager); plain `java.util.logging` has no
-MDC, so the block is empty there. See [docs/filtering.md](docs/filtering.md).
+MDC, so the block is empty there. See [docs/mdc-context.md](docs/mdc-context.md).
 
 ## Notification language
 
@@ -138,7 +138,8 @@ bytecode) · GraalVM native (via the Quarkus extension). See
 | [docs/alert-behavior.md](docs/alert-behavior.md) | Why alerting behaves the way it does: immediate single-error alerts, storm suppression, digest-on-window-close, digest-on-shutdown |
 | [docs/observability.md](docs/observability.md) | The read-only `published`/`suppressed`/`failed` pipeline counters, reading them programmatically, and the classpath-conditional Micrometer binding in the Spring Boot starter |
 | [docs/authentication.md](docs/authentication.md) | The three auth modes (`BearerToken`, `BasicAuth`, `None`) and the "token wins" precedence rule |
-| [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), the always-on self-exclusion, and the opposite-direction `include-mdc-keys` allow-list for MDC context in alert bodies |
+| [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), and the always-on self-exclusion |
+| [docs/mdc-context.md](docs/mdc-context.md) | `include-mdc-keys` — attaching allow-listed MDC context to alert bodies, its guards, and why there is no wildcard |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |
 | [docs/compatibility.md](docs/compatibility.md) | Tested JDK/Logback/Log4j2/Spring/Quarkus/Micronaut/GraalVM versions and the ntfy server API surface |
 
