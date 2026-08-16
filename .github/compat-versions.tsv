@@ -1,0 +1,36 @@
+# The versions the compatibility sweep runs against, and that docs/compatibility.md reports as
+# **Verified**. THIS FILE IS THE SINGLE SOURCE OF TRUTH for that list.
+#
+#   - .github/workflows/compat.yml builds its job matrix by reading this file.
+#   - CompatibilityMatrixGuardTest (ntfy-core) asserts docs/compatibility.md's Verified rows list
+#     exactly these versions, in both directions.
+#
+# So a version can never be claimed in the docs without being swept, or swept without being
+# documented. To add or drop a version, edit here and update the matching doc row; the guard test
+# fails until the two agree.
+#
+# Columns: <maven -pl module>  <version property>  <version>
+# Blank lines and #-comments are ignored.
+
+ntfy-logback              logback.version       1.3.14
+ntfy-logback              logback.version       1.4.14
+ntfy-logback              logback.version       1.5.0
+ntfy-logback              logback.version       1.5.18
+ntfy-logback              logback.version       1.5.38
+
+ntfy-log4j2               log4j2.version        2.17.2
+ntfy-log4j2               log4j2.version        2.20.0
+ntfy-log4j2               log4j2.version        2.24.3
+ntfy-log4j2               log4j2.version        2.25.2
+
+ntfy-spring-boot-starter  spring-boot.version   3.3.13
+ntfy-spring-boot-starter  spring-boot.version   3.4.10
+ntfy-spring-boot-starter  spring-boot.version   3.5.6
+
+ntfy-micronaut            micronaut.version     4.6.3
+ntfy-micronaut            micronaut.version     4.9.4
+
+ntfy-quarkus/deployment   quarkus.version       3.15.7
+ntfy-quarkus/deployment   quarkus.version       3.20.6
+ntfy-quarkus/deployment   quarkus.version       3.24.5
+ntfy-quarkus/deployment   quarkus.version       3.34.7

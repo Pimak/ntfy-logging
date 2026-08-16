@@ -1,0 +1,110 @@
+name: Compatibility sweep
+
+# Re-verifies the version ranges docs/compatibility.md reports as **Verified**. Those rows are
+# single measurements: each was run once, by hand, and nothing re-runs them — so a change here, or a
+# republished upstream artifact, could quietly falsify the page. This job is what keeps them honest.
+#
+# Deliberately NOT part of the CI workflow and NOT a required check: it can go red for reasons that
+# have nothing to do with the pull request in front of you, and a blocking job that behaves that way
+# trains people to ignore it. It runs weekly instead, and reports failures as an issue — a scheduled
+# job that fails silently in the Actions tab is a job nobody reads.
+
+on:
+  schedule:
+    # Mondays 04:17 UTC. Off the hour on purpose: :00 is when everyone else's cron fires and the
+    # hosted runner queue is at its worst.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-sweep
+  cancel-in-progress: false
+
+jobs:
+  # Turns .github/compat-versions.tsv into the job matrix below. Keeping the list in that file rather
+  # than inline here is what lets CompatibilityMatrixGuardTest hold the docs and this sweep to the
+  # same set of versions.
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      combos: ${{ steps.read.outputs.combos }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - id: read
+        name: Read the version list
+        run: |
+          combos=$(grep -vE '^[[:space:]]*(#|$)' .github/compat-versions.tsv \
+            | awk '{printf "%s{\"module\":\"%s\",\"property\":\"%s\",\"version\":\"%s\"}", (NR>1 ? "," : ""), $1, $2, $3}')
+          if [ -z "$combos" ]; then
+            echo "::error::.github/compat-versions.tsv yielded no combinations"
+            exit 1
+          fi
+          echo "combos=[$combos]" >> "$GITHUB_OUTPUT"
+
+  sweep:
+    needs: matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # Every combination must report independently: one broken version should not hide the others,
+      # and the issue below is far more useful when it names all of them.
+      fail-fast: false
+      matrix:
+        combo: ${{ fromJSON(needs.matrix.outputs.combos) }}
+    name: ${{ matrix.combo.property }}=${{ matrix.combo.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Test against the overridden version
+        # -am is REQUIRED, not an optimization: without it the module resolves its ntfy-* siblings
+        # from the local repository, which on a fresh runner means the last PUBLISHED release rather
+        # than this working tree — so the sweep would silently test old code.
+        run: >
+          ./mvnw --batch-mode clean test
+          -pl ${{ matrix.combo.module }} -am
+          -D${{ matrix.combo.property }}=${{ matrix.combo.version }}
+
+  report:
+    needs: sweep
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        # One issue, commented on rather than duplicated: a weekly job that files a fresh issue every
+        # Monday is a job whose issues get muted. Matched by exact title rather than by label, so the
+        # workflow does not depend on a label existing in the repository — `gh issue create --label`
+        # fails outright on an unknown label, which would turn a real finding into a silent no-op.
+        run: |
+          set -euo pipefail
+          title='Compatibility sweep is failing'
+          body=$(printf '%s\n' \
+            'The weekly compatibility sweep failed: one or more versions that `docs/compatibility.md`' \
+            "reports as **Verified** no longer pass their module's test suite." \
+            '' \
+            "Run: $RUN_URL" \
+            '' \
+            'Each matrix leg is named `<property>=<version>`, so the failing legs name the versions' \
+            'directly. Either fix the incompatibility, or drop the version from' \
+            '`.github/compat-versions.tsv` **and** its row in `docs/compatibility.md` —' \
+            '`CompatibilityMatrixGuardTest` fails until those two agree.')
+
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            --jq "[.[] | select(.title == \"$title\") | .number] | first // empty")
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

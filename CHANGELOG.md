@@ -234,6 +234,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is that all four signatures the bindings call exist from 1.9.17 through 1.17.0.
   **One claim remains unverified and is labelled as such:** JDK 22–24. Only 21 and 25 were available
   to test with, and those are the two CI legs already.
+- **The compatibility matrix is now enforced rather than trusted.** Measuring the ranges once only
+  moves the problem: a measurement decays silently, and the wrong 1.3.x row above is what that looks
+  like after a while. Two mechanisms now hold the page to its claims. `CompatibilityMatrixGuardTest`
+  (in `ntfy-core`, so every module's `-am` reactor runs it) asserts that each **Tested (CI)** row
+  names the version the root `pom.xml` actually pins — the Dependabot-bump failure mode, and by far
+  the likeliest, since those pins move on their own schedule — that the documented JDK floor matches
+  `maven.compiler.release`, and that the **Verified** rows and the sweep's version list are the same
+  set in both directions, so neither can drift ahead of the other. A new weekly
+  `Compatibility sweep` workflow then re-runs each module's suite against all 18 verified versions
+  and opens (or comments on) a single tracking issue when one stops passing; it is scheduled and
+  non-blocking on purpose, since it can go red because of an upstream republish rather than anything
+  in the pull request at hand, and a blocking check that behaves that way just teaches people to
+  ignore it. Both sides read one file, `.github/compat-versions.tsv`, so a version cannot be claimed
+  in the docs without being swept, nor swept without being documented.
 
 ## [1.2.0] - 2026-07-23
 
