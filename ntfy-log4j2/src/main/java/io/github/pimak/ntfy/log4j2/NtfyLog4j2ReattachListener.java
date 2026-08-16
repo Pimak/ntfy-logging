@@ -3,7 +3,6 @@ package io.github.pimak.ntfy.log4j2;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
@@ -73,9 +72,10 @@ final class NtfyLog4j2ReattachListener implements PropertyChangeListener {
       return;
     }
     configuration.addAppender(appender);
-    // Level.ERROR, no filter: the same root-logger contract the installer establishes. LoggerConfig
-    // dispatch reads this list live, so no updateLoggers() call is needed here — and calling one
-    // would re-enter this listener.
-    root.addAppender(appender, Level.ERROR, null);
+    // No filter, and the appender's own attach level: the same root-logger contract the installer
+    // establishes, read from the same single source so a reconfiguration can never re-attach at a
+    // different floor than the original install used. LoggerConfig dispatch reads this list live,
+    // so no updateLoggers() call is needed here — and calling one would re-enter this listener.
+    root.addAppender(appender, appender.attachLevel(), null);
   }
 }

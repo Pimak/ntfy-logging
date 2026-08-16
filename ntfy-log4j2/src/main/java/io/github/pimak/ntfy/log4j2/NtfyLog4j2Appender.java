@@ -19,6 +19,7 @@ import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
 
 import io.github.pimak.ntfy.core.AlertEngine;
+import io.github.pimak.ntfy.core.AlertLevel;
 import io.github.pimak.ntfy.core.Diagnostics;
 import io.github.pimak.ntfy.core.DurationParser;
 import io.github.pimak.ntfy.core.NtfyConfig;
@@ -93,6 +94,14 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
   // application threads.
   private volatile List<String> mdcKeys = List.of();
 
+  /**
+   * Whether the started engine actually activated a WARN route. Drives both floors: {@link #append}
+   * lets WARN events through only when it is true, and {@link #attachLevel()} reports the level
+   * log4j2 should attach this appender at. False until {@code start()} resolves it and false again
+   * after {@code stop()}. {@code volatile} for the same reason as {@link #mdcKeys}.
+   */
+  private volatile boolean warnRoutingActive = false;
+
   private volatile AlertEngine engine;
 
   // The reconfiguration hook registered by NtfyLog4j2Installer, parked here so uninstall() can
@@ -153,6 +162,10 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     this.mdcKeys = config.getIncludeMdcKeys();
     AlertEngine started = new AlertEngine(config, diagnostics, counters);
     started.start();
+    // The ENGINE's decision, not the config's request: start() withdraws the warn route for an
+    // invalid warn topic or a classpath-only one. This one field is also what the installer and
+    // the reattach listener read for their attach level, so the two floors cannot disagree.
+    this.warnRoutingActive = started.isWarnRoutingActive();
     if (started.isStarted()) {
       this.engine = started;
       // super.start() (AbstractFilterable) starts any attached Filter and flips the state to
@@ -165,11 +178,15 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
   }
 
   /**
-   * Gates on ERROR, maps the event eagerly, and hands it to the engine, which owns all further
-   * gating and publishing. The level gate lives here (mirroring the Logback appender's ERROR gate
-   * and the Quarkus adapter's SEVERE gate) so the documented "ERROR-level events alert" contract
-   * holds even when the element is referenced from a {@code <Root level="info">} — without it, a
-   * root reference would push every INFO/WARN line verbatim to the ntfy topic.
+   * Gates on level, maps the event eagerly, and hands it to the engine, which owns all further
+   * gating and publishing. The gate lives here (mirroring the Logback appender's gate and the
+   * Quarkus adapter's SEVERE gate) so the documented level contract holds even when the element is
+   * referenced from a {@code <Root level="info">} — without it, a root reference would push every
+   * INFO/DEBUG line verbatim to the ntfy topic.
+   *
+   * <p>ERROR/FATAL always alert. WARN alerts only when the engine activated a warn route; below
+   * WARN nothing ever does, on any configuration. This is the inner of two floors: {@link
+   * #attachLevel()} keeps log4j2 from routing sub-threshold events here in the first place.
    *
    * @param event the event log4j2 is dispatching to this appender
    */
@@ -180,11 +197,19 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
       return;
     }
     Level level = event.getLevel();
-    if (level == null || !level.isMoreSpecificThan(Level.ERROR)) {
+    if (level == null) {
+      return;
+    }
+    AlertLevel routed;
+    if (level.isMoreSpecificThan(Level.ERROR)) {
+      routed = AlertLevel.ERROR;
+    } else if (warnRoutingActive && level.isMoreSpecificThan(Level.WARN)) {
+      routed = AlertLevel.WARN;
+    } else {
       return;
     }
     try {
-      current.submit(Log4j2EventMapper.map(event, mdcKeys));
+      current.submit(Log4j2EventMapper.map(event, mdcKeys).withLevel(routed));
     } catch (RuntimeException e) {
       // An appender must never propagate into the logging caller: a broken alert would otherwise
       // become an exception at an unrelated logger.error() call site. AbstractAppender.error routes
@@ -208,10 +233,26 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     AlertEngine current = engine;
     this.engine = null;
     this.mdcKeys = List.of();
+    this.warnRoutingActive = false;
     if (current != null) {
       current.stop();
     }
     return super.stop(timeout, timeUnit);
+  }
+
+  /**
+   * The log4j2 level this appender should be ATTACHED at — {@code WARN} once the engine activated a
+   * warn route, {@code ERROR} otherwise. Read by {@link NtfyLog4j2Installer} and {@link
+   * NtfyLog4j2ReattachListener} so the attach-time floor and {@link #append}'s own floor derive
+   * from one value and can never drift apart. Valid only after {@code start()}; before it (and
+   * after {@code stop()}) it reports the safe {@code ERROR}.
+   *
+   * <p>This second floor is not redundant: an appender attached at {@code ERROR} never has WARN
+   * events routed to it at all, so without lowering it the in-appender gate would never see a
+   * warning to let through.
+   */
+  Level attachLevel() {
+    return warnRoutingActive ? Level.WARN : Level.ERROR;
   }
 
   /**
@@ -280,6 +321,9 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String digestPriority;
     @PluginBuilderAttribute private String errorTags;
     @PluginBuilderAttribute private String digestTags;
+    @PluginBuilderAttribute private String warnTopic;
+    @PluginBuilderAttribute private String warnPriority;
+    @PluginBuilderAttribute private String warnTags;
     @PluginBuilderAttribute private String clickUrl;
     @PluginBuilderAttribute private String actions;
     @PluginBuilderAttribute private String excludedLoggers;
@@ -470,6 +514,43 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * The topic WARN-level events are published to. A non-blank value is the entire opt-in for WARN
+     * alerting: unset (the default), this appender alerts on ERROR and above only. It also lowers
+     * the level {@code NtfyLog4j2Installer} attaches the appender at, so warnings actually reach
+     * it. Set it to the same value as {@code topic} to alert on warnings through the main topic at
+     * a different priority.
+     *
+     * @param warnTopic the ntfy topic for warnings, or {@code null} to keep alerting ERROR-only
+     * @return this builder
+     */
+    public Builder setWarnTopic(String warnTopic) {
+      this.warnTopic = warnTopic;
+      return asBuilder();
+    }
+
+    /**
+     * ntfy {@code Priority} header for WARN alerts and the WARN digest; default {@code default}.
+     *
+     * @param warnPriority the ntfy priority value
+     * @return this builder
+     */
+    public Builder setWarnPriority(String warnPriority) {
+      this.warnPriority = warnPriority;
+      return asBuilder();
+    }
+
+    /**
+     * ntfy {@code Tags} header for WARN alerts and the WARN digest; default {@code warning}.
+     *
+     * @param warnTags the comma-separated tag list
+     * @return this builder
+     */
+    public Builder setWarnTags(String warnTags) {
+      this.warnTags = warnTags;
+      return asBuilder();
+    }
+
+    /**
      * URL opened when a notification is tapped (ntfy {@code Click} header).
      *
      * @param clickUrl the click-through URL
@@ -612,6 +693,9 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
               .title(title)
               .appName(appName)
               .excludedLoggers(excludedLoggers)
+              // Unconditional: warnTopic's core default IS null, so an absent attribute must map
+              // to null rather than be skipped — it is the opt-in switch, not a styling value.
+              .warnTopic(warnTopic)
               .includeMdcKeysCsv(includeMdcKeys);
 
       // Setters whose core default must survive an absent attribute: apply only when set.
@@ -619,6 +703,8 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
       applyString(digestPriority, builder::digestPriority);
       applyString(errorTags, builder::errorTags);
       applyString(digestTags, builder::digestTags);
+      applyString(warnPriority, builder::warnPriority);
+      applyString(warnTags, builder::warnTags);
       applyString(clickUrl, builder::clickUrl);
       applyString(actions, builder::actionsHeader);
       applyString(locale, builder::locale);

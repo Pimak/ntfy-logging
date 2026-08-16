@@ -83,10 +83,13 @@ public final class NtfyLog4j2Installer {
       Configuration configuration = context.getConfiguration();
       configuration.addAppender(appender);
       LoggerConfig root = configuration.getRootLogger();
-      // Level.ERROR, no filter: the level floor is enforced twice on purpose — here so log4j2 never
-      // even dispatches sub-ERROR events to us, and again inside the appender so a direct
-      // append()/other attachment point cannot bypass the documented contract.
-      root.addAppender(appender, Level.ERROR, null);
+      // No filter, and the level comes from the started appender: the floor is enforced twice on
+      // purpose — here so log4j2 never even dispatches sub-threshold events to us, and again inside
+      // the appender so a direct append()/other attachment point cannot bypass the contract.
+      // Reading attachLevel() rather than recomputing it from config is what keeps the two floors
+      // from drifting: the engine may have withdrawn a warn route the config asked for, and
+      // attaching at WARN then would dispatch warnings the appender only drops.
+      root.addAppender(appender, appender.attachLevel(), null);
       context.updateLoggers();
 
       NtfyLog4j2ReattachListener listener = new NtfyLog4j2ReattachListener(appender);
