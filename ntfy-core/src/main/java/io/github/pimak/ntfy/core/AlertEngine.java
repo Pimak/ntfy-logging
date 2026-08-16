@@ -142,6 +142,19 @@ public final class AlertEngine {
   }
 
   /**
+   * True when this started engine actually activated a WARN route, i.e. WARN events submitted to
+   * it will be published. Read this AFTER {@link #start()} rather than {@link
+   * NtfyConfig#isWarnRoutingEnabled()}: {@code start()} may withdraw the route that config asked
+   * for (an invalid warn topic, or one that reached the engine only through a classpath {@code
+   * ntfy.properties}), and an adapter that gated on the request rather than the outcome would keep
+   * submitting warnings the engine silently drops — and, on Log4j2, would attach its appender a
+   * level too low. This is the single source of truth every adapter's WARN gate reads.
+   */
+  public boolean isWarnRoutingActive() {
+    return warnRoute != null;
+  }
+
+  /**
    * Read-only pipeline observability counters (published / suppressed / failed). Callers only read;
    * the increment methods are package-private so nothing outside the engine can mutate the tallies.
    * The counters are pulled, never logged, and monotonic for this engine's lifetime — and, when an
