@@ -36,6 +36,9 @@ public class NtfyConfiguration {
   private String digestPriority = "urgent";
   private String errorTags = "rotating_light";
   private String digestTags = "fire";
+  private String warnTopic;
+  private String warnPriority = "default";
+  private String warnTags = "warning";
   private String clickUrl;
   private String actions;
   private String locale;
@@ -333,6 +336,56 @@ public class NtfyConfiguration {
    */
   public void setDigestTags(String digestTags) {
     this.digestTags = digestTags;
+  }
+
+  /**
+   * The ntfy topic WARN-level events are published to. Unset by default, which keeps alerting
+   * ERROR-only; a non-blank value is the entire opt-in for WARN alerting. Set it to the same value
+   * as {@code ntfy.topic} to alert on warnings through the main topic at a different priority.
+   *
+   * @return the warn topic, or {@code null} when WARN alerting is off
+   */
+  public String getWarnTopic() {
+    return warnTopic;
+  }
+
+  /**
+   * @param warnTopic the ntfy topic for warnings
+   */
+  public void setWarnTopic(String warnTopic) {
+    this.warnTopic = warnTopic;
+  }
+
+  /**
+   * ntfy priority header for WARN alerts and the WARN digest.
+   *
+   * @return the warn priority
+   */
+  public String getWarnPriority() {
+    return warnPriority;
+  }
+
+  /**
+   * @param warnPriority the ntfy priority value
+   */
+  public void setWarnPriority(String warnPriority) {
+    this.warnPriority = warnPriority;
+  }
+
+  /**
+   * ntfy tags header for WARN alerts and the WARN digest.
+   *
+   * @return the comma-separated warn tags
+   */
+  public String getWarnTags() {
+    return warnTags;
+  }
+
+  /**
+   * @param warnTags comma-separated ntfy tags
+   */
+  public void setWarnTags(String warnTags) {
+    this.warnTags = warnTags;
   }
 
   /**

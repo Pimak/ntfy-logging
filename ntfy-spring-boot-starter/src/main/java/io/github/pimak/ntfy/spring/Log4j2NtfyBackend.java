@@ -82,6 +82,9 @@ final class Log4j2NtfyBackend implements NtfyBackend {
             .setDigestPriority(p.getDigestPriority())
             .setErrorTags(p.getErrorTags())
             .setDigestTags(p.getDigestTags())
+            .setWarnTopic(p.getWarnTopic())
+            .setWarnPriority(p.getWarnPriority())
+            .setWarnTags(p.getWarnTags())
             .setClickUrl(p.getClickUrl())
             .setActions(p.getActions())
             .setLocale(p.getLocale())
@@ -102,8 +105,11 @@ final class Log4j2NtfyBackend implements NtfyBackend {
     }
 
     configuration.addAppender(appender);
-    // Level.ERROR with no filter: the same root-logger contract every other adapter establishes.
-    root.addAppender(appender, Level.ERROR, null);
+    // No filter, and the level from the started appender: the same root-logger contract every other
+    // adapter establishes, and the same single source of truth NtfyLog4j2Installer reads. ERROR
+    // unless the engine actually activated a warn route — on log4j2 the attach level is a second
+    // floor, so an appender attached at ERROR would never be handed a warning to alert on.
+    root.addAppender(appender, appender.attachLevel(), null);
     context.updateLoggers();
     this.installedAppender = appender;
     return true;

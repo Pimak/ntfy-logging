@@ -96,6 +96,23 @@
       "defaultValue": "fire"
     },
     {
+      "name": "ntfy.warn-topic",
+      "type": "java.lang.String",
+      "description": "ntfy topic that WARN-level events are published to. Unset by default, which keeps alerting ERROR-only; setting it is the entire opt-in for WARN alerting. Use the same value as ntfy.topic to alert on warnings through the main topic at a different priority."
+    },
+    {
+      "name": "ntfy.warn-priority",
+      "type": "java.lang.String",
+      "description": "ntfy Priority header for WARN alerts and the WARN digest. Only consulted when ntfy.warn-topic is set.",
+      "defaultValue": "default"
+    },
+    {
+      "name": "ntfy.warn-tags",
+      "type": "java.lang.String",
+      "description": "Comma-separated ntfy tags for WARN alerts and the WARN digest. Only consulted when ntfy.warn-topic is set.",
+      "defaultValue": "warning"
+    },
+    {
       "name": "ntfy.excluded-loggers",
       "type": "java.lang.String",
       "description": "Comma-separated list of logger names or prefixes whose events are never published."
