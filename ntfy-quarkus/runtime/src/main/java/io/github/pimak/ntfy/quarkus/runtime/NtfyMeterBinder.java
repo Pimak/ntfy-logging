@@ -19,12 +19,13 @@ import java.util.function.ToDoubleFunction;
  * which registry implementation (Prometheus, OTLP, …) the application chose.
  *
  * <p><strong>Registered conditionally.</strong> The bean is only added to the container when the
- * application actually has the Quarkus Micrometer extension — {@code NtfyProcessor} gates its
- * {@code AdditionalBeanBuildItem} on {@code Capability.MICROMETER} and names this class by string,
- * never by class literal, so on a build without Micrometer this class is never loaded and its
- * {@code io.micrometer} references never have to resolve. {@code micrometer-core} is therefore an
- * <em>optional</em> dependency of the extension: an application that does not want metrics pulls in
- * nothing.
+ * application actually has the Quarkus Micrometer extension: {@code NtfyProcessor} gates its {@code
+ * AdditionalBeanBuildItem} on {@code Capability.METRICS} — {@code io.quarkus.metrics}, the
+ * capability {@code quarkus-micrometer} provides — together with a runtime-classpath check for
+ * {@code MeterRegistry}. It names this class by string, never by class literal, so on a build
+ * without Micrometer this class is never loaded and its {@code io.micrometer} references never have
+ * to resolve. {@code micrometer-core} is therefore an <em>optional</em> dependency of the extension:
+ * an application that does not want metrics pulls in nothing.
  *
  * <p><strong>Counters are resolved lazily, at scrape time,</strong> through {@link
  * NtfyPipelineCountersHolder}. That decouples the meters from the log handler's lifecycle: the
