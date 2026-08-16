@@ -85,24 +85,49 @@ application on Log4j2 wires `ntfy-log4j2`'s `<Ntfy>` element itself. See
 | 3.38.x | Tested — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
 | 3.x (other) | Expected to work within the stable extension-API surface used (`LogHandlerBuildItem`, `@ConfigMapping @ConfigRoot(RUN_TIME)`, `@Recorder`) |
 
-The extension's Micrometer binding is **optional and conditional**: `micrometer-core` is an `optional`
-dependency, and the `ntfy.pipeline.*` meters are registered only when the application itself brings
-`quarkus-micrometer` (the `io.quarkus.metrics` capability) together with a `MeterRegistry` on the
-runtime classpath. Applications without it resolve and run exactly as before — the extension pulls in
-no Micrometer. See [observability.md](observability.md).
+The extension's Micrometer binding is **optional and conditional** — the meters appear only if the
+application brings `quarkus-micrometer` itself. See the Micrometer section below.
+
+## Micrometer (optional — Spring Boot and Quarkus)
+
+| Version | Status |
+|---------|--------|
+| Whatever your application's BOM resolves | Supported — this project pins nothing |
+| 1.17.0 | Tested — what CI actually exercises on both surfaces; `spring-boot-dependencies` 4.1.0 and `quarkus-bom` 3.38.1 happen to resolve the same version |
+| 1.x (other) | Expected to work — the only API surface used is `MeterRegistry`, `FunctionCounter.builder(…)`, and (on Quarkus) the `MeterBinder` interface |
+
+Micrometer is an **`optional`** dependency of both the Spring Boot starter and `ntfy-quarkus-runtime`,
+so neither ever drags it onto a consumer's classpath and there is no version for this project to pin
+— the one your application's BOM resolves is the one that runs. Each binding activates only when
+Micrometer is genuinely there: the starter guards on `@ConditionalOnClass(MeterRegistry)` plus a
+`MeterRegistry` bean, and the Quarkus extension on the `io.quarkus.metrics` capability (provided by
+`quarkus-micrometer`) plus `MeterRegistry` on the runtime classpath. Applications without Micrometer
+resolve and run exactly as they did before either binding existed. See
+[observability.md](observability.md).
 
 ## GraalVM native image
+
+| Version | Status |
+|---------|--------|
+| GraalVM CE **25** (`graalvm-community`, JDK 25) | Tested — the CI `native-smoke` job, every push/PR |
+| GraalVM CE 21 | **Not usable for the Quarkus path** — the CE 21 line is frozen at 21.0.2, which is older than Quarkus 3.38+ requires. This is why `native-smoke` runs on 25 only rather than the full JDK matrix. |
 
 Supported through the **Quarkus extension**: the alert engine's `HttpClient`, threads, and digest
 scheduler are all created at `RUNTIME_INIT` (never build-time / static-init), which is what keeps the
 extension native-safe. The `ntfy-quarkus/integration-tests` module native-compiles a real app and
 runs its `@QuarkusIntegrationTest` against the native binary in the CI `native-smoke` job.
 
+Note that the native leg exercises the alert path, not the Micrometer binding: `quarkus-micrometer` is
+deliberately kept out of the integration-tests app so the native build stays fast. The binder adds no
+reflection and no build-time initialization of its own, so nothing about it is native-specific.
+
 For a **hand-rolled** (non-Quarkus) native build of `ntfy-core` / `ntfy-logback`, `ntfy-core` ships
 native-image metadata under
 `META-INF/native-image/io.github.pimak/ntfy-core/` — `--enable-url-protocols=https` (so the JDK
 `HttpClient` TLS handler survives image build) and a resource registration for `ntfy.properties` (so
-`ConfigLoader` can read it at image run time). GraalVM 21+ picks these up automatically.
+`ConfigLoader` can read it at image run time). Any GraalVM 21+ picks these up automatically — that
+floor is about the metadata format, and applies to this non-Quarkus path only; it does not walk back
+the table above, where the Quarkus path needs 25.
 
 ## ntfy server
 
