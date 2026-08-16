@@ -1,6 +1,7 @@
 package io.github.pimak.ntfy.jul;
 
 import io.github.pimak.ntfy.core.AlertEngine;
+import io.github.pimak.ntfy.core.AlertLevel;
 import io.github.pimak.ntfy.core.NtfyConfig;
 import io.github.pimak.ntfy.core.PipelineCounters;
 import java.util.ArrayList;
@@ -11,7 +12,8 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 /**
- * A {@link Handler} that forwards SEVERE-and-above {@link LogRecord}s to the ntfy {@link
+ * A {@link Handler} that forwards SEVERE-and-above (and, when a warn route is configured,
+ * WARNING) {@link LogRecord}s to the ntfy {@link
  * AlertEngine}. This is the framework-neutral JUL adapter: attach it to any {@code
  * java.util.logging} logger (plain JUL apps, Tomcat, Helidon, …), or let a framework install it —
  * the Quarkus extension feeds it to a {@code LogHandlerBuildItem}, so it sees every log record the
@@ -22,8 +24,10 @@ import java.util.logging.LogRecord;
  * logging.properties}) and {@link NtfyJulInstaller} (programmatic one-liner).
  *
  * <p>A logging handler must never throw, or it can corrupt the caller's logging path; every {@link
- * #publish} is fully guarded. Level gating mirrors the ERROR-only contract of the other adapters:
- * only records at {@link Level#SEVERE} (JUL's ERROR-equivalent) or above are alerted.
+ * #publish} is fully guarded. Level gating mirrors the other adapters: records at {@link
+ * Level#SEVERE} (JUL's ERROR-equivalent) or above are always alerted, and {@link Level#WARNING}
+ * records only once the engine activated a warn route ({@code warn-topic}). Nothing below WARNING
+ * is ever alerted.
  */
 public final class NtfyJulHandler extends Handler {
 
@@ -109,11 +113,23 @@ public final class NtfyJulHandler extends Handler {
     if (record == null || !isLoggable(record)) {
       return;
     }
-    if (record.getLevel().intValue() < Level.SEVERE.intValue()) {
+    // SEVERE and above always alert. WARNING alerts only when the engine activated a warn route;
+    // below WARNING nothing ever does, on any configuration. Ordered so the SEVERE path costs
+    // exactly what it did before the warn route existed — the extra check is reached only by
+    // sub-SEVERE records. `isWarnRoutingActive()` is read live rather than cached at construction:
+    // it is a volatile read on the engine, and this handler accepts an engine through a public
+    // constructor whose start() it does not control.
+    int level = record.getLevel().intValue();
+    AlertLevel routed;
+    if (level >= Level.SEVERE.intValue()) {
+      routed = AlertLevel.ERROR;
+    } else if (level >= Level.WARNING.intValue() && engine.isWarnRoutingActive()) {
+      routed = AlertLevel.WARN;
+    } else {
       return;
     }
     try {
-      engine.submit(JulEventMapper.map(record, includeMdcKeys));
+      engine.submit(JulEventMapper.map(record, includeMdcKeys).withLevel(routed));
     } catch (RuntimeException e) {
       // A handler must never propagate an exception into the logging caller.
       reportError(null, e, java.util.logging.ErrorManager.GENERIC_FAILURE);
