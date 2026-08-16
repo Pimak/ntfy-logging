@@ -35,6 +35,7 @@ class NtfyConfigurationBindingTest {
       assertThat(c.getActions()).isNull();
       assertThat(c.getLocale()).isNull();
       assertThat(c.getExcludedLoggers()).isNull();
+      assertThat(c.getIncludeMdcKeys()).isNull();
       assertThat(c.getMaxStackFrames()).isEqualTo(5);
       assertThat(c.getConnectTimeout()).isEqualTo(Duration.ofSeconds(5));
       assertThat(c.getRequestTimeout()).isEqualTo(Duration.ofSeconds(10));
@@ -78,6 +79,7 @@ class NtfyConfigurationBindingTest {
     properties.put("ntfy.actions", "view, Runbook, https://example.invalid/runbook");
     properties.put("ntfy.locale", "fr");
     properties.put("ntfy.excluded-loggers", "com.noisy,org.chatty");
+    properties.put("ntfy.include-mdc-keys", "requestId,tenant");
     properties.put("ntfy.enabled", false);
     properties.put("ntfy.async", false);
     properties.put("ntfy.async-queue-capacity", 64);
@@ -108,6 +110,7 @@ class NtfyConfigurationBindingTest {
       assertThat(c.getActions()).isEqualTo("view, Runbook, https://example.invalid/runbook");
       assertThat(c.getLocale()).isEqualTo("fr");
       assertThat(c.getExcludedLoggers()).isEqualTo("com.noisy,org.chatty");
+      assertThat(c.getIncludeMdcKeys()).isEqualTo("requestId,tenant");
       assertThat(c.isEnabled()).isFalse();
       assertThat(c.isAsync()).isFalse();
       assertThat(c.getAsyncQueueCapacity()).isEqualTo(64);

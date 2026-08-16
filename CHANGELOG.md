@@ -249,6 +249,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ignore it. Both sides read one file, `.github/compat-versions.tsv`, so a version cannot be claimed
   in the docs without being swept, nor swept without being documented.
 
+### Fixed
+- **Micronaut: `ntfy.include-mdc-keys` never reached the injectable `NtfyClient` bean.**
+  `NtfyClientFactory` forwarded every other bound property onto the `NtfyConfig` builder and silently
+  skipped this one, so an operator's allow-list was honoured by the appender that
+  `NtfyLogbackInstaller` installs and dropped by the client — one configuration, two apply sites, and
+  nothing anywhere to announce that they disagreed. Micronaut was the only adapter with the gap: the
+  Spring starter and the Quarkus extension have always wired the key into both their appender/handler
+  and their client. No alert body was ever affected, because the ad-hoc `NtfyClient.notify(...)` path
+  renders no MDC today; what was wrong is the config the bean carries, which would have become a real
+  loss the moment that path learned to. The property was bound and documented all along — only the
+  forwarding was missing — so no configuration needs changing to pick the fix up. Also closes the
+  test gap that hid it: the binding test asserted all two dozen other getters and skipped this one,
+  and there was no equivalent of the starter's `includeMdcKeys_reachesTheNtfyClientBean`.
+
 ## [1.2.0] - 2026-07-23
 
 ### Added
