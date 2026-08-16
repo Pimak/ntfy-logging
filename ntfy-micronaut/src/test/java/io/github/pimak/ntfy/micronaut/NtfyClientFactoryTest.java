@@ -3,10 +3,12 @@ package io.github.pimak.ntfy.micronaut;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.pimak.ntfy.core.NtfyClient;
+import io.github.pimak.ntfy.core.NtfyConfig;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Requirements;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.inject.BeanDefinition;
+import java.lang.reflect.Field;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +32,52 @@ class NtfyClientFactoryTest {
         ApplicationContext.run(Map.of("ntfy.enabled", false, "ntfy.topic", "alerts"))) {
       assertThat(context.getBean(NtfyClient.class)).as("NtfyClient bean").isNotNull();
     }
+  }
+
+  /**
+   * Every bound {@code ntfy.*} key must reach the client bean's config, not just the ones the
+   * appender install happens to use. {@code include-mdc-keys} is the regression case: the factory
+   * forwarded twenty-odd properties and silently skipped this one, so an operator who configured an
+   * allow-list got it honoured by the appender ({@link NtfyLogbackInstaller}) and dropped by the
+   * injectable client — two apply sites for one configuration, disagreeing with nothing to say so.
+   *
+   * <p>{@link NtfyClient} keeps its {@link NtfyConfig} private and exposes no accessor, so the field
+   * is read reflectively rather than widening the production API for a test. This mirrors the Spring
+   * starter's {@code includeMdcKeys_reachesTheNtfyClientBean}, which is what this module lacked.
+   */
+  @Test
+  void everyConfiguredKeyReachesTheClientConfig_includingIncludeMdcKeys() throws Exception {
+    Map<String, Object> properties = Map.of(
+        "ntfy.url", "https://127.0.0.1:1",
+        "ntfy.topic", "alerts",
+        "ntfy.include-mdc-keys", "requestId,tenant",
+        "ntfy.excluded-loggers", "com.noisy",
+        "ntfy.enabled", false);
+
+    try (ApplicationContext context = ApplicationContext.run(properties)) {
+      NtfyConfig config = configOf(context.getBean(NtfyClient.class));
+
+      assertThat(config.getIncludeMdcKeys())
+          .as("MDC allow-list on the NtfyClient bean's config")
+          .containsExactly("requestId", "tenant");
+      // A second forwarded key, so a factory that dropped everything could not pass this test by
+      // accident of the allow-list defaulting to something non-empty.
+      assertThat(config.getExcludedLoggerPrefixes()).contains("com.noisy");
+    }
+  }
+
+  /** Unset means an empty allow-list, never null — the client must not consult any MDC key. */
+  @Test
+  void noIncludeMdcKeysConfigured_clientConfigCarriesAnEmptyAllowList() throws Exception {
+    try (ApplicationContext context = ApplicationContext.run()) {
+      assertThat(configOf(context.getBean(NtfyClient.class)).getIncludeMdcKeys()).isEmpty();
+    }
+  }
+
+  private static NtfyConfig configOf(NtfyClient client) throws Exception {
+    Field configField = NtfyClient.class.getDeclaredField("config");
+    configField.setAccessible(true);
+    return (NtfyConfig) configField.get(client);
   }
 
   @Test
