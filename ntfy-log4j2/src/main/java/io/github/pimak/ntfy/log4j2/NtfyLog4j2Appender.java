@@ -250,8 +250,14 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
    * <p>This second floor is not redundant: an appender attached at {@code ERROR} never has WARN
    * events routed to it at all, so without lowering it the in-appender gate would never see a
    * warning to let through.
+   *
+   * <p>Public because attaching this appender is not something only this package does: the Spring
+   * Boot starter's Log4j2 backend builds and attaches one too, and must derive its level from the
+   * same value or the two installation paths would disagree.
+   *
+   * @return the level this appender should be attached to a {@code LoggerConfig} at
    */
-  Level attachLevel() {
+  public Level attachLevel() {
     return warnRoutingActive ? Level.WARN : Level.ERROR;
   }
 

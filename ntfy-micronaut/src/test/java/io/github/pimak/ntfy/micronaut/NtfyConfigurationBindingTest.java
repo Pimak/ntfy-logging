@@ -45,6 +45,11 @@ class NtfyConfigurationBindingTest {
       assertThat(c.getDigestPriority()).isEqualTo("urgent");
       assertThat(c.getErrorTags()).isEqualTo("rotating_light");
       assertThat(c.getDigestTags()).isEqualTo("fire");
+      // Level routing is opt-in: a null warn topic is exactly what keeps alerting ERROR-only, so
+      // this null is the assertion that guards every existing Micronaut user's behaviour.
+      assertThat(c.getWarnTopic()).isNull();
+      assertThat(c.getWarnPriority()).isEqualTo("default");
+      assertThat(c.getWarnTags()).isEqualTo("warning");
       assertThat(c.getAsyncQueueCapacity()).isEqualTo(1024);
       // The two defaults that changed with the engine's 2.0 behaviour — asserted explicitly so a
       // silent drift away from the Spring starter's roster fails here.
@@ -75,6 +80,9 @@ class NtfyConfigurationBindingTest {
     properties.put("ntfy.digest-priority", "default");
     properties.put("ntfy.error-tags", "boom");
     properties.put("ntfy.digest-tags", "books");
+    properties.put("ntfy.warn-topic", "alerts-warn");
+    properties.put("ntfy.warn-priority", "low");
+    properties.put("ntfy.warn-tags", "eyes");
     properties.put("ntfy.click-url", "https://example.invalid/runbook");
     properties.put("ntfy.actions", "view, Runbook, https://example.invalid/runbook");
     properties.put("ntfy.locale", "fr");
@@ -106,6 +114,9 @@ class NtfyConfigurationBindingTest {
       assertThat(c.getDigestPriority()).isEqualTo("default");
       assertThat(c.getErrorTags()).isEqualTo("boom");
       assertThat(c.getDigestTags()).isEqualTo("books");
+      assertThat(c.getWarnTopic()).isEqualTo("alerts-warn");
+      assertThat(c.getWarnPriority()).isEqualTo("low");
+      assertThat(c.getWarnTags()).isEqualTo("eyes");
       assertThat(c.getClickUrl()).isEqualTo("https://example.invalid/runbook");
       assertThat(c.getActions()).isEqualTo("view, Runbook, https://example.invalid/runbook");
       assertThat(c.getLocale()).isEqualTo("fr");
@@ -132,6 +143,7 @@ class NtfyConfigurationBindingTest {
       assertThat(c.getConnectTimeout()).isEqualTo(Duration.ofSeconds(3));
       assertThat(c.getSuppressionWindow()).isEqualTo(Duration.ofSeconds(90));
       assertThat(c.getMaxStackFrames()).isEqualTo(12);
+      assertThat(c.getWarnTopic()).isEqualTo("file-warn-topic");
       assertThat(c.isAsync()).isFalse();
       assertThat(c.isEnabled()).isFalse();
     }

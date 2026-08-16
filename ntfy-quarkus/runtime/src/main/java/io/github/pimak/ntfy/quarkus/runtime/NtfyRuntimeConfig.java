@@ -81,6 +81,22 @@ public interface NtfyRuntimeConfig {
   @WithDefault("fire")
   String digestTags();
 
+  /**
+   * The ntfy topic WARN-level events are published to. Unset by default, which keeps alerting
+   * ERROR-only; a non-blank value is the entire opt-in for WARN alerting. Set it to the same value
+   * as {@code quarkus.ntfy.topic} to alert on warnings through the main topic at a different
+   * priority.
+   */
+  Optional<String> warnTopic();
+
+  /** ntfy priority header for WARN alerts and the WARN digest. */
+  @WithDefault("default")
+  String warnPriority();
+
+  /** ntfy tags header for WARN alerts and the WARN digest. */
+  @WithDefault("warning")
+  String warnTags();
+
   /** URL opened when a notification is tapped (ntfy {@code Click} header). Omitted when unset. */
   Optional<String> clickUrl();
 

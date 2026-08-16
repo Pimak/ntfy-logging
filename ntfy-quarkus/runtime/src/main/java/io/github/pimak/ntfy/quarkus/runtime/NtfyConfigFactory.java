@@ -26,6 +26,8 @@ final class NtfyConfigFactory {
             .digestPriority(config.digestPriority())
             .errorTags(config.errorTags())
             .digestTags(config.digestTags())
+            .warnPriority(config.warnPriority())
+            .warnTags(config.warnTags())
             .enabled(config.enabled())
             .asyncEnabled(config.async())
             .asyncQueueCapacity(config.asyncQueueCapacity())
@@ -42,6 +44,7 @@ final class NtfyConfigFactory {
     config.actions().ifPresent(b::actionsHeader);
     config.locale().ifPresent(b::locale);
     config.excludedLoggers().ifPresent(b::excludedLoggers);
+    config.warnTopic().ifPresent(b::warnTopic);
     config.includeMdcKeys().ifPresent(b::includeMdcKeysCsv);
 
     return b.build();

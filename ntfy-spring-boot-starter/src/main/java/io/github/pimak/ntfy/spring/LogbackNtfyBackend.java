@@ -72,6 +72,9 @@ final class LogbackNtfyBackend implements NtfyBackend {
     appender.setDigestPriority(p.getDigestPriority());
     appender.setErrorTags(p.getErrorTags());
     appender.setDigestTags(p.getDigestTags());
+    appender.setWarnTopic(p.getWarnTopic());
+    appender.setWarnPriority(p.getWarnPriority());
+    appender.setWarnTags(p.getWarnTags());
     appender.setClickUrl(p.getClickUrl());
     appender.setActions(p.getActions());
     appender.setLocale(p.getLocale());

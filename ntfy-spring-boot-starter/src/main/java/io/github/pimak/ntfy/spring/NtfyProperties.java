@@ -28,6 +28,9 @@ public class NtfyProperties {
   private String digestPriority = "urgent";
   private String errorTags = "rotating_light";
   private String digestTags = "fire";
+  private String warnTopic;
+  private String warnPriority = "default";
+  private String warnTags = "warning";
   private String clickUrl;
   private String actions;
   private String locale;
@@ -164,6 +167,37 @@ public class NtfyProperties {
 
   public void setDigestTags(String digestTags) {
     this.digestTags = digestTags;
+  }
+
+  /**
+   * The topic WARN-level events are published to. A non-blank value is the entire opt-in for WARN
+   * alerting: unset (the default), alerting stays ERROR-only. Set it to the same value as {@code
+   * ntfy.topic} to alert on warnings through the main topic at a different priority.
+   */
+  public String getWarnTopic() {
+    return warnTopic;
+  }
+
+  public void setWarnTopic(String warnTopic) {
+    this.warnTopic = warnTopic;
+  }
+
+  /** ntfy {@code Priority} header for WARN alerts and the WARN digest. */
+  public String getWarnPriority() {
+    return warnPriority;
+  }
+
+  public void setWarnPriority(String warnPriority) {
+    this.warnPriority = warnPriority;
+  }
+
+  /** ntfy {@code Tags} header for WARN alerts and the WARN digest. */
+  public String getWarnTags() {
+    return warnTags;
+  }
+
+  public void setWarnTags(String warnTags) {
+    this.warnTags = warnTags;
   }
 
   public String getClickUrl() {
