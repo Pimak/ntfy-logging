@@ -4,7 +4,8 @@
 [![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime)
 
 A Quarkus 3.38 extension: a JUL log handler (the shared [`ntfy-jul`](jul.md) handler, installed
-here through a `LogHandlerBuildItem`) bound to `quarkus.ntfy.*` that publishes your error logs,
+here through a `LogHandlerBuildItem`) bound to `quarkus.ntfy.*` that publishes your error logs
+(and, with `quarkus.ntfy.warn-topic`, your warnings — see [level-routing.md](level-routing.md)),
 plus an injectable `NtfyClient`. It is GraalVM-native ready — the HTTP client is created at
 runtime-init — so it works in both JVM and native builds.
 
@@ -132,6 +133,7 @@ lives in the cross-cutting reference pages:
 - **[Alert behavior](alert-behavior.md)** — immediate alerts, storm suppression, and digests.
 - **[MDC context](mdc-context.md)** — the `include-mdc-keys` allow-list, its guards, and why there
   is no wildcard.
+- **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
 - **[Observability](observability.md)** — the pipeline counters behind the meters above, and how to
   read them without Micrometer.

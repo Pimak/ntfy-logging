@@ -8,6 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **An opt-in WARN route, via the new `warn-topic` / `warn-priority` / `warn-tags` settings.**
+  Alerting has been ERROR-only, enforced as a hard-coded floor repeated in every adapter's gate;
+  the common request it could not serve was "tell me about warnings too, but not the way you tell me
+  about errors." Setting `warn-topic` adds a second, independent route: WARN-level events
+  (`WARNING` on JUL/Quarkus) publish to that topic at `warn-priority`/`warn-tags`, defaulting to a
+  deliberately quieter `default`/`warning` ⚠️ against the error route's `high`/`rotating_light` 🚨.
+  **The presence of a non-blank `warn-topic` is the entire opt-in** — there is no `alert-on-warn`
+  boolean beside it, because a route needs a destination and naming it is the only thing the engine
+  has to be told, which also makes the feature impossible to half-enable. Point it at your main
+  `topic` to alert on warnings through one channel at a different priority. Unset, **every path is
+  byte-identical to before**: same gates, same bodies, same startup diagnostics, same request count.
+  **The two routes never share a storm budget.** Each holds its own rate limiter, both sized by the
+  same `max-alerts-per-window`/`suppression-window`, and each digests separately on its own topic and
+  in its own words ("N warnings suppressed" vs "N errors suppressed"), driven by the one existing
+  timer. That separation is the reason this is a second route rather than a lowered threshold: with a
+  shared budget a service logging warnings in a loop would spend the allowance and push genuine
+  errors into a digest — precisely the failure the ERROR-only floor existed to prevent — so opening
+  the WARN gate must not make error alerting worse. The warn digest deliberately keeps
+  `warn-priority`/`warn-tags` rather than escalating to `digest-priority`/`digest-tags`: escalating
+  would undo the point of a quiet channel at the worst moment, when a burst of warnings is the last
+  thing that should page anyone. **Nothing below WARN can alert on any configuration**, and that is
+  structural rather than a validation rule — the engine's new `AlertLevel` has exactly two constants,
+  so "route INFO" is not expressible by any adapter, present or future. Two conditions withdraw the
+  route while **leaving ERROR alerting fully active**, since a mistyped optional extra must never
+  cost an operator their error alerts: a `warn-topic` that is not a valid ntfy topic name, and one
+  that reached the engine solely through a classpath `ntfy.properties` without
+  `allow-classpath-endpoint`. That second guard puts `warn-topic` on the same footing as `url`,
+  following the rule the loader already applied — `include-mdc-keys` is read from all three
+  configuration layers precisely because it cannot redirect where alerts go, and `warn-topic` names a
+  destination and widens how much log content leaves the host. When the route is active the engine
+  announces it once at startup, naming the topic. On Log4j2 the attach level is lowered to `WARN`
+  alongside the appender's own gate — an appender attached at `ERROR` is never handed a warning at
+  all — with both floors derived from a single accessor so a reconfiguration cannot re-attach at a
+  different one. Available on every surface with the same names and defaults:
+  `-Dntfy.warn-topic` / `NTFY_WARN_TOPIC` / `ntfy.properties` `ntfy.warn-topic`, Logback XML
+  `<warnTopic>`, the Log4j2 `<Ntfy>` element's `warnTopic` attribute, Spring `ntfy.warn-topic`,
+  Micronaut `ntfy.warn-topic`, Quarkus `quarkus.ntfy.warn-topic`, and
+  `NtfyConfig.Builder.warnTopic(String)` for programmatic core users. `AlertEvent` gained a `level`
+  component; both previous constructor signatures and the `of(...)` factory remain as explicit
+  delegating forms meaning `ERROR`, so adapters compiled against an earlier release stay source- and
+  binary-compatible. See the new [docs/level-routing.md](docs/level-routing.md).
 - **MDC context in alert bodies, via a new opt-in `include-mdc-keys` allow-list.** Until now an alert
   said WHAT broke — message, logger, cause chain, root-cause frames — but never for WHOM or in WHICH
   request, so acting on one still meant going back to centralized logs, exactly the trip the alert

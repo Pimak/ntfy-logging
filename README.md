@@ -14,7 +14,8 @@
 `java.util.logging`, Logback, Spring Boot and Micronaut, a one-line Log4j2 appender, a native-ready
 Quarkus extension, and a plain programmatic client.**
 
-Publish your application's ERROR-level log events as [ntfy](https://ntfy.sh) push notifications.
+Publish your application's ERROR-level log events as [ntfy](https://ntfy.sh) push notifications —
+and, if you opt in, WARN-level ones to a topic of their own.
 The engine is:
 
 - **storm-resistant** — rate-limited with a count-never-lost suppressed-count digest, so a burst
@@ -98,6 +99,17 @@ and the setting is unset by default. Values are scrubbed and length-capped befor
 Supported on Logback/Spring Boot and on Quarkus (JBoss LogManager); plain `java.util.logging` has no
 MDC, so the block is empty there. See [docs/mdc-context.md](docs/mdc-context.md).
 
+## Levels: ERROR by default, WARN by invitation
+
+Alerting is ERROR-only out of the box (`SEVERE` on JUL/Quarkus). Setting `warn-topic` adds a second
+route: WARN events go to that topic, at their own quieter priority and tags, drawing on their **own**
+storm budget — so a flood of warnings can never spend the error allowance and push genuine errors
+into a digest. Naming the destination is the whole opt-in; there is no separate boolean to forget.
+
+Nothing below WARN can alert on any configuration, and that is structural rather than a validation
+rule: the engine's level type has exactly two constants, so "route INFO" is not expressible. See
+[docs/level-routing.md](docs/level-routing.md).
+
 ## Notification language
 
 Alert bodies and the engine's own diagnostics default to English but can be produced in another
@@ -138,6 +150,7 @@ bytecode) · GraalVM native (via the Quarkus extension). See
 | [docs/alert-behavior.md](docs/alert-behavior.md) | Why alerting behaves the way it does: immediate single-error alerts, storm suppression, digest-on-window-close, digest-on-shutdown |
 | [docs/observability.md](docs/observability.md) | The read-only `published`/`suppressed`/`failed` pipeline counters, reading them programmatically, and the conditional Micrometer bindings in the Spring Boot starter and the Quarkus extension |
 | [docs/authentication.md](docs/authentication.md) | The three auth modes (`BearerToken`, `BasicAuth`, `None`) and the "token wins" precedence rule |
+| [docs/level-routing.md](docs/level-routing.md) | `warn-topic` — the opt-in WARN route, its own storm budget and digest, and why nothing below WARN can ever alert |
 | [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), and the always-on self-exclusion |
 | [docs/mdc-context.md](docs/mdc-context.md) | `include-mdc-keys` — attaching allow-listed MDC context to alert bodies, its guards, and why there is no wildcard |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |
