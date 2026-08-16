@@ -18,6 +18,20 @@ here**); each is explained where it appears.
 A verified row is evidence, not a guarantee: a single green run on one JDK. Where a range is given,
 the listed versions are the ones actually run — the range between them is interpolation.
 
+**What keeps this page from going stale.** A measurement taken once decays silently, so two checks
+hold it in place:
+
+- `CompatibilityMatrixGuardTest` (in `ntfy-core`, so it runs in every build) asserts that each
+  **Tested (CI)** row names the version the root `pom.xml` actually pins — the Dependabot-bump
+  failure mode — and that the **Verified** rows and the sweep's version list are the same set, in
+  both directions. Neither side can drift ahead of the other.
+- The weekly `Compatibility sweep` workflow re-runs each module's suite against every **Verified**
+  version, and files an issue when one stops passing. It is scheduled rather than blocking, because
+  it can fail for reasons unrelated to the change in front of you.
+
+Both read `.github/compat-versions.tsv`, which is the single source of truth for the swept versions.
+To add or drop one, edit that file and the matching row here; the guard fails until they agree.
+
 ## Java
 
 | JDK | Status |
