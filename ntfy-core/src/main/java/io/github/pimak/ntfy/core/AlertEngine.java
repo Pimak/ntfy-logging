@@ -249,24 +249,29 @@ public final class AlertEngine {
       // deliberate (if risky) choice, and refusing would silence alerting.
       diagnostics.warn(messages.statusCredentialsOverPlainHttp());
     }
+    // Whether the opt-in WARN route survives its own preconditions. Both failures below withdraw
+    // ONLY the warn route and let activation continue: unlike `topic`, which IS the alerting, a
+    // misconfigured optional extra must never cost the operator their error alerts.
+    boolean warnRoutingEnabled = config.isWarnRoutingEnabled();
     if (!isSendableHeaderValue(config.getErrorPriority())
         || !isSendableHeaderValue(config.getDigestPriority())
         || !isSendableHeaderValue(config.getErrorTags())
         || !isSendableHeaderValue(config.getDigestTags())
-        || !isSendableHeaderValue(config.getWarnPriority())
-        || !isSendableHeaderValue(config.getWarnTags())
         || !isSendableHeaderValue(config.getClickUrl())
-        || !isSendableHeaderValue(config.getActions())) {
+        || !isSendableHeaderValue(config.getActions())
+        // The warn values are checked ONLY when a warn route was actually asked for. They are
+        // documented as "consulted only when warn-topic is set", and the publisher never sends them
+        // otherwise — warning about a value that cannot reach a request would both contradict that
+        // and make the ERROR-only default's diagnostic stream depend on settings it ignores.
+        || (warnRoutingEnabled
+            && (!isSendableHeaderValue(config.getWarnPriority())
+                || !isSendableHeaderValue(config.getWarnTags())))) {
       // One-time, specific diagnostic: the publisher silently omits such headers, and without
       // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
       // invisible.
       diagnostics.warn(messages.statusInvalidPriorityOrTags());
     }
 
-    // Whether the opt-in WARN route survives its own preconditions. Both failures below withdraw
-    // ONLY the warn route and let activation continue: unlike `topic`, which IS the alerting, a
-    // misconfigured optional extra must never cost the operator their error alerts.
-    boolean warnRoutingEnabled = config.isWarnRoutingEnabled();
     if (warnRoutingEnabled && !NtfyPublisher.isValidTopic(config.getWarnTopic())) {
       diagnostics.warn(messages.statusInvalidWarnTopic());
       warnRoutingEnabled = false;

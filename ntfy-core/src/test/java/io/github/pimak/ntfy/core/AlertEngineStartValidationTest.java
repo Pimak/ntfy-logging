@@ -413,6 +413,57 @@ class AlertEngineStartValidationTest {
     }
   }
 
+  /**
+   * The warn styling values are documented as "consulted only when warn-topic is set", and the
+   * publisher never sends them otherwise. Warning about a value that cannot reach a request would
+   * contradict that — and, worse, would make the ERROR-only default's diagnostic stream depend on
+   * settings it ignores, breaking the guarantee that an unconfigured warn route changes nothing.
+   */
+  @Test
+  void nonAsciiWarnTagsValue_isSilentWhileWarnRoutingIsOff() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .warnTags("⚠️") // a literal emoji, but no warn-topic to ever send it with
+                .warnPriority("⚠️")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidPriorityOrTags());
+    } finally {
+      engine.stop();
+    }
+  }
+
+  /** The same value DOES warn once a warn topic makes it reachable. */
+  @Test
+  void nonAsciiWarnTagsValue_warnsOnceWarnRoutingIsOn() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .warnTopic("alerts-warn")
+                .warnTags("⚠️")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(messages.statusInvalidPriorityOrTags());
+    } finally {
+      engine.stop();
+    }
+  }
+
   @Test
   void zeroConnectTimeout_warnsAndStillActivates() {
     CapturingDiagnostics diagnostics = new CapturingDiagnostics();
