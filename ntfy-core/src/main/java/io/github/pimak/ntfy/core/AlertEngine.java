@@ -3,6 +3,7 @@ package io.github.pimak.ntfy.core;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -385,12 +386,26 @@ public final class AlertEngine {
 
     // Drain the async delivery worker BEFORE the digest flush, so any queued-but-unsent alerts fold
     // into the suppression count and are reported by the flush below rather than silently dropped.
-    // shutdownNow() interrupts the worker's in-flight send (an interrupt-manufactured failure
-    // re-folds through deliver()'s recordSuppressed) and returns the never-started queued tasks.
-    // HTTP resources are still live here, for both the interrupted send and the flush.
+    // HTTP resources are still live here, for both the in-flight send and the flush.
+    //
+    // The ordering mirrors the digest scheduler above, and for the same reason. Take the
+    // never-started backlog off the queue FIRST, then shutdown() gracefully so the worker's
+    // IN-FLIGHT send is allowed to finish. Interrupting it mid-send manufactures a spurious failure
+    // for a request the server may have already accepted: deliver() then folds that "failure" into
+    // the suppression count, and the flush below publishes a phantom "1 errors suppressed" digest
+    // immediately behind the very alert it claims was suppressed — so the user gets the alert AND a
+    // digest contradicting it, and a delivered alert is tallied `failed`. Draining before shutdown()
+    // is what preserves the contract stated above: queued-but-unsent events still fold into the
+    // digest instead of being published on the way out; only the already-running send completes.
+    // Termination stays bounded: the await is 500ms, then shutdownNow() force-cancels anything
+    // genuinely stuck (and returns any task a submit() racing this teardown managed to enqueue).
     ThreadPoolExecutor de = deliveryExecutor;
     if (de != null) {
-      List<Runnable> unsent = de.shutdownNow();
+      List<Runnable> unsent = new ArrayList<>();
+      de.getQueue().drainTo(unsent);
+      de.shutdown();
+      awaitTerminationQuietly(de);
+      unsent.addAll(de.shutdownNow());
       awaitTerminationQuietly(de);
       AlertRateLimiter rlDrain = rateLimiter;
       if (rlDrain != null) {

@@ -263,6 +263,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   test gap that hid it: the binding test asserted all two dozen other getters and skipped this one,
   and there was no equivalent of the starter's `includeMdcKeys_reachesTheNtfyClientBean`.
 
+### Fixed
+- **A shutdown race could publish a phantom storm digest — or lose the alert entirely.** With async
+  delivery on (the default since 2.0), `AlertEngine.stop()` called `shutdownNow()` on the delivery
+  worker, interrupting whatever send was in flight. `NtfyPublisher` maps that `InterruptedException`
+  to a failed publish, `deliver()` folds a failed publish into the suppression count, and `stop()`
+  then flushes a digest for it — so a single ERROR logged just before shutdown could produce a
+  bogus `1 errors suppressed in the last 3 minutes` notification, and `PipelineCounters` counted a
+  delivered alert as `failed`. Two shapes were observed, depending on where the interrupt lands
+  relative to the server accepting the request: the alert **plus** a contradicting digest, or —
+  worse — the digest **instead of** the alert, which is a silently lost notification. This hit
+  every ordinary shutdown that races an in-flight publish: Spring context close, a Logback
+  `LoggerContext` reset, Quarkus shutdown, plain JVM exit. `stop()` now drains the never-started
+  backlog off the queue first, then shuts the worker down gracefully and awaits it (bounded at
+  500ms) before force-cancelling — exactly the treatment the digest scheduler immediately above it
+  has always had, and whose comment already described this precise hazard: *"Interrupting it
+  mid-send manufactures a spurious failure for a request the server may have already accepted."*
+  The delivery executor, added later for 2.0 async delivery, never received it. Draining before the
+  graceful shutdown is what preserves the existing contract that queued-but-unsent events fold into
+  the digest rather than being published on the way out; only the already-running send completes.
+  The defect is in `ntfy-core`, so **every adapter was affected**. Found by the compatibility sweep,
+  which surfaced it as an intermittent `ntfy-logback` failure.
+- **`LogbackAlertAppenderDoubleResetTest` now identifies that failure instead of merely counting.**
+  Both cases asserted `verify(1, ...)` on the publish count, which is satisfied just as well by
+  "the alert was lost and a digest went out in its place" — so the test could pass while the
+  behaviour it exists to protect was broken, and that is precisely the shape the bug above took most
+  often. They now assert the single publish IS the alert, by priority (`high` for an alert,
+  `urgent` for a digest), with a failure message that names the mechanism and dumps the published
+  bodies. The three reachable failures read distinctly: `[high, urgent]` is a duplicate, `[urgent]`
+  is a lost alert, `[]` is nothing published.
+
 ## [1.2.0] - 2026-07-23
 
 ### Added
