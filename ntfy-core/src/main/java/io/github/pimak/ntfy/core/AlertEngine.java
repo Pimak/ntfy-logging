@@ -384,30 +384,13 @@ public final class AlertEngine {
     }
     digestScheduler = null;
 
-    // Drain the async delivery worker BEFORE the digest flush, so any queued-but-unsent alerts fold
-    // into the suppression count and are reported by the flush below rather than silently dropped.
-    // HTTP resources are still live here, for both the in-flight send and the flush.
-    //
-    // The ordering mirrors the digest scheduler above, and for the same reason. Take the
-    // never-started backlog off the queue FIRST, then shutdown() gracefully so the worker's
-    // IN-FLIGHT send is allowed to finish. Interrupting it mid-send manufactures a spurious failure
-    // for a request the server may have already accepted: deliver() then folds that "failure" into
-    // the suppression count, and the flush below publishes a phantom "1 errors suppressed" digest
-    // immediately behind the very alert it claims was suppressed — so the user gets the alert AND a
-    // digest contradicting it, and a delivered alert is tallied `failed`. Draining before shutdown()
-    // is what preserves the contract stated above: queued-but-unsent events still fold into the
-    // digest instead of being published on the way out; only the already-running send completes.
-    // Termination stays bounded: the await is 500ms, then shutdownNow() force-cancels anything
-    // genuinely stuck (and returns any task a submit() racing this teardown managed to enqueue).
-    //
-    // The queue is drained TWICE, on either side of shutdown(), and the order is not arbitrary.
-    // Draining first is what keeps the backlog out of the worker's hands: shutdown() means
-    // "previously submitted tasks ARE executed", so a queue still populated when it lands would be
-    // published on the way out instead of folded into the digest. Draining again immediately after
-    // closes the window between those two lines, where a submit() — deliberately unsynchronized, so
-    // the logging path never blocks on a teardown — can still enqueue. Past shutdown() there is no
-    // window left: further submits are rejected into asyncOverflowHandler, which folds them into the
-    // suppression count exactly as this drain does.
+    // Drain the async delivery worker BEFORE the digest flush, so queued-but-unsent alerts fold into
+    // the suppression count rather than being dropped; HTTP resources are still live here. Graceful
+    // shutdown() like the digest scheduler above, so the IN-FLIGHT send finishes: interrupting it
+    // manufactures a failure that deliver() folds into the suppression count, making the flush below
+    // publish a phantom "1 errors suppressed" digest. Drain either side of shutdown() — before,
+    // because shutdown() runs whatever is still queued; after, to catch a submit() racing those two
+    // lines (past shutdown(), rejections fold through asyncOverflowHandler instead).
     ThreadPoolExecutor de = deliveryExecutor;
     if (de != null) {
       List<Runnable> unsent = new ArrayList<>();
