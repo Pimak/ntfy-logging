@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -51,6 +52,15 @@ class NtfyWarnRoutingTest {
     } catch (IOException e) {
       throw new IllegalStateException("failed to start loopback server", e);
     }
+  }
+
+  /**
+   * Releases the server's listening socket and dispatcher thread. Surefire runs every test class of
+   * this module in one JVM, so a server left running would hold both for the rest of the run.
+   */
+  @AfterAll
+  static void stopServer() {
+    SERVER.stop(0);
   }
 
   @RegisterExtension
