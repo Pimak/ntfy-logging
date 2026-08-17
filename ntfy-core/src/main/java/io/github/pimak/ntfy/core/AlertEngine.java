@@ -399,11 +399,21 @@ public final class AlertEngine {
     // digest instead of being published on the way out; only the already-running send completes.
     // Termination stays bounded: the await is 500ms, then shutdownNow() force-cancels anything
     // genuinely stuck (and returns any task a submit() racing this teardown managed to enqueue).
+    //
+    // The queue is drained TWICE, on either side of shutdown(), and the order is not arbitrary.
+    // Draining first is what keeps the backlog out of the worker's hands: shutdown() means
+    // "previously submitted tasks ARE executed", so a queue still populated when it lands would be
+    // published on the way out instead of folded into the digest. Draining again immediately after
+    // closes the window between those two lines, where a submit() — deliberately unsynchronized, so
+    // the logging path never blocks on a teardown — can still enqueue. Past shutdown() there is no
+    // window left: further submits are rejected into asyncOverflowHandler, which folds them into the
+    // suppression count exactly as this drain does.
     ThreadPoolExecutor de = deliveryExecutor;
     if (de != null) {
       List<Runnable> unsent = new ArrayList<>();
       de.getQueue().drainTo(unsent);
       de.shutdown();
+      de.getQueue().drainTo(unsent);
       awaitTerminationQuietly(de);
       unsent.addAll(de.shutdownNow());
       awaitTerminationQuietly(de);
