@@ -66,6 +66,43 @@ class NtfyClientFactoryTest {
     }
   }
 
+  /**
+   * The same invariant, for the level-routing keys added after {@code include-mdc-keys}: they are
+   * bound on {@link NtfyConfiguration} and applied by {@link NtfyLogbackInstaller}, so the factory
+   * must forward them too or the injectable client would publish to the error topic while the
+   * appender routes warnings elsewhere.
+   */
+  @Test
+  void everyConfiguredKeyReachesTheClientConfig_includingTheWarnRoute() throws Exception {
+    Map<String, Object> properties = Map.of(
+        "ntfy.url", "https://127.0.0.1:1",
+        "ntfy.topic", "alerts",
+        "ntfy.warn-topic", "alerts-warn",
+        "ntfy.warn-priority", "low",
+        "ntfy.warn-tags", "eyes",
+        "ntfy.enabled", false);
+
+    try (ApplicationContext context = ApplicationContext.run(properties)) {
+      NtfyConfig config = configOf(context.getBean(NtfyClient.class));
+
+      assertThat(config.getWarnTopic()).isEqualTo("alerts-warn");
+      assertThat(config.isWarnRoutingEnabled()).isTrue();
+      assertThat(config.getWarnPriority()).isEqualTo("low");
+      assertThat(config.getWarnTags()).isEqualTo("eyes");
+    }
+  }
+
+  /** Unset means no warn route on the client's config either — alerting stays ERROR-only. */
+  @Test
+  void noWarnTopicConfigured_clientConfigHasNoWarnRoute() throws Exception {
+    try (ApplicationContext context = ApplicationContext.run()) {
+      NtfyConfig config = configOf(context.getBean(NtfyClient.class));
+
+      assertThat(config.getWarnTopic()).isNull();
+      assertThat(config.isWarnRoutingEnabled()).isFalse();
+    }
+  }
+
   /** Unset means an empty allow-list, never null — the client must not consult any MDC key. */
   @Test
   void noIncludeMdcKeysConfigured_clientConfigCarriesAnEmptyAllowList() throws Exception {

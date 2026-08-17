@@ -38,7 +38,8 @@ public class NtfyClientFactory {
    * <p>Every bound property must be forwarded here. This method and {@link NtfyLogbackInstaller}
    * are two independent apply sites for one configuration, so a key wired into only one of them
    * produces a client whose config silently disagrees with the appender's — with nothing failing to
-   * announce it. {@code include-mdc-keys} was exactly that omission until it was added here.
+   * announce it. {@code include-mdc-keys} was exactly that omission until it was added here; the
+   * {@code warn-*} level-routing keys are forwarded for the same reason.
    *
    * @param configuration the bound {@code ntfy.*} configuration
    * @return a client bean the container closes on shutdown
@@ -63,6 +64,9 @@ public class NtfyClientFactory {
         .digestPriority(configuration.getDigestPriority())
         .errorTags(configuration.getErrorTags())
         .digestTags(configuration.getDigestTags())
+        .warnTopic(configuration.getWarnTopic())
+        .warnPriority(configuration.getWarnPriority())
+        .warnTags(configuration.getWarnTags())
         .clickUrl(configuration.getClickUrl())
         .actionsHeader(configuration.getActions())
         .locale(configuration.getLocale())
