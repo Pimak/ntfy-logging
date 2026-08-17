@@ -262,8 +262,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   forwarding was missing — so no configuration needs changing to pick the fix up. Also closes the
   test gap that hid it: the binding test asserted all two dozen other getters and skipped this one,
   and there was no equivalent of the starter's `includeMdcKeys_reachesTheNtfyClientBean`.
-
-### Fixed
 - **A shutdown race could publish a phantom storm digest — or lose the alert entirely.** With async
   delivery on (the default since 2.0), `AlertEngine.stop()` called `shutdownNow()` on the delivery
   worker, interrupting whatever send was in flight. `NtfyPublisher` maps that `InterruptedException`
