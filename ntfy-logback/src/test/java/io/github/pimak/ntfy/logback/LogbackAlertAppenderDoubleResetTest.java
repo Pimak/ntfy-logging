@@ -1,17 +1,19 @@
 package io.github.pimak.ntfy.logback;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import java.util.List;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -97,7 +99,7 @@ class LogbackAlertAppenderDoubleResetTest {
         .as("no ntfy-alert-http thread should survive the second stop()")
         .isFalse();
 
-    verify(1, postRequestedFor(urlEqualTo("/alerts")));
+    assertPublishedExactlyTheAlert();
   }
 
   @Test
@@ -128,6 +130,41 @@ class LogbackAlertAppenderDoubleResetTest {
         .as("a single stop() must release every thread even after a double start()")
         .isFalse();
 
-    verify(1, postRequestedFor(urlEqualTo("/alerts")));
+    assertPublishedExactlyTheAlert();
+  }
+
+  /**
+   * Asserts the appender published exactly one thing and that it was the ERROR ALERT — replacing a
+   * bare {@code verify(1, ...)}, which is a much weaker statement than it looks.
+   *
+   * <p>A count of 1 is satisfied equally by "the alert was delivered" and by "the alert was lost
+   * and a storm digest went out in its place". Both tests here exist to catch a {@code stop()}
+   * race, and that race produces exactly those two shapes — so the count alone can pass while the
+   * thing under test is broken.
+   *
+   * <p>Priority separates them: an alert carries the {@code error-priority} default ({@code high}),
+   * a digest the {@code digest-priority} default ({@code urgent}). The assertion is written over
+   * the full list of priorities rather than as two {@code verify} calls so that a failure states
+   * the diagnosis instead of a request diff — the three reachable failures each read distinctly:
+   * {@code [high, urgent]} is a duplicate, {@code [urgent]} is a LOST alert, {@code []} is nothing
+   * published at all. The published bodies are dumped alongside, since the digest body names the
+   * count it claims was suppressed.
+   */
+  private static void assertPublishedExactlyTheAlert() {
+    List<LoggedRequest> published = findAll(postRequestedFor(urlEqualTo("/alerts")));
+    List<String> priorities = published.stream().map(r -> r.getHeader("Priority")).toList();
+
+    assertThat(priorities)
+        .as(
+            "expected exactly one publish, the error alert (Priority: high) - never the storm "
+                + "digest (Priority: urgent).%n"
+                + "A digest here means stop() interrupted the worker's in-flight send, deliver() "
+                + "folded that interrupt-manufactured failure into the suppression count, and the "
+                + "shutdown flush published a phantom \"N errors suppressed\". It arrives either "
+                + "alongside the alert (duplicate) or INSTEAD of it (the alert is lost - which a "
+                + "bare count of 1 cannot detect).%n"
+                + "Bodies actually published: %s",
+            published.stream().map(r -> r.getBodyAsString().replace("\n", " | ")).toList())
+        .containsExactly("high");
   }
 }
