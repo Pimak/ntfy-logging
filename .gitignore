@@ -15,3 +15,10 @@ target/
 # OS
 .DS_Store
 Thumbs.db
+
+# MkDocs build output (`mkdocs build`, and the intermediate build `mike deploy` runs).
+site/
+
+# Aggregated Javadoc generated into the MkDocs tree by `-P docs-site javadoc:aggregate`
+# (see .github/workflows/docs.yml) — build output, never committed.
+docs/apidocs/
