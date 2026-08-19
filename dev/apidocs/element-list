@@ -1,0 +1,7 @@
+io.github.pimak.ntfy.core
+io.github.pimak.ntfy.jul
+io.github.pimak.ntfy.log4j2
+io.github.pimak.ntfy.logback
+io.github.pimak.ntfy.micronaut
+io.github.pimak.ntfy.quarkus.runtime
+io.github.pimak.ntfy.spring
