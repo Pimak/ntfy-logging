@@ -37,12 +37,24 @@ class LogbackAlertAppenderStartupPingTest {
     return context.getStatusManager().getCopyOfStatusList().stream().map(Status::getMessage).toList();
   }
 
+  private static boolean selfTestReported(LoggerContext context) {
+    return statuses(context).stream().anyMatch(m -> m.contains("startup self-test"));
+  }
+
+  /**
+   * Waits for the async self-test to report, and FAILS if it never does rather than returning on the
+   * timeout. A silent timeout would let a test whose self-test never ran continue to its real
+   * assertions, turning "the self-test did not happen" into a confusing downstream failure — or
+   * hiding it entirely where the later assertion happens to hold anyway.
+   */
   private static void awaitSelfTestStatus(LoggerContext context) throws InterruptedException {
     long deadline = System.currentTimeMillis() + 3000;
-    while (statuses(context).stream().noneMatch(m -> m.contains("startup self-test"))
-        && System.currentTimeMillis() < deadline) {
+    while (!selfTestReported(context) && System.currentTimeMillis() < deadline) {
       Thread.sleep(20);
     }
+    assertThat(selfTestReported(context))
+        .as("no self-test status line was emitted within the timeout")
+        .isTrue();
   }
 
   @Test

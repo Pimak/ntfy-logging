@@ -43,12 +43,23 @@ class NtfyLog4j2AppenderStartupPingTest {
         .setTopic("alerts");
   }
 
+  private boolean selfTestReported() {
+    return status.messages().stream().anyMatch(m -> m.contains("startup self-test"));
+  }
+
+  /**
+   * Waits for the async self-test to report, and FAILS if it never does rather than returning on the
+   * timeout — see the same helper in the Logback adapter's test for why a silent timeout is worse
+   * than a loud one here.
+   */
   private void awaitSelfTestStatus() throws InterruptedException {
     long deadline = System.currentTimeMillis() + 3000;
-    while (status.messages().stream().noneMatch(m -> m.contains("startup self-test"))
-        && System.currentTimeMillis() < deadline) {
+    while (!selfTestReported() && System.currentTimeMillis() < deadline) {
       Thread.sleep(20);
     }
+    assertThat(selfTestReported())
+        .as("no self-test status line was emitted within the timeout")
+        .isTrue();
   }
 
   @Test
