@@ -1,25 +1,8 @@
 #!/usr/bin/env python3
 """Refuse a `mike set-default` that would send the site root backwards.
 
-`mike set-default` accepts any existing identifier without comment, including an older minor:
-setting it to 2.0 while 2.1 is published silently points https://pimak.github.io/ntfy-logging/ at
-the superseded docs, and nothing on the site says so. That is a realistic slip right after a
-backport — you republish the 2.0 pages, then set the default out of the same habit.
-
-This is the guard for that. It reads `mike list -j` on stdin and decides whether TARGET is a safe
-default:
-
-* an alias is resolved to the version carrying it, so `latest` is judged on what it points at;
-* a release version is safe only when it is the newest published one;
-* a non-release version (`dev`) is safe only while nothing has been released yet, i.e. during the
-  initial bootstrap — once a release exists, defaulting to `dev` would land every visitor on
-  unreleased documentation.
-
---force overrides the refusal for the rare deliberate case (say, pulling the root back off a
-release that turned out to be broken). It is a separate, explicit input so it cannot happen by
-accident.
-
-Exit code 0 when the default is safe to set, 1 otherwise.
+mike accepts any existing identifier without comment, including a superseded one — a realistic slip
+right after a backport. Reads `mike list -j` on stdin. Exit 0 when the target is safe, 1 otherwise.
 """
 
 from __future__ import annotations
@@ -67,9 +50,8 @@ def main() -> int:
                   f"alias. Deployed: {known}", file=sys.stderr)
             return 1
         if len(carriers) > 1:
-            # mike moves an alias rather than duplicating it, so this means versions.json has been
-            # corrupted or hand-edited. Picking one carrier would make the root depend on JSON
-            # ordering; refuse and let the branch be repaired first.
+            # mike moves an alias rather than duplicating it, so versions.json has been damaged;
+            # picking a carrier would make the root depend on JSON ordering.
             print(f"check-default-version: '{args.target}' is an alias on more than one version "
                   f"({', '.join(sorted(carriers))}), so what it points at is ambiguous. Repair "
                   f"versions.json on gh-pages before setting the root.", file=sys.stderr)
@@ -80,7 +62,6 @@ def main() -> int:
     newest = releases[-1] if releases else None
 
     if newest is None:
-        # Bootstrap: only dev-like versions exist, so any of them is the only sensible root.
         verdict = f"nothing is released yet, so '{args.target}' is the only sensible default"
         problem = None
     elif not RELEASE.match(resolved):

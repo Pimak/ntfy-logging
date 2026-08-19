@@ -16,8 +16,7 @@ runs:
     - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
       with:
         distribution: temurin
-        # JDK 21, not the 21-and-25 sweep ci.yml runs: JDK 25's doclint is stricter, and the site's
-        # Javadoc must be generated on the JDK the artifacts target (same reasoning as release.yml).
+        # JDK 21 like release.yml: JDK 25's doclint is stricter than what the artifacts target.
         java-version: '21'
         cache: maven
 
@@ -25,16 +24,13 @@ runs:
       shell: bash
       run: python -m pip install --disable-pip-version-check -r requirements-docs.txt
 
-    # Plain ./mvnw (Maven 4), unlike release.yml which must pin Maven 3.9 for the Central plugin.
-    # javadoc:aggregate was verified to work under both Maven lines and — thanks to the explicit
-    # <bottom> in the docs-site profile — to produce byte-identical output on either, so there is no
-    # reason to carry a second Maven here.
+    # ./mvnw is fine here, unlike release.yml: javadoc:aggregate produces identical output under
+    # both Maven lines.
     - name: Generate the aggregated Javadoc
       shell: bash
       run: ./mvnw --batch-mode -P docs-site -DskipTests javadoc:aggregate
 
-    # javadoc:aggregate has no reportOutputDirectory/destDir parameter, so it writes to its default
-    # location and we stage it. MkDocs copies docs/apidocs verbatim (it is not Markdown).
+    # javadoc:aggregate has no output-directory parameter, so it is staged after the fact.
     - name: Stage the Javadoc into the MkDocs tree
       shell: bash
       run: |

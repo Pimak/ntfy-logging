@@ -1,14 +1,9 @@
 name: Docs
 
-# The documentation site at https://pimak.github.io/ntfy-logging/, built with MkDocs Material and
-# versioned with mike on the gh-pages branch (Settings -> Pages -> Deploy from a branch -> gh-pages).
-#
-# Versioning scheme: ONE entry per MINOR version. A patch tag redeploys its minor and overwrites it,
-# so only the last patch of each minor ever exists. `dev` tracks main. `latest` aliases the newest
-# released minor, and the site root redirects there.
-#
-# No `paths:` filters anywhere, deliberately: the site embeds the aggregated Javadoc, so a pure
-# source change alters the published output just as much as editing docs/ does.
+# https://pimak.github.io/ntfy-logging/ — MkDocs Material, versioned with mike on gh-pages.
+# One entry per MINOR version: a patch tag overwrites its minor, so only the last patch of each
+# survives. `dev` tracks main, `latest` aliases the newest release, the root redirects there.
+# No `paths:` filters: the site embeds the Javadoc, so a source-only change alters it too.
 on:
   pull_request:
   push:
@@ -34,20 +29,12 @@ on:
         type: boolean
         default: false
   schedule:
-    # Monthly history squash, so gh-pages never accumulates unboundedly on its own.
     - cron: '0 5 1 * *'
 
-# Least privilege by default, exactly like ci.yml. The three jobs that write to gh-pages raise this
-# to contents: write individually.
 permissions:
   contents: read
 
 jobs:
-  # ---------------------------------------------------------------------------------------------
-  # PR gate. Builds everything the deploy jobs build, then throws it away. --strict turns a broken
-  # cross-link, a dead anchor, a page missing from the nav, or an example file that moved (snippets
-  # run with check_paths) into a red build - while fixing it still costs one line.
-  # ---------------------------------------------------------------------------------------------
   build:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -57,12 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # README.md and docs/index.md each carry a "pick your stack" table and cannot share one (the
-      # link paths differ by context). That is the only unavoidable duplication in the docs, and
-      # this is where a module added to one table but not the other gets caught.
-      # python3, not python: this runs before the composite action sets up a Python, so it uses the
-      # runner's preinstalled interpreter. Fail-fast is the point — a two-line table fix should not
-      # wait behind a Javadoc build.
+      # python3: runs before the composite sets up a Python, and fail-fast beats waiting on Javadoc.
       - name: Check README and site landing page agree on the guide list
         run: python3 .github/scripts/check-docs-sync.py
 
@@ -71,10 +53,8 @@ jobs:
       - name: Build the site (strict)
         run: mkdocs build --strict
 
-      # --strict cannot see this class of bug: an unresolved Material shortcode is ordinary text,
-      # not a broken link, so the build stays green while the page renders ":material-arrow-right:"
-      # to the reader. That shipped once. Search the rendered HTML instead, skipping search/ whose
-      # index carries a copy of every page's text.
+      # --strict is blind to this: an unrendered shortcode is ordinary text, not a broken link, so
+      # the build stays green while the page shows ":material-arrow-right:". That shipped once.
       - name: Check no icon shortcode was left unrendered
         run: |
           set -euo pipefail
@@ -86,15 +66,11 @@ jobs:
           fi
           echo "No unrendered icon shortcodes."
 
-  # ---------------------------------------------------------------------------------------------
-  # main -> the `dev` version. Never touches `latest`, so readers on a release are unaffected.
-  # ---------------------------------------------------------------------------------------------
   deploy-dev:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # One shared group across every job that writes to gh-pages, and NOT cancel-in-progress: two
-    # concurrent mike deploys corrupt each other's branch state. Unlike ci.yml, queueing is the
-    # point here - a cancelled deploy would leave gh-pages half-written.
+    # Shared by every job writing to gh-pages, and never cancelled: concurrent mike deploys corrupt
+    # each other, and a cancelled one leaves the branch half-written.
     concurrency:
       group: docs-deploy
       cancel-in-progress: false
@@ -112,14 +88,11 @@ jobs:
           set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # mike edits refs/heads/gh-pages locally before pushing; without the remote branch in
-          # place it would start a divergent one and the push would be rejected.
+          # Without the remote branch locally, mike starts a divergent one and the push is rejected.
           git fetch origin gh-pages || echo "gh-pages does not exist yet - mike will create it"
           mike deploy --push dev
 
-          # Bootstrap the site root on the very first deploy: until something is set, the site's
-          # landing URL 404s. Only ever when nothing is set — an existing root is left alone,
-          # including one deliberately forced elsewhere, and the first release moves it to `latest`.
+          # Bootstrap only: an unset root 404s. An existing one is left alone, forced or not.
           if git show gh-pages:index.html > /dev/null 2>&1; then
             echo "The site root already points somewhere - leaving it alone."
           else
@@ -127,9 +100,6 @@ jobs:
             mike set-default --push dev
           fi
 
-  # ---------------------------------------------------------------------------------------------
-  # v* tags -> the tag's MINOR version, plus the `latest` alias when it is the newest minor.
-  # ---------------------------------------------------------------------------------------------
   deploy-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -139,9 +109,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      # GUARD 1 - pre-release tags. release.yml fires on `v*`, and Actions tag filters are globs,
-      # not regexes: `v*.*.*` would still match v2.1.0-RC1. Without this, a release candidate would
-      # publish as the 2.1 docs and drag `latest` onto it.
+      # Actions tag filters are globs, not regexes: `v*.*.*` still matches v2.1.0-RC1, which would
+      # publish a release candidate as the 2.1 docs and drag `latest` onto it.
       - name: Identify the release
         id: tag
         env:
@@ -177,31 +146,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin gh-pages || echo "gh-pages does not exist yet - mike will create it"
 
-          # GUARD 2 - a backport must not drag `latest` backwards. Releasing v2.0.2 while 2.1 is
-          # already out has to refresh the 2.0 docs and leave `latest` on 2.1.
+          # A backport must not drag `latest` or the root backwards: v2.0.2 released while 2.1 is
+          # out refreshes the 2.0 pages only.
           HIGHEST=$(mike list 2>/dev/null | awk '{print $1}' | grep -E '^[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
           NEWEST=$(printf '%s\n%s\n' "${HIGHEST:-0.0}" "$MINOR" | sort -V | tail -1)
           if [ -z "$HIGHEST" ] || [ "$NEWEST" = "$MINOR" ]; then
             echo "$MINOR is the newest minor (previous highest: ${HIGHEST:-none}) - moving the latest alias and the site root."
             mike deploy --update-aliases "$MINOR" latest
-            # The site root follows the newest release on its own, so a release needs no manual
-            # follow-up. Safe by construction rather than by comparison: `latest` is an alias on the
-            # version deployed one line above, inside the branch that already established it is the
-            # newest minor. The backport branch below deliberately does neither.
-            # It is also self-healing — if the root was never set, or was forced off a release that
-            # turned out to be broken, the next release restores it.
             mike set-default latest
-            # Both commits pushed together: no window where the alias has moved and the root has not.
+            # One push: no window where the alias has moved and the root has not.
             git push origin gh-pages
           else
             echo "::notice::$MINOR is a backport behind $HIGHEST - deploying it WITHOUT moving latest or the site root."
             mike deploy --push "$MINOR"
           fi
 
-  # ---------------------------------------------------------------------------------------------
-  # Manual republish. Without this, a typo found in an already-released version's docs could only be
-  # fixed by cutting a patch release: main deploys to `dev`, and nothing else writes a version.
-  # ---------------------------------------------------------------------------------------------
+  # Fixes an already-released version's docs without cutting a patch, since main only writes `dev`.
   republish:
     if: github.event_name == 'workflow_dispatch' && inputs.task == 'republish'
     runs-on: ubuntu-latest
@@ -238,21 +198,12 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin gh-pages
-          # No --update-aliases: republishing refreshes one version's content and must never move
-          # `latest`, which is the whole reason this is a separate job from deploy-release.
+          # No --update-aliases: refreshing content must never move `latest`.
           mike deploy --push "$VERSION"
           echo "Republished $VERSION from $REF"
 
-  # ---------------------------------------------------------------------------------------------
-  # Point the site root at a version. Needed twice in the project's life at least: once at bootstrap
-  # (root -> dev, before anything is released) and again at the first release (root -> latest).
-  # Exists as a job so neither needs a local Python install in an otherwise pure Maven repository.
-  #
-  # `mike set-default` accepts any existing identifier without comment, including a superseded one:
-  # setting it to 2.0 while 2.1 is published silently sends every visitor to the old documentation.
-  # That is a realistic slip right after a backport — you republish the 2.0 pages, then set the
-  # default out of the same habit — so it is guarded rather than trusted.
-  # ---------------------------------------------------------------------------------------------
+  # Recovery only — releases move the root on their own. mike set-default accepts a superseded
+  # version silently, hence the guard.
   set-default:
     if: github.event_name == 'workflow_dispatch' && inputs.task == 'set-default'
     runs-on: ubuntu-latest
@@ -266,8 +217,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Deliberately NOT the build-docs composite: setting the root redirect rewrites no page, so
-      # there is nothing to build and no Javadoc to generate. Only mike is needed.
+      # Not the build-docs composite: a root redirect rewrites no page, so nothing needs building.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.13'
@@ -284,21 +234,15 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$VERSION" || { echo "::error::'version' is required (e.g. latest, or dev at bootstrap)"; exit 1; }
-          # Reject the dangerous SHAPE rather than an allow-list of names, so a future alias needs no
-          # change here: quoting stops word-splitting but not option parsing, so a value beginning
-          # with '-' would still be read as a flag by argparse and by mike. Which identifiers
-          # actually exist is checked against the deployed list further down.
+          # Shape, not an allow-list, so a future alias needs no change here: quoting stops
+          # word-splitting but not option parsing, so a leading '-' would still read as a flag.
           printf '%s' "$VERSION" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$' \
             || { echo "::error::'version' must start with a letter or digit and contain only letters, digits, dot, underscore or hyphen (got '$VERSION')"; exit 1; }
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Nothing to point the root at if the branch does not exist; say so plainly rather than
-          # failing on git's "couldn't find remote ref".
           git fetch origin gh-pages \
             || { echo "::error::There is no gh-pages branch yet — push to main once to publish the site before setting its root."; exit 1; }
 
-          # Refuse a default that would send the root backwards. --force is a separate, explicit
-          # input, so pointing the root at superseded docs can never happen by accident.
           FLAGS=""
           if [ "$FORCE" = "true" ]; then FLAGS="--force"; fi
           mike list -j | python .github/scripts/check-default-version.py "$VERSION" $FLAGS
@@ -306,13 +250,8 @@ jobs:
           mike set-default --push "$VERSION"
           echo "The site root now redirects to $VERSION."
 
-  # ---------------------------------------------------------------------------------------------
-  # Bound the gh-pages history. Every deploy commits regenerated files, and git never reclaims blobs
-  # from past commits, so the branch only ever grows - and a `git clone` pulls all of it. Squashing
-  # to a single commit is safe here in a way it never is on main: the content is entirely
-  # regenerable, so its history carries no information. `git commit --amend` would NOT do this - it
-  # drops one commit, not the history.
-  # ---------------------------------------------------------------------------------------------
+  # Every deploy commits regenerated files and git never reclaims past blobs, so the branch only
+  # grows and a clone pulls all of it. Safe to squash here, unlike main: the content is regenerable.
   squash-history:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.task == 'squash-history')
     runs-on: ubuntu-latest
@@ -330,8 +269,7 @@ jobs:
       - name: Squash gh-pages to a single commit
         run: |
           set -euo pipefail
-          # Refuse to force-push a tree that is not a mike site: versions.json drives the version
-          # selector, and losing it would silently empty the whole site.
+          # versions.json drives the version selector; force-pushing without it empties the site.
           test -f versions.json || { echo "::error::versions.json is missing - refusing to squash."; exit 1; }
           echo "Currently published:"
           cat versions.json

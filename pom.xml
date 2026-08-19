@@ -393,17 +393,10 @@
         </profile>
 
         <!--
-            Documentation-site machinery: the aggregated Javadoc published alongside the MkDocs site
-            at https://pimak.github.io/ntfy-logging/<version>/apidocs/ by .github/workflows/docs.yml.
-            Never activated by plain `verify` (CI's default), exactly like the release profile above —
-            day-to-day builds are untouched. Activate with `-P docs-site` and run `javadoc:aggregate`;
-            the workflow then copies target/reports/apidocs into docs/apidocs, which MkDocs ships
-            verbatim (it is not Markdown, so it is copied rather than rendered).
-
-            NOTE: this does NOT replace the release profile's per-module `javadoc:jar` execution —
-            Maven Central requires a javadoc jar per published artifact, so that one stays. What
-            changes is which Javadoc the project *advertises*: the README and the guides now link
-            here rather than to javadoc.io.
+            Aggregated Javadoc for the documentation site, published by .github/workflows/docs.yml.
+            Never activated by plain `verify`, like the release profile above. It does NOT replace
+            that profile's per-module javadoc:jar, which Central requires — it changes only which
+            Javadoc the project advertises.
         -->
         <profile>
             <id>docs-site</id>
@@ -412,44 +405,23 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <!-- Same version as the release profile's javadoc jar: one Javadoc toolchain,
-                             not two that can drift apart. -->
+                        <!-- Same version and settings as the release profile: one Javadoc toolchain. -->
                         <version>3.12.0</version>
                         <configuration>
-                            <!-- Source level and doclint identical to the release profile, so the
-                                 published site and the Central artifact obey the same rules. -->
                             <source>21</source>
                             <doclint>all,-missing</doclint>
                             <!--
-                                CRITICAL for the gh-pages branch size. By default javadoc stamps its
-                                generation date into an HTML comment near the top of EVERY page, so an
-                                unchanged codebase still produces byte-different output on every run.
-                                The `dev` version is redeployed on each push to main, so without this
-                                every deploy would commit a complete fresh copy of the entire Javadoc
-                                into the gh-pages history — permanently, since git never reclaims blobs
-                                from past commits. With notimestamp, unchanged sources produce
-                                byte-identical files and git stores nothing new.
+                                Both of these keep the gh-pages branch from growing without bound.
+                                `dev` is redeployed on every push to main, and git never reclaims
+                                blobs from past commits, so any per-run difference is committed
+                                forever: javadoc otherwise stamps a generation date into every page,
+                                and derives a copyright year that Maven 4 renders as 1980 while Maven
+                                3.9 renders as the current one. Pinning both makes unchanged sources
+                                produce byte-identical output under either Maven line.
                             -->
                             <notimestamp>true</notimestamp>
-                            <!--
-                                Explicit footer, for two reasons. Without it javadoc derives a
-                                copyright YEAR, and the two Maven lines derive it differently: Maven
-                                3.9 stamps the current year while Maven 4 (the repo's ./mvnw) derives
-                                it from its reproducible-build timestamp and renders "Copyright 1980"
-                                on every page. Pinning the text makes the output identical under both
-                                Maven lines — so the docs job can simply use ./mvnw like every other
-                                job — and it removes a year that would otherwise rewrite every single
-                                page each 1 January, undoing the notimestamp saving above.
-                            -->
                             <bottom><![CDATA[Copyright &#169; pimak. Licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0.txt">Apache License, Version 2.0</a>.]]></bottom>
-                            <!--
-                                Consumer API surface only. This is a single comma-separated String in
-                                the ([group:]artifactId) format — NOT a list of nested XML elements.
-                                It mirrors the release profile's excludeArtifacts (the never-published
-                                example apps and the Quarkus integration-tests app) and adds
-                                ntfy-quarkus-deployment: a Quarkus build-time augmentation module that
-                                no consumer ever calls, so it has no place in the published API docs.
-                            -->
+                            <!-- Consumer API only. A single comma-separated String, not nested elements. -->
                             <skippedModules>ntfy-example-testkit,ntfy-example-core,ntfy-example-jul,ntfy-example-logback,ntfy-example-log4j2,ntfy-example-micronaut,ntfy-example-spring-boot,ntfy-quarkus-integration-tests,ntfy-quarkus-deployment</skippedModules>
                         </configuration>
                     </plugin>
