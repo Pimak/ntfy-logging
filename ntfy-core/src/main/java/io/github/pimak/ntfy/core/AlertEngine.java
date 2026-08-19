@@ -108,8 +108,13 @@ public final class AlertEngine {
   private ScheduledExecutorService digestScheduler;
 
   // The one-shot startup self-test worker (async mode only), retained solely so stop() can interrupt
-  // and briefly join it. volatile: written by start() on the config thread, read by stop() which may
-  // run on a different one. Null whenever no self-test is in flight.
+  // and briefly join it. volatile: written by start() on the config thread, cleared by the worker
+  // itself or by stop(), either of which may run on a different one.
+  //
+  // Null whenever no self-test is in flight, which the worker upholds by clearing its OWN
+  // registration when it finishes rather than leaving stop() to do it: an engine that runs for
+  // months without ever being stopped would otherwise pin a long-dead thread, and the field would
+  // stop meaning what its name says.
   private volatile Thread selfTestThread;
 
   // volatile: submit() reads it on application threads while start()/stop() mutate it on the config
@@ -516,7 +521,19 @@ public final class AlertEngine {
 
     this.started = true;
     Thread selfTest =
-        new Thread(() -> runLegs(legs, p, auth, msgs, false), "ntfy-alert-selftest");
+        new Thread(
+            () -> {
+              try {
+                runLegs(legs, p, auth, msgs, false);
+              } finally {
+                // Deregister only OUR OWN thread: a concurrent stop() may already have nulled the
+                // field, and must not have a later worker's registration wiped by this one.
+                if (selfTestThread == Thread.currentThread()) {
+                  selfTestThread = null;
+                }
+              }
+            },
+            "ntfy-alert-selftest");
     selfTest.setDaemon(true);
     this.selfTestThread = selfTest;
     selfTest.start();
@@ -588,6 +605,10 @@ public final class AlertEngine {
     // observably alive to a thread-leak scan) after stop() returns. Bounded by the same 500ms the
     // executor awaits use, so a stuck round-trip delays shutdown but never hangs it. No deadlock
     // risk despite holding the monitor: the worker never acquires this engine's lock.
+    //
+    // A null here means the worker already ran its body to completion and deregistered itself, so
+    // there is no in-flight round-trip left to interrupt and nothing worth joining — only the JVM's
+    // own thread-exit bookkeeping, which no caller can observe as work still being done.
     Thread selfTest = selfTestThread;
     if (selfTest != null) {
       selfTest.interrupt();
