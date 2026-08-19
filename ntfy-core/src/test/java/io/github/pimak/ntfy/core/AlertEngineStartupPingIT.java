@@ -231,6 +231,34 @@ class AlertEngineStartupPingIT {
     assertThat(engine.isStarted()).isFalse();
   }
 
+  /**
+   * The startup self-test and the WARN route were developed on separate branches and both append to
+   * the tail of {@code start()}; this pins down that they coexist rather than one silently
+   * displacing the other's startup diagnostic.
+   *
+   * <p>Also documents a deliberate scope boundary: the self-test probes the primary {@code topic}
+   * only. It is one round-trip verifying the endpoint and credentials, not a per-route sweep.
+   */
+  @Test
+  void coexistsWithTheWarnRoute_bothStartupLinesAppearAndOnlyTheMainTopicIsProbed(
+      WireMockRuntimeInfo wm) throws Exception {
+    stubFor(get(urlPathEqualTo("/alerts/json")).willReturn(aResponse().withStatus(200)));
+    CapturingDiagnostics diag = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            baseConfig(wm).warnTopic("alerts-warn").startupPing(StartupPingMode.PROBE).build(),
+            diag);
+
+    engine.start();
+    awaitSelfTestReported(diag);
+    engine.stop();
+
+    assertThat(diag.infos).contains(messages.statusWarnRoute("alerts-warn"));
+    assertThat(diag.infos).contains(messages.statusStartupPingProbePassed());
+    verify(1, getRequestedFor(urlPathEqualTo("/alerts/json")));
+    verify(0, getRequestedFor(urlPathEqualTo("/alerts-warn/json")));
+  }
+
   @Test
   void selfTestNeverPollutesTheAlertPipelineCounters(WireMockRuntimeInfo wm) throws Exception {
     stubFor(post(urlEqualTo("/alerts")).willReturn(aResponse().withStatus(200)));
