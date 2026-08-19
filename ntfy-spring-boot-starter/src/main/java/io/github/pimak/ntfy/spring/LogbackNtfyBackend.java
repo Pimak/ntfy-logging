@@ -86,6 +86,8 @@ final class LogbackNtfyBackend implements NtfyBackend {
     appender.setRequireHttpsForCredentials(p.isRequireHttpsForCredentials());
     appender.setStartupPing(p.getStartupPing());
     appender.setStartupPingFailFast(p.isStartupPingFailFast());
+    appender.setStartupPingWarn(p.getStartupPingWarn());
+    appender.setStartupPingNotifyFailures(p.isStartupPingNotifyFailures());
     appender.start();
     if (!appender.isStarted()) {
       // The engine declined to activate and has already said why through the StatusManager (an

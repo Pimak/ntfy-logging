@@ -114,6 +114,18 @@ through the production path and is the only mode that proves alerts are genuinel
 startup in CI or staging. Full details, including the failure diagnostics, in
 [configuration.md](configuration.md#startup-self-test).
 
+`startup-ping` covers the primary topic only. The optional WARN route has its own independent flag —
+ntfy grants permissions per topic, so a healthy ERROR route proves nothing about the WARN one:
+
+```bash
+export NTFY_WARN_TOPIC=my-app-warnings
+export NTFY_STARTUP_PING_WARN=probe
+```
+
+When one route fails and another passed, the diagnosis is published as a notification on the passing
+route (`startup-ping-notify-failures`, on by default), so a broken route reaches you rather than only
+a status log.
+
 ## MDC context: not available on plain JUL
 
 The `include-mdc-keys` setting binds here like any other key, but on **plain `java.util.logging` it

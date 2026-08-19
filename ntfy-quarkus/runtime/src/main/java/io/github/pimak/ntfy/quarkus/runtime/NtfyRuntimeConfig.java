@@ -176,4 +176,20 @@ public interface NtfyRuntimeConfig {
    */
   @WithDefault("false")
   boolean startupPingFailFast();
+
+  /**
+   * Startup self-test for the optional WARN route: {@code off} (default), {@code probe} or {@code
+   * publish}. Independent of {@link #startupPing()} — ntfy grants permissions per topic, so a
+   * healthy ERROR route proves nothing about the WARN one.
+   */
+  @WithDefault("off")
+  String startupPingWarn();
+
+  /**
+   * Whether a failed self-test is announced as a notification on a route that PASSED. On by
+   * default; it can never fire unless some route passed, so it cannot publish to a topic the
+   * self-test has not just verified.
+   */
+  @WithDefault("true")
+  boolean startupPingNotifyFailures();
 }

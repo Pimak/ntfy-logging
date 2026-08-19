@@ -49,7 +49,9 @@ public class NtfyConfiguration {
   private int asyncQueueCapacity = 1024;
   private boolean requireHttpsForCredentials = true;
   private String startupPing = "off";
+  private String startupPingWarn = "off";
   private boolean startupPingFailFast = false;
+  private boolean startupPingNotifyFailures = true;
 
   /**
    * Base URL of the ntfy server, e.g. {@code https://ntfy.sh}. Alerting stays off until both this
@@ -601,5 +603,42 @@ public class NtfyConfiguration {
    */
   public void setStartupPingFailFast(boolean startupPingFailFast) {
     this.startupPingFailFast = startupPingFailFast;
+  }
+
+  /**
+   * Startup self-test for the optional WARN route, independent of {@link #getStartupPing()}.
+   *
+   * @return {@code "off"} (default), {@code "probe"} or {@code "publish"}
+   */
+  public String getStartupPingWarn() {
+    return startupPingWarn;
+  }
+
+  /**
+   * Selects the WARN-route self-test mode; bound as a {@code String} for the same reason as {@link
+   * #setStartupPing(String)}.
+   *
+   * @param startupPingWarn {@code "off"}, {@code "probe"} or {@code "publish"}
+   */
+  public void setStartupPingWarn(String startupPingWarn) {
+    this.startupPingWarn = startupPingWarn;
+  }
+
+  /**
+   * Whether a failed self-test is announced on a route that passed.
+   *
+   * @return whether to notify failures (default {@code true})
+   */
+  public boolean isStartupPingNotifyFailures() {
+    return startupPingNotifyFailures;
+  }
+
+  /**
+   * Turns the failure notification on or off.
+   *
+   * @param startupPingNotifyFailures whether to announce failures on a healthy route
+   */
+  public void setStartupPingNotifyFailures(boolean startupPingNotifyFailures) {
+    this.startupPingNotifyFailures = startupPingNotifyFailures;
   }
 }

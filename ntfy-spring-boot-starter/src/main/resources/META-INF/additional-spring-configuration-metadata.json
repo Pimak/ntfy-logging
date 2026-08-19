@@ -139,6 +139,18 @@
       "type": "java.lang.Boolean",
       "description": "Whether a failed startup self-test aborts application startup instead of only warning. Enabling it also makes the self-test run inline, adding at most connect-timeout + request-timeout to boot. Intended for CI/staging; leave false in production so a flaky ntfy server can never block a deployment.",
       "defaultValue": false
+    },
+    {
+      "name": "ntfy.startup-ping-warn",
+      "type": "java.lang.String",
+      "description": "Startup self-test for the optional WARN route, independent of ntfy.startup-ping and likewise 'off' by default. ntfy grants permissions per topic, so a healthy ERROR route is no evidence about the WARN one, and in 'publish' mode each route costs its own notification per boot. Only consulted when ntfy.warn-topic is set and its route survived its own preconditions.",
+      "defaultValue": "off"
+    },
+    {
+      "name": "ntfy.startup-ping-notify-failures",
+      "type": "java.lang.Boolean",
+      "description": "Whether a failed self-test is announced as an ntfy notification on a route that PASSED, so a broken route reaches operators where they actually look rather than only a status log. On by default. It cannot fire unless some route passed, so it never publishes to a topic the self-test has not just verified. Note that with this on, a self-test configured purely as 'probe' can still publish exactly one notification: the failure report. Set false to keep probe absolutely publish-free.",
+      "defaultValue": true
     }
   ]
 }

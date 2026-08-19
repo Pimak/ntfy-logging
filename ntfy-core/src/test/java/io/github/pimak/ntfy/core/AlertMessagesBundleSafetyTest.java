@@ -68,6 +68,9 @@ class AlertMessagesBundleSafetyTest {
     m.put("status.startupPing.serverError", 1);
     m.put("status.startupPing.unexpectedStatus", 1);
     m.put("status.startupPing.unreachable", 1);
+    m.put("status.startupPing.warnRoute", 2);
+    m.put("selftest.failure.title.withApp", 1);
+    m.put("selftest.failure.body", 1);
     return m;
   }
 

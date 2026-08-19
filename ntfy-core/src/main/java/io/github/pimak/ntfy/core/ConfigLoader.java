@@ -156,6 +156,17 @@ public final class ConfigLoader {
       builder.startupPingFailFast(Boolean.parseBoolean(startupPingFailFast.trim()));
     }
 
+    String startupPingWarn = resolve("startup-ping-warn", envLookup, fileProps, sysProps);
+    if (startupPingWarn != null) {
+      builder.startupPingWarn(startupPingWarn);
+    }
+
+    String notifyFailures =
+        resolve("startup-ping-notify-failures", envLookup, fileProps, sysProps);
+    if (notifyFailures != null) {
+      builder.startupPingNotifyFailures(Boolean.parseBoolean(notifyFailures.trim()));
+    }
+
     return builder.build();
   }
 

@@ -33,7 +33,9 @@ final class NtfyConfigFactory {
             .asyncQueueCapacity(config.asyncQueueCapacity())
             .requireHttpsForCredentials(config.requireHttpsForCredentials())
             .startupPing(config.startupPing())
-            .startupPingFailFast(config.startupPingFailFast());
+            .startupPingFailFast(config.startupPingFailFast())
+            .startupPingWarn(config.startupPingWarn())
+            .startupPingNotifyFailures(config.startupPingNotifyFailures());
 
     config.url().ifPresent(b::url);
     config.topic().ifPresent(b::topic);

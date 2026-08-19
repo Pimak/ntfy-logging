@@ -468,8 +468,23 @@ public final class AlertEngine {
     if (config.isStartupPingValueRejected()) {
       diagnostics.warn(messages.statusStartupPingInvalidMode());
     }
-    StartupPingMode mode = config.getStartupPing();
-    if (mode == StartupPingMode.OFF) {
+    if (config.isStartupPingWarnValueRejected()) {
+      diagnostics.warn(messages.statusStartupPingWarnInvalidMode());
+    }
+
+    // Each route is tested only when its OWN mode asks for it, and the WARN route additionally only
+    // when it survived the withdrawal guards above — probing a route the engine has already
+    // retracted would report on something that will never carry an alert.
+    List<Leg> legs = new ArrayList<>();
+    if (config.getStartupPing() != StartupPingMode.OFF) {
+      legs.add(new Leg(config.getStartupPing(), new StartupSelfTest.Target(config.getTopic(), false)));
+    }
+    RouteState warn = this.warnRoute;
+    if (config.getStartupPingWarn() != StartupPingMode.OFF && warn != null) {
+      legs.add(new Leg(config.getStartupPingWarn(), new StartupSelfTest.Target(warn.topic(), true)));
+    }
+
+    if (legs.isEmpty()) {
       // Warn about the always-a-mistake combination, then stay completely silent: with the feature
       // unset the diagnostic stream must be byte-identical to a build without it (same policy as
       // the conditional include-mdc-keys line above).
@@ -487,8 +502,7 @@ public final class AlertEngine {
     AlertMessages msgs = this.messages;
 
     if (config.isStartupPingFailFast()) {
-      PublishResult result = StartupSelfTest.execute(mode, config, p, auth, msgs);
-      if (!StartupSelfTest.report(mode, result, msgs, diagnostics)) {
+      if (!runLegs(legs, p, auth, msgs, true)) {
         String refusal = msgs.statusStartupPingFailFastRefused();
         diagnostics.warn(refusal);
         // Reentrant on the monitor already held by start() (both are synchronized on this), and
@@ -502,20 +516,60 @@ public final class AlertEngine {
 
     this.started = true;
     Thread selfTest =
-        new Thread(
-            () -> {
-              PublishResult result = StartupSelfTest.execute(mode, config, p, auth, msgs);
-              // Re-check liveness before speaking: a stop() during the round-trip makes the
-              // failure an artifact of the shutdown, and warning about an engine the operator just
-              // tore down is noise rather than diagnosis.
-              if (started) {
-                StartupSelfTest.report(mode, result, msgs, diagnostics);
-              }
-            },
-            "ntfy-alert-selftest");
+        new Thread(() -> runLegs(legs, p, auth, msgs, false), "ntfy-alert-selftest");
     selfTest.setDaemon(true);
     this.selfTestThread = selfTest;
     selfTest.start();
+  }
+
+  /** One route under test and the mode its own flag selected for it. */
+  private record Leg(StartupPingMode mode, StartupSelfTest.Target target) {}
+
+  /**
+   * Runs every enabled route in turn, reports each, and — when any failed and any other passed —
+   * publishes the failure report through the passing one.
+   *
+   * <p>The notification is deliberately gated on a route having PASSED rather than merely being
+   * configured: that is what makes it impossible to ping a topic this self-test has not just
+   * verified, and it is why an operator who never enabled the WARN self-test can never receive an
+   * unexpected publish on their ERROR topic.
+   *
+   * @param inline whether the caller is the fail-fast path (which reports unconditionally) rather
+   *     than the background worker (which stays silent once the engine has been stopped underneath
+   *     it, since the failure it would report is an artifact of that shutdown)
+   * @return {@code true} when every enabled route passed
+   */
+  private boolean runLegs(
+      List<Leg> legs, NtfyPublisher p, AuthMode auth, AlertMessages msgs, boolean inline) {
+    List<String> failures = new ArrayList<>();
+    StartupSelfTest.Target healthy = null;
+    for (Leg leg : legs) {
+      PublishResult result = StartupSelfTest.execute(leg.mode(), leg.target(), config, p, auth, msgs);
+      if (!inline && !started) {
+        return true;
+      }
+      if (StartupSelfTest.report(leg.mode(), leg.target(), result, msgs, diagnostics)) {
+        if (healthy == null) {
+          healthy = leg.target();
+        }
+      } else {
+        failures.add(StartupSelfTest.line(leg.mode(), leg.target(), result, msgs));
+      }
+    }
+    if (failures.isEmpty()) {
+      return true;
+    }
+    if (config.isStartupPingNotifyFailures() && healthy != null) {
+      PublishResult sent =
+          StartupSelfTest.notifyFailure(
+              healthy, String.join("\n\n", failures), config, p, auth, msgs);
+      if (!sent.success()) {
+        // Never swallowed: an operator who left failure notifications on needs to know one was owed
+        // and never arrived, or they will read the silence as "nothing was wrong".
+        diagnostics.warn(msgs.statusStartupPingNotifyFailed());
+      }
+    }
+    return false;
   }
 
   /**

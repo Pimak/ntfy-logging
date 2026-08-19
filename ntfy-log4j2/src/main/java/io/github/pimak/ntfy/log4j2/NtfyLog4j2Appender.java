@@ -340,7 +340,9 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String asyncQueueCapacity;
     @PluginBuilderAttribute private String requireHttpsForCredentials;
     @PluginBuilderAttribute private String startupPing;
+    @PluginBuilderAttribute private String startupPingWarn;
     @PluginBuilderAttribute private String startupPingFailFast;
+    @PluginBuilderAttribute private String startupPingNotifyFailures;
 
     /**
      * Base URL of the ntfy server, e.g. {@code https://ntfy.sh}.
@@ -694,6 +696,28 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * Startup self-test for the optional WARN route, independent of {@code startupPing}.
+     *
+     * @param startupPingWarn {@code "off"} (default), {@code "probe"} or {@code "publish"}
+     * @return this builder
+     */
+    public Builder setStartupPingWarn(String startupPingWarn) {
+      this.startupPingWarn = startupPingWarn;
+      return asBuilder();
+    }
+
+    /**
+     * Whether a failed self-test is announced on a route that passed. On by default.
+     *
+     * @param startupPingNotifyFailures {@code "true"} or {@code "false"}
+     * @return this builder
+     */
+    public Builder setStartupPingNotifyFailures(String startupPingNotifyFailures) {
+      this.startupPingNotifyFailures = startupPingNotifyFailures;
+      return asBuilder();
+    }
+
+    /**
      * Instantiates the appender. Returns {@code null} — log4j2's contract for "this element cannot
      * be built", which drops the appender with a status error instead of failing the whole
      * configuration — when no {@code name} was given.
@@ -770,6 +794,12 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
       // and flags an unrecognized value so the engine can warn about it at start with the same
       // wording every other surface produces.
       applyString(startupPing, builder::startupPing);
+      applyString(startupPingWarn, builder::startupPingWarn);
+      applyBoolean(
+          startupPingNotifyFailures,
+          "startupPingNotifyFailures",
+          builder::startupPingNotifyFailures,
+          diagnostics);
 
       return builder.build();
     }

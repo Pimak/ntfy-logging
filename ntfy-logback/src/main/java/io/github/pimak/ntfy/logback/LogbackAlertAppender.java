@@ -65,7 +65,9 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private Integer asyncQueueCapacity;
   private Boolean requireHttpsForCredentials;
   private String startupPing;
+  private String startupPingWarn;
   private Boolean startupPingFailFast;
+  private Boolean startupPingNotifyFailures;
 
   // Pre-built config injected by the Configurator; when present it wins over the setters.
   private NtfyConfig injectedConfig;
@@ -271,6 +273,26 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Startup self-test for the optional WARN route: {@code off} (default), {@code probe} or
+   * {@code publish}. Independent of {@link #setStartupPing(String)} — ntfy permissions are granted
+   * per topic, so a healthy ERROR route proves nothing about the WARN one. Only consulted when a
+   * {@code warnTopic} is configured and its route survived.
+   */
+  public void setStartupPingWarn(String startupPingWarn) {
+    this.startupPingWarn = startupPingWarn;
+  }
+
+  /**
+   * Whether a failed self-test is announced as a notification on a route that PASSED. On by
+   * default; it can never fire unless some route passed, so it cannot publish to a topic the
+   * self-test has not just verified. Set {@code false} to keep {@code probe} absolutely
+   * publish-free.
+   */
+  public void setStartupPingNotifyFailures(boolean startupPingNotifyFailures) {
+    this.startupPingNotifyFailures = startupPingNotifyFailures;
+  }
+
+  /**
    * Injects a pre-built {@link NtfyConfig} (bypassing the JavaBean setters). Used by the
    * auto-installing {@code NtfyLogbackConfigurator}, which loads its config from the ambient
    * environment via {@code ConfigLoader} rather than from XML.
@@ -407,6 +429,12 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
     }
     if (startupPingFailFast != null) {
       builder.startupPingFailFast(startupPingFailFast);
+    }
+    if (startupPingWarn != null) {
+      builder.startupPingWarn(startupPingWarn);
+    }
+    if (startupPingNotifyFailures != null) {
+      builder.startupPingNotifyFailures(startupPingNotifyFailures);
     }
     return builder.build();
   }

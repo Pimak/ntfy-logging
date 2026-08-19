@@ -309,6 +309,11 @@ final class AlertMessages {
     return get("status.startupPing.invalidMode");
   }
 
+  /** As {@link #statusStartupPingInvalidMode()}, for {@code startup-ping-warn}. */
+  String statusStartupPingWarnInvalidMode() {
+    return get("status.startupPing.warnInvalidMode");
+  }
+
   /**
    * Title of the {@code startup-ping=publish} test notification — the configured title/appName when
    * one is set (so an operator whose several services share a topic can tell which one is booting),
@@ -319,6 +324,47 @@ final class AlertMessages {
       return get("selftest.title");
     }
     return fmt("selftest.title.withApp", appLabel);
+  }
+
+  /**
+   * Fixed warning for the case where even the failure notification could not be published. Emitted
+   * instead of silently swallowing it — an operator who enabled failure notifications needs to know
+   * one was owed and never sent.
+   */
+  String statusStartupPingNotifyFailed() {
+    return get("status.startupPing.notifyFailed");
+  }
+
+  /**
+   * Wraps one route's self-test line with the route it belongs to. The WARN route reuses the
+   * primary route's whole vocabulary — same pass text, same per-status diagnoses — so the two can
+   * never drift apart; only this envelope distinguishes them, naming the topic so an operator with
+   * both routes configured knows which one is broken.
+   *
+   * <p>Credential-safe: {@code line} is already a composed, credential-free diagnostic and {@code
+   * topic} is an operator-configured topic name, the same value {@link #statusWarnRoute} prints.
+   */
+  String statusStartupPingWarnRoute(String line, String topic) {
+    return fmt("status.startupPing.warnRoute", line, topic);
+  }
+
+  /**
+   * Title of the notification published when a self-test fails and another route is healthy enough
+   * to carry the news. Mirrors {@link #selfTestTitle}'s app-label fallback.
+   */
+  String selfTestFailureTitle(String appLabel) {
+    if (appLabel == null || appLabel.isBlank()) {
+      return get("selftest.failure.title");
+    }
+    return fmt("selftest.failure.title.withApp", appLabel);
+  }
+
+  /**
+   * Body of the failure notification: the already-composed, credential-safe diagnostic line(s) for
+   * whichever routes failed.
+   */
+  String selfTestFailureBody(String failures) {
+    return fmt("selftest.failure.body", failures);
   }
 
   /** Fixed body of the {@code startup-ping=publish} test notification. */

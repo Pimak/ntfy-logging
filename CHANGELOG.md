@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   revoked last week. `startup-ping` closes that gap by making one real round-trip when the engine
   starts: `probe` issues a read-only `GET {url}/{topic}/json?poll=1&since=none` that validates DNS,
   reachability, TLS, that the endpoint really is an ntfy server, and read access — while publishing
-  nothing, so subscribers see no noise; `publish` sends one `low`-priority test notification through
+  nothing of its own, so subscribers see no noise; `publish` sends one `low`-priority test notification through
   the production publish path, exercising the exact code, headers and credentials that carry real
   alerts, and is therefore the only mode that proves alerts are genuinely deliverable (ntfy ACLs
   grant read and write separately, so a read-only token passes a probe and still fails every alert,
@@ -48,6 +48,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [docs/configuration.md](docs/configuration.md#startup-self-test),
   [docs/troubleshooting.md](docs/troubleshooting.md) and
   [docs/authentication.md](docs/authentication.md).
+- **The startup self-test now covers the WARN route, and reports failures through ntfy itself.**
+  `startup-ping` verified the primary topic only, which left the exact blind spot the feature exists
+  to close: ntfy grants permissions **per topic**, so a token that publishes fine to the ERROR topic
+  may have no write access to the WARN one, and nothing would have said so until the first real
+  warning failed to deliver. The WARN route now has its own `startup-ping-warn`, with the same
+  `off`/`probe`/`publish` vocabulary and its own `off` default. The two flags are deliberately
+  independent rather than one switch covering both: enabling a self-test is a cost decision as much
+  as a coverage one — in `publish` mode each route costs its own notification on every boot — so
+  neither route can opt the other in. The WARN self-test is skipped when the engine has *withdrawn*
+  the warn route (an invalid `warn-topic`, or a classpath-only one without
+  `allow-classpath-endpoint`), since verifying a route that will never carry an alert reports on
+  nothing. Both routes share one worker and one vocabulary — the WARN line is the primary route's
+  own text wrapped with its route and topic, so the two can never drift apart — and `fail-fast` now
+  covers **every route whose self-test was enabled**, on the grounds that a route explicitly asked
+  to be verified is one whose failure should gate the deploy. Alongside it, the new
+  `startup-ping-notify-failures` (**on by default — the one opt-out in this feature**) publishes the
+  diagnosis as a notification on a route that PASSED: a diagnostic line lands on a status manager or
+  stderr nobody reads until they are already investigating, whereas the whole point of alerting is
+  to reach people, and when one route is broken the other can carry that news. It is gated on a
+  route having *passed*, never merely being configured, and that single rule is what makes it
+  impossible to publish to a topic the self-test has not just verified — with the WARN self-test
+  off, nothing about that route is tested, nothing fails, and the ERROR topic is never pinged. If no
+  route passed there is no channel worth trying and the diagnostics are the only report, which the
+  engine says out loud rather than staying silent. One honest consequence, documented rather than
+  hidden: with failure notifications on, a self-test configured purely as `probe` can still publish
+  exactly one notification — the failure report — so `probe`'s "publishes nothing" promise is now
+  stated as "publishes nothing of its own", and `startup-ping-notify-failures=false` restores it
+  absolutely. Available on every surface like the other keys, and the failure notification is
+  excluded from `PipelineCounters` for the same reason the self-test itself is. See
+  [docs/configuration.md](docs/configuration.md#startup-self-test).
 - **An opt-in WARN route, via the new `warn-topic` / `warn-priority` / `warn-tags` settings.**
   Alerting has been ERROR-only, enforced as a hard-coded floor repeated in every adapter's gate;
   the common request it could not serve was "tell me about warnings too, but not the way you tell me
