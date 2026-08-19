@@ -1,7 +1,7 @@
 # Plain Logback — `ntfy-logback`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-logback%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-logback)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 A Logback appender plus a zero-code auto-install via a Logback `Configurator` SPI. Because it
 installs through the logging framework itself, alerting is live at startup — before any DI container
@@ -11,8 +11,8 @@ exists.
 `warnTopic`, WARN logs too — see [level-routing.md](level-routing.md)) — via XML, or
 with no config at all.
 
-**Runnable example:** [`examples/logback`](../examples/logback) — a plain SLF4J app wired through
-[`logback.xml`](../examples/logback/src/main/resources/logback.xml), whose CI-run integration tests
+**Runnable example:** [`examples/logback`](https://github.com/Pimak/ntfy-logging/tree/main/examples/logback) — a plain SLF4J app wired through
+[`logback.xml`](https://github.com/Pimak/ntfy-logging/blob/main/examples/logback/src/main/resources/logback.xml), whose CI-run integration tests
 cover the base alert path, sync-vs-async delivery, and the clean-shutdown digest flush.
 
 ## Install
@@ -150,6 +150,15 @@ ntfy grants permissions per topic, so a healthy ERROR route proves nothing about
 When one route fails and another passed, the diagnosis is published as a notification on the passing
 route (`startup-ping-notify-failures`, on by default), so a broken route reaches you rather than only
 a status log.
+
+## The example, in full
+
+The [runnable `examples/logback` app](https://github.com/Pimak/ntfy-logging/tree/main/examples/logback) is wired by exactly this file — CI compiles it and its integration tests run against it, so nothing shown here
+can drift from what is actually tested.
+
+```xml title="examples/logback/src/main/resources/logback.xml"
+--8<-- "examples/logback/src/main/resources/logback.xml"
+```
 
 ## Going further
 

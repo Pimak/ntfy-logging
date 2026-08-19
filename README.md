@@ -2,18 +2,15 @@
 
 [![CI](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Pimak/ntfy-logging/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
-[![Javadoc: ntfy-core](https://javadoc.io/badge2/io.github.pimak/ntfy-core/ntfy--core.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core)
-[![Javadoc: ntfy-jul](https://javadoc.io/badge2/io.github.pimak/ntfy-jul/ntfy--jul.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-jul)
-[![Javadoc: ntfy-logback](https://javadoc.io/badge2/io.github.pimak/ntfy-logback/ntfy--logback.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-logback)
-[![Javadoc: ntfy-log4j2](https://javadoc.io/badge2/io.github.pimak/ntfy-log4j2/ntfy--log4j2.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-log4j2)
-[![Javadoc: ntfy-spring-boot-starter](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/ntfy--spring--boot--starter.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
-[![Javadoc: ntfy-quarkus-runtime](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/ntfy--quarkus--runtime.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime)
-[![Javadoc: ntfy-micronaut](https://javadoc.io/badge2/io.github.pimak/ntfy-micronaut/ntfy--micronaut.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-micronaut)
+[![Docs](https://img.shields.io/badge/docs-pimak.github.io-blue?logo=materialformkdocs&logoColor=white)](https://pimak.github.io/ntfy-logging/)
 
+<!-- --8<-- [start:tagline] -->
 **ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for
 `java.util.logging`, Logback, Spring Boot and Micronaut, a one-line Log4j2 appender, a native-ready
 Quarkus extension, and a plain programmatic client.**
+<!-- --8<-- [end:tagline] -->
 
+<!-- --8<-- [start:engine] -->
 Publish your application's ERROR-level log events as [ntfy](https://ntfy.sh) push notifications —
 and, if you opt in, WARN-level ones to a topic of their own.
 The engine is:
@@ -35,6 +32,7 @@ The engine is:
   instead of when the first real error silently fails to deliver;
 - **GraalVM-native ready** — the Quarkus extension builds its HTTP client at runtime-init, and
   `ntfy-core` ships native-image metadata for hand-rolled native builds.
+<!-- --8<-- [end:engine] -->
 
 > Formerly published as the single-artifact `io.github.pimak:logback-ntfy` (0.1.x, now retired).
 > As of **1.0.0** it is a multi-module family under `io.github.pimak`; see the table below.
@@ -133,6 +131,10 @@ bytecode) · GraalVM native (via the Quarkus extension). See
 [docs/compatibility.md](docs/compatibility.md) for the full matrix.
 
 ## Documentation
+
+Everything below is published as a searchable, versioned site at **<https://pimak.github.io/ntfy-logging/>**, together with
+the aggregated [Javadoc](https://pimak.github.io/ntfy-logging/latest/apidocs/) for every module. The Markdown sources under
+`docs/` stay browsable here on GitHub.
 
 **Per-library guides** — start here; each has install, the Maven Central link, and the base config:
 

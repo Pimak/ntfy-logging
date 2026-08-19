@@ -29,6 +29,7 @@ public final class CoreExampleApp {
 
   private CoreExampleApp() {}
 
+  // --8<-- [start:main]
   public static void main(String[] args) {
     String url = System.getenv("NTFY_URL");
     String topic = System.getenv("NTFY_TOPIC");
@@ -54,6 +55,7 @@ public final class CoreExampleApp {
             + " suppressed=" + engine.counters().suppressed()
             + " failed=" + engine.counters().failed());
   }
+  // --8<-- [end:main]
 
   /** The minimal configuration: endpoint + topic. Add {@code .token(..)} for an auth-protected topic. */
   static NtfyConfig baseConfig(String url, String topic) {

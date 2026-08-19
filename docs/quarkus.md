@@ -1,7 +1,7 @@
 # Quarkus — `ntfy-quarkus-runtime`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-quarkus-runtime%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-quarkus-runtime)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-quarkus-runtime/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-quarkus-runtime)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 A Quarkus 3.38 extension: a JUL log handler (the shared [`ntfy-jul`](jul.md) handler, installed
 here through a `LogHandlerBuildItem`) bound to `quarkus.ntfy.*` that publishes your error logs
@@ -12,7 +12,7 @@ runtime-init — so it works in both JVM and native builds.
 **Use this when** you run Quarkus (JVM or native) and want `quarkus.ntfy.*` config and an
 `@Inject NtfyClient`.
 
-**Runnable example:** [`ntfy-quarkus/integration-tests`](../ntfy-quarkus/integration-tests) — a real
+**Runnable example:** [`ntfy-quarkus/integration-tests`](https://github.com/Pimak/ntfy-logging/tree/main/ntfy-quarkus/integration-tests) — a real
 Quarkus app using this extension, exercised by CI in JVM, fast-jar, and native mode (including an
 async-delivery smoke test).
 

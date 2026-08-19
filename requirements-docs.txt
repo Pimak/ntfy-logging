@@ -1,0 +1,5 @@
+# Documentation site toolchain (MkDocs Material + mike), used only by .github/workflows/docs.yml
+# and local `mkdocs serve`. Deliberately NOT part of the Maven build: `./mvnw verify` never needs it.
+# Pinned for reproducible site builds; Dependabot tracks this file via the pip ecosystem.
+mkdocs-material==9.7.7
+mike==2.2.0
