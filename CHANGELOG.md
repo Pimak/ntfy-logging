@@ -360,6 +360,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ignore it. Both sides read one file, `.github/compat-versions.tsv`, so a version cannot be claimed
   in the docs without being swept, nor swept without being documented.
 
+- **The documentation is now a published site, and the Javadoc is hosted with it.** The sixteen
+  pages under `docs/` were only readable as raw Markdown on GitHub: no search, no sidebar, and no
+  URL that could be cited from an issue or a badge — while the API was delegated to javadoc.io, one
+  badge per module, seven of them by the time Log4j2 and Micronaut landed. Both now live at
+  <https://pimak.github.io/ntfy-logging/>, built with MkDocs Material and versioned so a reader on
+  an older release still finds the documentation that matches it: one entry per **minor** version,
+  overwritten by each of its patches, with `dev` tracking `main` and `latest` following the newest
+  release. The per-module javadoc jar is unchanged and still published — Maven Central requires it,
+  and javadoc.io serves itself from Central regardless — but it is no longer the address the project
+  advertises. The guides additionally **embed the real example files** rather than linking to them:
+  the Logback and Log4j2 XML, the Spring and Micronaut `application.yml`, and the `main` of the JUL
+  and core apps are inlined from `examples/`, the same sources CI compiles and integration-tests, and
+  a moved or renamed example fails the documentation build. That closes the last gap where a page
+  could quietly describe something the code no longer did — the guarantee the examples already had
+  as test-beds, now extended to the prose about them.
+
 ### Fixed
 - **Micronaut: `ntfy.include-mdc-keys` never reached the injectable `NtfyClient` bean.**
   `NtfyClientFactory` forwarded every other bound property onto the `NtfyConfig` builder and silently
