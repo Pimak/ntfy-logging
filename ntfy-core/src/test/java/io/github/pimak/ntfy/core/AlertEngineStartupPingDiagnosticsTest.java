@@ -20,7 +20,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * just that something failed. Each HTTP status maps to a distinct, actionable message, and no
  * message may ever echo a credential.
  */
-@WireMockTest
+@WireMockTest(httpsEnabled = true)
 class AlertEngineStartupPingDiagnosticsTest {
 
   private final AlertMessages messages = AlertMessages.forLocale(Locale.ENGLISH);
@@ -166,7 +166,41 @@ class AlertEngineStartupPingDiagnosticsTest {
 
     assertThat(diag.warns)
         .anySatisfy(
-            w -> assertThat(w).contains("could not be reached").contains("firewall or proxy"));
+            w ->
+                assertThat(w)
+                    .contains("never received an HTTP response")
+                    .contains("firewall or proxy"));
+  }
+
+  /**
+   * A TLS handshake failure reaches the same no-HTTP-status branch as DNS and refused connections,
+   * so the message must not send an operator with an untrusted certificate off to inspect firewall
+   * rules. WireMock's HTTPS listener uses a self-signed certificate the JDK client does not trust,
+   * which reproduces exactly that.
+   */
+  @Test
+  void aTlsHandshakeFailureIsDiagnosedAsTlsRatherThanJustUnreachable(WireMockRuntimeInfo wm)
+      throws Exception {
+    CapturingDiagnostics diag = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://localhost:" + wm.getHttpsPort())
+                .topic("alerts")
+                .startupPing(StartupPingMode.PROBE)
+                .build(),
+            diag);
+
+    engine.start();
+    awaitSelfTestReported(diag);
+    engine.stop();
+
+    assertThat(diag.warns)
+        .anySatisfy(
+            w ->
+                assertThat(w)
+                    .contains("never received an HTTP response")
+                    .contains("TLS/certificate trust"));
   }
 
   @Test
