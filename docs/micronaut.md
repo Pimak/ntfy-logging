@@ -1,7 +1,7 @@
 # Micronaut — `ntfy-micronaut`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-micronaut%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-micronaut)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-micronaut/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-micronaut)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 A Micronaut integration that binds the `ntfy.*` keys from your application configuration, installs an
 `ntfy-auto` appender on the root **Logback** logger when the context starts so your ERROR logs
@@ -166,6 +166,15 @@ Micronaut's. See **[log4j2.md](log4j2.md)**.
 `micronaut-inject-java` annotation processor ship Java 25 bytecode (class file version 69), which
 cannot be compiled or run against this project's Java 21 baseline. See
 [compatibility.md](compatibility.md#micronaut-ntfy-micronaut).
+
+## The example, in full
+
+The [runnable `examples/micronaut` app](https://github.com/Pimak/ntfy-logging/tree/main/examples/micronaut) boots on exactly this configuration — CI compiles it and its integration tests run against it, so nothing shown here
+can drift from what is actually tested.
+
+```yaml title="examples/micronaut/src/main/resources/application.yml"
+--8<-- "examples/micronaut/src/main/resources/application.yml"
+```
 
 ## Going further
 

@@ -25,6 +25,7 @@ public final class JulExampleApp {
 
   private JulExampleApp() {}
 
+  // --8<-- [start:main]
   public static void main(String[] args) {
     // Zero-code-style install from the environment; empty when NTFY_URL/NTFY_TOPIC are not set.
     Optional<NtfyJulHandler> ntfy = NtfyJulInstaller.install();
@@ -45,6 +46,7 @@ public final class JulExampleApp {
     // close attached handlers on normal JVM exit).
     ntfy.ifPresent(handler -> NtfyJulInstaller.uninstall(Logger.getLogger(""), handler));
   }
+  // --8<-- [end:main]
 
   private static void processNightlyBatch() {
     throw new IllegalStateException("row 42: malformed record");

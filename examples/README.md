@@ -37,7 +37,7 @@ hold-the-response technique possible.
 - The example modules are **never published to Central** — they build as part of the reactor only
   (`./mvnw verify` from the repository root), which is also why their poms inherit the reactor
   parent. For the dependency snippet to copy into your own project, use the per-library guides in
-  [`docs/`](../docs).
+  [the documentation site](https://pimak.github.io/ntfy-logging/).
 - The app code deliberately lives in `com.example.*`: the engine's always-on self-exclusion drops
   any log from the library's own `io.github.pimak.ntfy` package root, so an app logging from that
   package would never alert.

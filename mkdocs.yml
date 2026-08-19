@@ -1,0 +1,128 @@
+# Documentation site for https://pimak.github.io/ntfy-logging/ — built by .github/workflows/docs.yml
+# and deployed to the gh-pages branch by mike (one entry per MINOR version; see docs.yml).
+# The Maven build never invokes MkDocs: `./mvnw verify` is untouched by anything in this file.
+site_name: ntfy-logging
+site_url: https://pimak.github.io/ntfy-logging/
+site_description: >-
+  ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for
+  java.util.logging, Logback, Log4j2, Spring Boot and Micronaut, a native-ready Quarkus
+  extension, and a plain programmatic client.
+site_author: pimak
+copyright: Apache-2.0
+
+repo_url: https://github.com/Pimak/ntfy-logging
+repo_name: Pimak/ntfy-logging
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  palette:
+    # Follows the reader's OS setting by default, with an explicit override either way.
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+plugins:
+  - search
+  - mike:
+      # redirect (not the `symlink` default): GitHub Pages does not serve git symlinks reliably,
+      # and `copy` would duplicate the whole aggregated Javadoc of the newest version on every
+      # release, which is exactly the gh-pages growth this setup works to avoid.
+      alias_type: redirect
+      canonical_version: latest
+
+extra:
+  version:
+    provider: mike
+    default: latest
+
+# The aggregated Javadoc is generated into docs/apidocs/ by the `docs-site` Maven profile and
+# copied verbatim by MkDocs (it is not Markdown). Kept out of the nav — and out of --strict's
+# "file not in nav" warning — without being excluded from the build output.
+not_in_nav: |
+  apidocs/**
+
+# Every one of these is an ERROR under `mkdocs build --strict`, which is how the PR job turns a
+# broken cross-link, a dead anchor or a page dropped from the nav into a red build.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  # The mechanism behind every embedded example: doc pages inline the REAL files from examples/
+  # and ntfy-quarkus/, which CI compiles and integration-tests. check_paths turns a moved or
+  # renamed example into a failed docs build, so a page can never show a file that no longer exists.
+  - pymdownx.snippets:
+      base_path: [!relative $config_dir]
+      check_paths: true
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Spring Boot: spring-boot.md
+      - Quarkus: quarkus.md
+      - Micronaut: micronaut.md
+      - Plain Logback: logback.md
+      - Plain Log4j2: log4j2.md
+      - java.util.logging: jul.md
+      - Core (any JVM app): core.md
+  - Reference:
+      - Configuration: configuration.md
+      - Alert behavior: alert-behavior.md
+      - Level routing: level-routing.md
+      - Filtering: filtering.md
+      - MDC context: mdc-context.md
+      - Authentication: authentication.md
+      - Observability: observability.md
+      - Troubleshooting: troubleshooting.md
+      - Compatibility: compatibility.md

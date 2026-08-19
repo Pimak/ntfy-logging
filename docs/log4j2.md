@@ -1,7 +1,7 @@
 # Plain Log4j2 — `ntfy-log4j2`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-log4j2%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-log4j2)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-log4j2/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-log4j2)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 A Log4j2 appender plugin (`<Ntfy>`) plus a one-line programmatic installer. It maps Log4j2
 `LogEvent`s onto the same framework-neutral `AlertEngine` the Logback adapter uses, so rate limiting,
@@ -12,8 +12,8 @@ and `locale` behave identically to every other adapter in the family.
 (and, with `warnTopic`, WARN logs too — see [level-routing.md](level-routing.md))
 to alert — declaratively in `log4j2.xml`, or with one line in `main`.
 
-**Runnable example:** [`examples/log4j2`](../examples/log4j2) — a plain Log4j2 app wired through
-[`log4j2.xml`](../examples/log4j2/src/main/resources/log4j2.xml), whose CI-run integration tests
+**Runnable example:** [`examples/log4j2`](https://github.com/Pimak/ntfy-logging/tree/main/examples/log4j2) — a plain Log4j2 app wired through
+[`log4j2.xml`](https://github.com/Pimak/ntfy-logging/blob/main/examples/log4j2/src/main/resources/log4j2.xml), whose CI-run integration tests
 cover the base alert path, sync-vs-async delivery, and the clean-shutdown digest flush.
 
 ## Install
@@ -205,6 +205,15 @@ a status log.
   appender publishes from. See [troubleshooting.md](troubleshooting.md).
 - **GraalVM native image:** reachability metadata for the plugin is generated at build time by
   log4j-core's own annotation processor and ships inside the jar — nothing to register by hand.
+
+## The example, in full
+
+The [runnable `examples/log4j2` app](https://github.com/Pimak/ntfy-logging/tree/main/examples/log4j2) is wired by exactly this file — CI compiles it and its integration tests run against it, so nothing shown here
+can drift from what is actually tested.
+
+```xml title="examples/log4j2/src/main/resources/log4j2.xml"
+--8<-- "examples/log4j2/src/main/resources/log4j2.xml"
+```
 
 ## Going further
 

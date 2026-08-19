@@ -1,7 +1,7 @@
 # Spring Boot — `ntfy-spring-boot-starter`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-spring-boot-starter%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-spring-boot-starter)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-spring-boot-starter/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-spring-boot-starter)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 Spring Boot auto-configuration that binds the `ntfy.*` properties, installs an `ntfy-auto` appender
 onto the logging backend your application runs on — Logback or Log4j2 — so your ERROR logs publish
@@ -11,7 +11,7 @@ with no code, and exposes an injectable `NtfyClient` bean for manual notificatio
 **Use this when** you run Spring Boot and want alerting configured from `application.yml` and an
 `@Autowired NtfyClient` to send your own notifications.
 
-**Runnable example:** [`examples/spring-boot`](../examples/spring-boot) — a small app using this
+**Runnable example:** [`examples/spring-boot`](https://github.com/Pimak/ntfy-logging/tree/main/examples/spring-boot) — a small app using this
 starter, whose CI-run integration tests cover the base alert path, sync-vs-async delivery, and the
 clean-shutdown digest flush.
 
@@ -140,6 +140,15 @@ When `micrometer-core` is on the classpath (it is in any Spring Boot Actuator ap
 spike in publish failures. The binding is classpath-conditional and adds no dependency when
 Micrometer is absent; it does not depend on which logging backend you run. See
 **[Observability](observability.md)** for the full semantics.
+
+## The example, in full
+
+The [runnable `examples/spring-boot` app](https://github.com/Pimak/ntfy-logging/tree/main/examples/spring-boot) boots on exactly this configuration — CI compiles it and its integration tests run against it, so nothing shown here
+can drift from what is actually tested.
+
+```yaml title="examples/spring-boot/src/main/resources/application.yml"
+--8<-- "examples/spring-boot/src/main/resources/application.yml"
+```
 
 ## Going further
 

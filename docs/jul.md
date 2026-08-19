@@ -1,7 +1,7 @@
 # java.util.logging — `ntfy-jul`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-jul%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-jul)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-jul/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-jul)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 A `java.util.logging` (JUL) handler on top of the framework-neutral engine — pure JDK, no
 logging-framework dependency at all. It is both a standalone adapter (plain JUL apps, Tomcat,
@@ -13,7 +13,7 @@ declaratively via `logging.properties`, with one line of code, or fully wired by
 (On Quarkus, use the [extension](quarkus.md) instead: it installs this same handler with
 `quarkus.ntfy.*` config and native support.)
 
-**Runnable example:** [`examples/jul`](../examples/jul) — a plain JUL app using the
+**Runnable example:** [`examples/jul`](https://github.com/Pimak/ntfy-logging/tree/main/examples/jul) — a plain JUL app using the
 `NtfyJulInstaller` one-liner, whose CI-run integration tests cover the base alert path,
 sync-vs-async delivery, and the clean-shutdown digest flush.
 
@@ -146,6 +146,15 @@ allow-list semantics and the per-value guards.
 > is a JBoss `AsyncHandler` placed **in front of** the ntfy handler: the values that reach the alert
 > are then only as accurate as that handler's own record hand-off, which must copy the record's MDC
 > rather than resolve it on the draining thread.
+
+## The example, in full
+
+The `main` method of the [runnable `examples/jul` app](https://github.com/Pimak/ntfy-logging/tree/main/examples/jul), in full — CI compiles it and its integration tests run against it, so nothing shown here
+can drift from what is actually tested.
+
+```java title="examples/jul/src/main/java/com/example/ntfyjul/JulExampleApp.java"
+--8<-- "examples/jul/src/main/java/com/example/ntfyjul/JulExampleApp.java:main"
+```
 
 ## Going further
 

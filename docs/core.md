@@ -1,7 +1,7 @@
 # Core (any JVM app) — `ntfy-core`
 
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
-[![Javadoc](https://javadoc.io/badge2/io.github.pimak/ntfy-core/javadoc.svg)](https://javadoc.io/doc/io.github.pimak/ntfy-core)
+[![Javadoc](https://img.shields.io/badge/Javadoc-this%20site-blue?logo=openjdk&logoColor=white)](apidocs/index.html)
 
 The framework-neutral ntfy engine and its `NtfyClient` — no logging-framework dependency. It ships
 GraalVM native-image metadata for hand-rolled native builds.
@@ -9,7 +9,7 @@ GraalVM native-image metadata for hand-rolled native builds.
 **Use this when** you want to send ntfy notifications programmatically from any JVM app, or you're
 building your own adapter. Every other module in this family depends on `ntfy-core`.
 
-**Runnable example:** [`examples/core`](../examples/core) — a plain-JVM app driving `NtfyClient` and
+**Runnable example:** [`examples/core`](https://github.com/Pimak/ntfy-logging/tree/main/examples/core) — a plain-JVM app driving `NtfyClient` and
 `AlertEngine`, whose CI-run integration tests cover the base publish path, sync-vs-async delivery,
 and the clean-shutdown digest flush.
 
@@ -127,6 +127,15 @@ ntfy grants permissions per topic, so a healthy ERROR route proves nothing about
 When one route fails and another passed, the diagnosis is published as a notification on the passing
 route (`startup-ping-notify-failures`, on by default), so a broken route reaches you rather than only
 a status log.
+
+## The example, in full
+
+The `main` method of the [runnable `examples/core` app](https://github.com/Pimak/ntfy-logging/tree/main/examples/core), in full — CI compiles it and its integration tests run against it, so nothing shown here
+can drift from what is actually tested.
+
+```java title="examples/core/src/main/java/com/example/ntfycore/CoreExampleApp.java"
+--8<-- "examples/core/src/main/java/com/example/ntfycore/CoreExampleApp.java:main"
+```
 
 ## Going further
 
