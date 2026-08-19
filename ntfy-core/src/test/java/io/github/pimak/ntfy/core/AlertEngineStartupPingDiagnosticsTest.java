@@ -225,6 +225,36 @@ class AlertEngineStartupPingDiagnosticsTest {
   }
 
   @Test
+  void anInvalidValueWarnsWithoutClaimingTheSelfTestWasCancelled(WireMockRuntimeInfo wm)
+      throws Exception {
+    stubFor(get(urlPathEqualTo("/alerts/json")).willReturn(aResponse().withStatus(200)));
+    CapturingDiagnostics diag = new CapturingDiagnostics();
+    // A valid mode set first, then an unparseable one: the builder keeps the last GOOD value rather
+    // than silently downgrading an explicitly-requested probe to off, so the self-test still runs.
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("http://localhost:" + wm.getHttpPort())
+                .topic("alerts")
+                .startupPing(StartupPingMode.PROBE)
+                .startupPing("prob")
+                .build(),
+            diag);
+
+    engine.start();
+    awaitSelfTestReported(diag);
+    engine.stop();
+
+    // Both must hold: the typo is reported, AND the probe really did run. The warning therefore
+    // must not promise that nothing will happen — it only states that the value was ignored.
+    assertThat(diag.warns).contains(messages.statusStartupPingInvalidMode());
+    assertThat(diag.infos).contains(messages.statusStartupPingProbePassed());
+    assertThat(messages.statusStartupPingInvalidMode())
+        .doesNotContain("no self-test will run")
+        .doesNotContain("keeping the default");
+  }
+
+  @Test
   void failFastWithoutAModeIsWarnedAbout(WireMockRuntimeInfo wm) throws Exception {
     CapturingDiagnostics diag = new CapturingDiagnostics();
     AlertEngine engine =

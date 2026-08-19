@@ -222,8 +222,11 @@ public class NtfyPublisher {
 
       auth.buildHeader().ifPresent(header -> builder.header("Authorization", header));
 
-      HttpResponse<String> response =
-          httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+      // discarding(), not ofString(): only the status code is ever inspected, and a self-test is
+      // precisely the situation where the endpoint may NOT be an ntfy server — a typo'd url can
+      // answer with an arbitrarily large HTML error page that there is no reason to materialize.
+      HttpResponse<Void> response =
+          httpClient.send(builder.build(), HttpResponse.BodyHandlers.discarding());
       int status = response.statusCode();
       if (status >= 200 && status < 300) {
         return PublishResult.success(status);
