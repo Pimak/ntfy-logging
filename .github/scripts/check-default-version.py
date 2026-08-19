@@ -66,6 +66,14 @@ def main() -> int:
             print(f"check-default-version: '{args.target}' is neither a deployed version nor an "
                   f"alias. Deployed: {known}", file=sys.stderr)
             return 1
+        if len(carriers) > 1:
+            # mike moves an alias rather than duplicating it, so this means versions.json has been
+            # corrupted or hand-edited. Picking one carrier would make the root depend on JSON
+            # ordering; refuse and let the branch be repaired first.
+            print(f"check-default-version: '{args.target}' is an alias on more than one version "
+                  f"({', '.join(sorted(carriers))}), so what it points at is ambiguous. Repair "
+                  f"versions.json on gh-pages before setting the root.", file=sys.stderr)
+            return 1
         resolved = carriers[0]
 
     releases = sorted((v for v in versions if RELEASE.match(v)), key=sort_key)
