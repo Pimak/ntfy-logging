@@ -1,0 +1,45 @@
+name: Build the documentation site
+description: >-
+  Installs the MkDocs toolchain and generates the aggregated Javadoc into docs/apidocs, leaving the
+  working tree ready for `mkdocs build` or `mike deploy`. Every job in docs.yml goes through this
+  action, so the build recipe exists exactly once.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      with:
+        python-version: '3.13'
+        cache: pip
+        cache-dependency-path: requirements-docs.txt
+
+    - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+      with:
+        distribution: temurin
+        # JDK 21, not the 21-and-25 sweep ci.yml runs: JDK 25's doclint is stricter, and the site's
+        # Javadoc must be generated on the JDK the artifacts target (same reasoning as release.yml).
+        java-version: '21'
+        cache: maven
+
+    - name: Install the MkDocs toolchain
+      shell: bash
+      run: python -m pip install --disable-pip-version-check -r requirements-docs.txt
+
+    # Plain ./mvnw (Maven 4), unlike release.yml which must pin Maven 3.9 for the Central plugin.
+    # javadoc:aggregate was verified to work under both Maven lines and — thanks to the explicit
+    # <bottom> in the docs-site profile — to produce byte-identical output on either, so there is no
+    # reason to carry a second Maven here.
+    - name: Generate the aggregated Javadoc
+      shell: bash
+      run: ./mvnw --batch-mode -P docs-site -DskipTests javadoc:aggregate
+
+    # javadoc:aggregate has no reportOutputDirectory/destDir parameter, so it writes to its default
+    # location and we stage it. MkDocs copies docs/apidocs verbatim (it is not Markdown).
+    - name: Stage the Javadoc into the MkDocs tree
+      shell: bash
+      run: |
+        set -euo pipefail
+        test -f target/reports/apidocs/index.html
+        rm -rf docs/apidocs
+        cp -r target/reports/apidocs docs/apidocs
+        echo "Staged $(find docs/apidocs -type f | wc -l) Javadoc files into docs/apidocs"

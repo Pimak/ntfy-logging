@@ -23,6 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # Same guard docs.yml runs on every pull request, repeated here as the last net before an
+      # irreversible publish. Deliberately the FIRST step: it must fail while nothing has been
+      # deployed and no GPG key has been imported. The two workflows call the same script, so the
+      # two checks cannot drift apart.
+      - name: Check README and site landing page agree on the guide list
+        run: python3 .github/scripts/check-docs-sync.py
+
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin

@@ -1,0 +1,249 @@
+name: Docs
+
+# The documentation site at https://pimak.github.io/ntfy-logging/, built with MkDocs Material and
+# versioned with mike on the gh-pages branch (Settings -> Pages -> Deploy from a branch -> gh-pages).
+#
+# Versioning scheme: ONE entry per MINOR version. A patch tag redeploys its minor and overwrites it,
+# so only the last patch of each minor ever exists. `dev` tracks main. `latest` aliases the newest
+# released minor, and the site root redirects there.
+#
+# No `paths:` filters anywhere, deliberately: the site embeds the aggregated Javadoc, so a pure
+# source change alters the published output just as much as editing docs/ does.
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Which maintenance task to run
+        type: choice
+        options: [republish, squash-history]
+        default: republish
+      version:
+        description: 'republish only - the mike version to rebuild (e.g. 2.0)'
+        type: string
+        default: ''
+      ref:
+        description: 'republish only - the git ref to build it from (tag or branch)'
+        type: string
+        default: ''
+  schedule:
+    # Monthly history squash, so gh-pages never accumulates unboundedly on its own.
+    - cron: '0 5 1 * *'
+
+# Least privilege by default, exactly like ci.yml. The three jobs that write to gh-pages raise this
+# to contents: write individually.
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------------------------
+  # PR gate. Builds everything the deploy jobs build, then throws it away. --strict turns a broken
+  # cross-link, a dead anchor, a page missing from the nav, or an example file that moved (snippets
+  # run with check_paths) into a red build - while fixing it still costs one line.
+  # ---------------------------------------------------------------------------------------------
+  build:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-build-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # README.md and docs/index.md each carry a "pick your stack" table and cannot share one (the
+      # link paths differ by context). That is the only unavoidable duplication in the docs, and
+      # this is where a module added to one table but not the other gets caught.
+      # python3, not python: this runs before the composite action sets up a Python, so it uses the
+      # runner's preinstalled interpreter. Fail-fast is the point — a two-line table fix should not
+      # wait behind a Javadoc build.
+      - name: Check README and site landing page agree on the guide list
+        run: python3 .github/scripts/check-docs-sync.py
+
+      - uses: ./.github/actions/build-docs
+
+      - name: Build the site (strict)
+        run: mkdocs build --strict
+
+  # ---------------------------------------------------------------------------------------------
+  # main -> the `dev` version. Never touches `latest`, so readers on a release are unaffected.
+  # ---------------------------------------------------------------------------------------------
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # One shared group across every job that writes to gh-pages, and NOT cancel-in-progress: two
+    # concurrent mike deploys corrupt each other's branch state. Unlike ci.yml, queueing is the
+    # point here - a cancelled deploy would leave gh-pages half-written.
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/build-docs
+
+      - name: Deploy the dev version
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # mike edits refs/heads/gh-pages locally before pushing; without the remote branch in
+          # place it would start a divergent one and the push would be rejected.
+          git fetch origin gh-pages || echo "gh-pages does not exist yet - mike will create it"
+          mike deploy --push dev
+
+  # ---------------------------------------------------------------------------------------------
+  # v* tags -> the tag's MINOR version, plus the `latest` alias when it is the newest minor.
+  # ---------------------------------------------------------------------------------------------
+  deploy-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      # GUARD 1 - pre-release tags. release.yml fires on `v*`, and Actions tag filters are globs,
+      # not regexes: `v*.*.*` would still match v2.1.0-RC1. Without this, a release candidate would
+      # publish as the 2.1 docs and drag `latest` onto it.
+      - name: Identify the release
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::notice::$TAG is not a stable release tag - the docs site is left untouched."
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          MINOR="${TAG#v}"
+          MINOR="${MINOR%.*}"
+          echo "stable=true"  >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+          echo "Deploying docs for $TAG as version $MINOR"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: steps.tag.outputs.stable == 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/build-docs
+        if: steps.tag.outputs.stable == 'true'
+
+      - name: Deploy the release version
+        if: steps.tag.outputs.stable == 'true'
+        env:
+          MINOR: ${{ steps.tag.outputs.minor }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages || echo "gh-pages does not exist yet - mike will create it"
+
+          # GUARD 2 - a backport must not drag `latest` backwards. Releasing v2.0.2 while 2.1 is
+          # already out has to refresh the 2.0 docs and leave `latest` on 2.1.
+          HIGHEST=$(mike list 2>/dev/null | awk '{print $1}' | grep -E '^[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+          NEWEST=$(printf '%s\n%s\n' "${HIGHEST:-0.0}" "$MINOR" | sort -V | tail -1)
+          if [ -z "$HIGHEST" ] || [ "$NEWEST" = "$MINOR" ]; then
+            echo "$MINOR is the newest minor (previous highest: ${HIGHEST:-none}) - moving the latest alias."
+            mike deploy --push --update-aliases "$MINOR" latest
+          else
+            echo "::notice::$MINOR is a backport behind $HIGHEST - deploying it WITHOUT moving latest."
+            mike deploy --push "$MINOR"
+          fi
+
+  # ---------------------------------------------------------------------------------------------
+  # Manual republish. Without this, a typo found in an already-released version's docs could only be
+  # fixed by cutting a patch release: main deploys to `dev`, and nothing else writes a version.
+  # ---------------------------------------------------------------------------------------------
+  republish:
+    if: github.event_name == 'workflow_dispatch' && inputs.task == 'republish'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Validate the inputs
+        env:
+          VERSION: ${{ inputs.version }}
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          test -n "$VERSION" || { echo "::error::'version' is required (e.g. 2.0)"; exit 1; }
+          test -n "$REF"     || { echo "::error::'ref' is required (the tag or branch to build)"; exit 1; }
+          printf '%s' "$VERSION" | grep -qE '^([0-9]+\.[0-9]+|dev)$' \
+            || { echo "::error::'version' must be a MINOR version like 2.0, or 'dev'"; exit 1; }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - uses: ./.github/actions/build-docs
+
+      - name: Republish that version
+        env:
+          VERSION: ${{ inputs.version }}
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+          # No --update-aliases: republishing refreshes one version's content and must never move
+          # `latest`, which is the whole reason this is a separate job from deploy-release.
+          mike deploy --push "$VERSION"
+          echo "Republished $VERSION from $REF"
+
+  # ---------------------------------------------------------------------------------------------
+  # Bound the gh-pages history. Every deploy commits regenerated files, and git never reclaims blobs
+  # from past commits, so the branch only ever grows - and a `git clone` pulls all of it. Squashing
+  # to a single commit is safe here in a way it never is on main: the content is entirely
+  # regenerable, so its history carries no information. `git commit --amend` would NOT do this - it
+  # drops one commit, not the history.
+  # ---------------------------------------------------------------------------------------------
+  squash-history:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.task == 'squash-history')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Squash gh-pages to a single commit
+        run: |
+          set -euo pipefail
+          # Refuse to force-push a tree that is not a mike site: versions.json drives the version
+          # selector, and losing it would silently empty the whole site.
+          test -f versions.json || { echo "::error::versions.json is missing - refusing to squash."; exit 1; }
+          echo "Currently published:"
+          cat versions.json
+          BEFORE=$(git rev-list --count HEAD)
+          if [ "$BEFORE" -le 1 ]; then
+            echo "gh-pages already has $BEFORE commit - nothing to squash."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan squashed-gh-pages
+          git add -A
+          git commit -m "docs: squash gh-pages history"
+          git branch -M gh-pages
+          git push --force origin gh-pages
+          echo "gh-pages history: $BEFORE commits -> 1 (tree unchanged)"
