@@ -441,6 +441,62 @@ class AlertEngineStartValidationTest {
     }
   }
 
+  /**
+   * The narrow case between the two above: a warn topic IS set, so the route was asked for, but it
+   * is then withdrawn — here by being an invalid topic name. The warn header values can never reach
+   * a request, so warning about them would be exactly the contradiction the gating exists to avoid.
+   * This is why the header check runs AFTER the withdrawal guards rather than beside them.
+   */
+  @Test
+  void nonAsciiWarnTagsValue_isSilentWhenTheWarnRouteIsWithdrawn() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .warnTopic("not/a/valid/topic")
+                .warnTags("\u26a0\ufe0f")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      // The route itself is reported as withdrawn...
+      assertThat(diagnostics.warns).contains(messages.statusInvalidWarnTopic());
+      // ...but the unreachable header value is not separately complained about.
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidPriorityOrTags());
+    } finally {
+      engine.stop();
+    }
+  }
+
+  /** Likewise when the supply-chain guard is what withdraws the route. */
+  @Test
+  void nonAsciiWarnTagsValue_isSilentWhenTheClasspathGuardWithdrawsTheRoute() {
+    CapturingDiagnostics diagnostics = new CapturingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("alerts")
+                .warnTopic("alerts-warn")
+                .warnTopicFromClasspathFile(true)
+                .warnTags("\u26a0\ufe0f")
+                .build(),
+            diagnostics);
+    try {
+      engine.start();
+
+      assertThat(engine.isStarted()).isTrue();
+      assertThat(diagnostics.warns).contains(messages.statusWarnTopicFromClasspathRefused());
+      assertThat(diagnostics.warns).doesNotContain(messages.statusInvalidPriorityOrTags());
+    } finally {
+      engine.stop();
+    }
+  }
+
   /** The same value DOES warn once a warn topic makes it reachable. */
   @Test
   void nonAsciiWarnTagsValue_warnsOnceWarnRoutingIsOn() {

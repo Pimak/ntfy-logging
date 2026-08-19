@@ -253,25 +253,6 @@ public final class AlertEngine {
     // ONLY the warn route and let activation continue: unlike `topic`, which IS the alerting, a
     // misconfigured optional extra must never cost the operator their error alerts.
     boolean warnRoutingEnabled = config.isWarnRoutingEnabled();
-    if (!isSendableHeaderValue(config.getErrorPriority())
-        || !isSendableHeaderValue(config.getDigestPriority())
-        || !isSendableHeaderValue(config.getErrorTags())
-        || !isSendableHeaderValue(config.getDigestTags())
-        || !isSendableHeaderValue(config.getClickUrl())
-        || !isSendableHeaderValue(config.getActions())
-        // The warn values are checked ONLY when a warn route was actually asked for. They are
-        // documented as "consulted only when warn-topic is set", and the publisher never sends them
-        // otherwise — warning about a value that cannot reach a request would both contradict that
-        // and make the ERROR-only default's diagnostic stream depend on settings it ignores.
-        || (warnRoutingEnabled
-            && (!isSendableHeaderValue(config.getWarnPriority())
-                || !isSendableHeaderValue(config.getWarnTags())))) {
-      // One-time, specific diagnostic: the publisher silently omits such headers, and without
-      // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
-      // invisible.
-      diagnostics.warn(messages.statusInvalidPriorityOrTags());
-    }
-
     if (warnRoutingEnabled && !NtfyPublisher.isValidTopic(config.getWarnTopic())) {
       diagnostics.warn(messages.statusInvalidWarnTopic());
       warnRoutingEnabled = false;
@@ -286,6 +267,28 @@ public final class AlertEngine {
       diagnostics.warn(messages.statusWarnTopicFromClasspathRefused());
       warnRoutingEnabled = false;
     }
+    // Deliberately AFTER the two withdrawal guards above, so `warnRoutingEnabled` here means "the
+    // warn route SURVIVED", not merely "a warn-topic was set". The warn values are documented as
+    // consulted only while that route is live, and the publisher never sends them otherwise —
+    // warning about a value that cannot reach a request would contradict that and make the
+    // ERROR-only default's diagnostic stream depend on settings it ignores. Checking before the
+    // guards left exactly one case doing that: an invalid or classpath-refused warn-topic, whose
+    // route is withdrawn a few lines later.
+    if (!isSendableHeaderValue(config.getErrorPriority())
+        || !isSendableHeaderValue(config.getDigestPriority())
+        || !isSendableHeaderValue(config.getErrorTags())
+        || !isSendableHeaderValue(config.getDigestTags())
+        || !isSendableHeaderValue(config.getClickUrl())
+        || !isSendableHeaderValue(config.getActions())
+        || (warnRoutingEnabled
+            && (!isSendableHeaderValue(config.getWarnPriority())
+                || !isSendableHeaderValue(config.getWarnTags())))) {
+      // One-time, specific diagnostic: the publisher silently omits such headers, and without
+      // this warning a mistyped value (e.g. a literal emoji instead of a shortcode) would be
+      // invisible.
+      diagnostics.warn(messages.statusInvalidPriorityOrTags());
+    }
+
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());
 
