@@ -1,5 +1,11 @@
 # Documentation site toolchain (MkDocs Material + mike), used only by .github/workflows/docs.yml
 # and local `mkdocs serve`. Deliberately NOT part of the Maven build: `./mvnw verify` never needs it.
-# Pinned for reproducible site builds; Dependabot tracks this file via the pip ecosystem.
+#
+# The two direct dependencies are pinned so the site's theme and mike's versioning behaviour only
+# ever change in a reviewed Dependabot PR (pip ecosystem, see .github/dependabot.yml). Their
+# TRANSITIVE dependencies are not pinned — this is not a hash-locked, fully reproducible install,
+# and a fresh resolve may pull newer sub-dependencies. That is a deliberate trade: a lock file would
+# have to be regenerated on every bump, while the blast radius here is a documentation build that
+# the pull_request job compiles with --strict before anything can be deployed.
 mkdocs-material==9.7.7
 mike==2.2.0
