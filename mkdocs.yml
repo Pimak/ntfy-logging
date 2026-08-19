@@ -93,6 +93,12 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
+  # Renders Material's icon shortcodes (:material-arrow-right: and friends). Without it the
+  # shortcode is left as literal text on the page — and because that is valid text rather than a
+  # broken link, `mkdocs build --strict` stays green, so it only shows up by looking at the page.
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.inlinehilite
   - pymdownx.superfences
   - pymdownx.highlight:
