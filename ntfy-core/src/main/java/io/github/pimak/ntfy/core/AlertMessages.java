@@ -377,8 +377,11 @@ final class AlertMessages {
    * diagnosis the troubleshooting guide would otherwise have to be consulted for: {@code 401}/{@code
    * 403} is a revoked/insufficient credential, {@code 404} a wrong base url or missing topic, {@code
    * 429} server-side rate limiting rather than a config error, {@code 5xx} an unhealthy server. A
-   * {@code null} status means the request never reached the server at all (timeout, DNS, refused
-   * connection), which is reported as unreachable.
+   * {@code null} status means no HTTP response was ever received — a timeout, DNS, or a refused
+   * connection, but ALSO a TLS handshake or certificate-trust failure, which arrives here as a
+   * type-derived reason like {@code SSLHandshakeException}. That message therefore names TLS
+   * alongside reachability: an operator whose certificate is untrusted must not be sent off to
+   * inspect firewall rules.
    *
    * <p>Credential-safe: only the pre-stringified status code and the publisher's fixed,
    * type-derived reason are interpolated — never a URL, a response body, or {@code e.getMessage()}.

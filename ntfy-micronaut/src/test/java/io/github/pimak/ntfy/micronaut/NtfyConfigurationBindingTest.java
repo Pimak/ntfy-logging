@@ -56,6 +56,12 @@ class NtfyConfigurationBindingTest {
       assertThat(c.isEnabled()).isTrue();
       assertThat(c.isAsync()).isTrue();
       assertThat(c.isRequireHttpsForCredentials()).isTrue();
+      // Both self-test modes are opt-IN and the failure notification is the single opt-OUT, so an
+      // untouched Micronaut app makes no boot-time request and publishes nothing.
+      assertThat(c.getStartupPing()).isEqualTo("off");
+      assertThat(c.getStartupPingWarn()).isEqualTo("off");
+      assertThat(c.isStartupPingFailFast()).isFalse();
+      assertThat(c.isStartupPingNotifyFailures()).isTrue();
     }
   }
 
@@ -94,6 +100,8 @@ class NtfyConfigurationBindingTest {
     properties.put("ntfy.require-https-for-credentials", false);
     properties.put("ntfy.startup-ping", "probe");
     properties.put("ntfy.startup-ping-fail-fast", true);
+    properties.put("ntfy.startup-ping-warn", "publish");
+    properties.put("ntfy.startup-ping-notify-failures", false);
 
     try (ApplicationContext context = ApplicationContext.run(properties)) {
       NtfyConfiguration c = context.getBean(NtfyConfiguration.class);
@@ -130,6 +138,8 @@ class NtfyConfigurationBindingTest {
       assertThat(c.isRequireHttpsForCredentials()).isFalse();
       assertThat(c.getStartupPing()).isEqualTo("probe");
       assertThat(c.isStartupPingFailFast()).isTrue();
+      assertThat(c.getStartupPingWarn()).isEqualTo("publish");
+      assertThat(c.isStartupPingNotifyFailures()).isFalse();
     }
   }
 
@@ -141,6 +151,9 @@ class NtfyConfigurationBindingTest {
 
       assertThat(c.getStartupPing()).isEqualTo("off");
       assertThat(c.isStartupPingFailFast()).isFalse();
+      // The WARN route is opted in separately, and the failure notification is the one opt-OUT.
+      assertThat(c.getStartupPingWarn()).isEqualTo("off");
+      assertThat(c.isStartupPingNotifyFailures()).isTrue();
     }
   }
 

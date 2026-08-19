@@ -39,11 +39,36 @@ class NtfyPropertiesStartupPingBindingTest {
   }
 
   @Test
-  void bothDefaultToOptedOutWhenAbsent() {
+  void everySelfTestKeyDefaultsToOptedOutWhenAbsent() {
     NtfyProperties bound = bind(new HashMap<>());
 
+    // Both modes are opt-IN, so an untouched Spring app makes no boot-time request at all...
     assertThat(bound.getStartupPing()).isEqualTo("off");
+    assertThat(bound.getStartupPingWarn()).isEqualTo("off");
     assertThat(bound.isStartupPingFailFast()).isFalse();
+    // ...while the failure notification is the single opt-OUT in the feature.
+    assertThat(bound.isStartupPingNotifyFailures()).isTrue();
+  }
+
+  @Test
+  void startupPingWarnBindsIndependentlyOfStartupPing() {
+    Map<String, String> props = new HashMap<>();
+    props.put("ntfy.startup-ping-warn", "publish");
+
+    NtfyProperties bound = bind(props);
+
+    // Only the WARN route is opted in: enabling one route must never opt the other in, since in
+    // publish mode each costs its own notification per boot.
+    assertThat(bound.getStartupPingWarn()).isEqualTo("publish");
+    assertThat(bound.getStartupPing()).isEqualTo("off");
+  }
+
+  @Test
+  void notifyFailuresBindsAsAnOptOut() {
+    Map<String, String> props = new HashMap<>();
+    props.put("ntfy.startup-ping-notify-failures", "false");
+
+    assertThat(bind(props).isStartupPingNotifyFailures()).isFalse();
   }
 
   @Test
@@ -58,19 +83,28 @@ class NtfyPropertiesStartupPingBindingTest {
   }
 
   @Test
-  void theBoundValueSurvivesTranslationIntoTheCoreConfig() {
+  void everyBoundValueSurvivesTranslationIntoTheCoreConfig() {
     Map<String, String> props = new HashMap<>();
     props.put("ntfy.startup-ping", "publish");
+    props.put("ntfy.startup-ping-warn", "probe");
     props.put("ntfy.startup-ping-fail-fast", "true");
+    props.put("ntfy.startup-ping-notify-failures", "false");
 
     NtfyProperties bound = bind(props);
 
-    assertThat(
-            io.github.pimak.ntfy.core.NtfyConfig.builder()
-                .startupPing(bound.getStartupPing())
-                .startupPingFailFast(bound.isStartupPingFailFast())
-                .build()
-                .getStartupPing())
-        .isEqualTo(io.github.pimak.ntfy.core.StartupPingMode.PUBLISH);
+    // The adapter hands all four to the appender, which hands them to this builder — assert the
+    // whole set, so a key that binds but is then dropped on the way to the engine still fails here.
+    io.github.pimak.ntfy.core.NtfyConfig config =
+        io.github.pimak.ntfy.core.NtfyConfig.builder()
+            .startupPing(bound.getStartupPing())
+            .startupPingWarn(bound.getStartupPingWarn())
+            .startupPingFailFast(bound.isStartupPingFailFast())
+            .startupPingNotifyFailures(bound.isStartupPingNotifyFailures())
+            .build();
+
+    assertThat(config.getStartupPing()).isEqualTo(io.github.pimak.ntfy.core.StartupPingMode.PUBLISH);
+    assertThat(config.getStartupPingWarn()).isEqualTo(io.github.pimak.ntfy.core.StartupPingMode.PROBE);
+    assertThat(config.isStartupPingFailFast()).isTrue();
+    assertThat(config.isStartupPingNotifyFailures()).isFalse();
   }
 }

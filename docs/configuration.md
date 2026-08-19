@@ -130,8 +130,11 @@ revoked or expired, or it may not grant access to this topic
 ```
 
 `404` points at the most common ntfy mistake (appending the topic to `url`, which must be the base
-URL), `429` and `5xx` explicitly absolve your configuration and blame the server, and a connection
-or DNS failure tells you to check egress. No diagnostic ever echoes a token, password or username.
+URL), `429` and `5xx` explicitly absolve your configuration and blame the server, and any failure
+that never got an HTTP response at all — a refused connection, DNS, a timeout, **or a TLS handshake
+/ certificate-trust failure** — points at `url`, DNS, TLS trust and egress rules, with the reason
+word naming which (`SSLHandshakeException` for an untrusted certificate, say). No diagnostic ever
+echoes a token, password or username.
 
 \* `probe` publishes nothing **of its own**. With `startup-ping-notify-failures` left on (the
 default), a *different* route failing can still cause exactly one publish — the failure report, sent
