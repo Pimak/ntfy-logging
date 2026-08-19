@@ -1,5 +1,6 @@
 # Automated dependency updates: Maven dependencies/plugins (incl. the Quarkus and Spring Boot
-# BOM patch levels) and the SHA-pinned GitHub Actions in ci.yml / release.yml.
+# BOM patch levels), the SHA-pinned GitHub Actions in ci.yml / release.yml / docs.yml, and the
+# pinned MkDocs toolchain in requirements-docs.txt.
 version: 2
 updates:
   - package-ecosystem: maven
@@ -8,6 +9,12 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
   - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+  # requirements-docs.txt — mkdocs-material and mike, pinned so site builds are reproducible.
+  # Kept out of the Maven ecosystem entry above: it is documentation tooling, not a build input.
+  - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: weekly
