@@ -41,7 +41,9 @@ public class NtfyProperties {
   private int asyncQueueCapacity = 1024;
   private boolean requireHttpsForCredentials = true;
   private String startupPing = "off";
+  private String startupPingWarn = "off";
   private boolean startupPingFailFast = false;
+  private boolean startupPingNotifyFailures = true;
 
   public String getUrl() {
     return url;
@@ -304,5 +306,22 @@ public class NtfyProperties {
 
   public void setStartupPingFailFast(boolean startupPingFailFast) {
     this.startupPingFailFast = startupPingFailFast;
+  }
+
+  public String getStartupPingWarn() {
+    return startupPingWarn;
+  }
+
+  /** Bound as a {@code String} for the same reason as {@link #setStartupPing(String)}. */
+  public void setStartupPingWarn(String startupPingWarn) {
+    this.startupPingWarn = startupPingWarn;
+  }
+
+  public boolean isStartupPingNotifyFailures() {
+    return startupPingNotifyFailures;
+  }
+
+  public void setStartupPingNotifyFailures(boolean startupPingNotifyFailures) {
+    this.startupPingNotifyFailures = startupPingNotifyFailures;
   }
 }

@@ -139,6 +139,18 @@ through the production path and is the only mode that proves alerts are genuinel
 startup in CI or staging. Full details, including the failure diagnostics, in
 [configuration.md](configuration.md#startup-self-test).
 
+`startup-ping` covers the primary topic only. The optional WARN route has its own independent flag —
+ntfy grants permissions per topic, so a healthy ERROR route proves nothing about the WARN one:
+
+```xml
+  <warnTopic>my-app-warnings</warnTopic>
+  <startupPingWarn>probe</startupPingWarn>
+```
+
+When one route fails and another passed, the diagnosis is published as a notification on the passing
+route (`startup-ping-notify-failures`, on by default), so a broken route reaches you rather than only
+a status log.
+
 ## Going further
 
 The base config above covers the common case. Everything else is shared across all adapters and

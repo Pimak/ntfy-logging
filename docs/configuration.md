@@ -66,7 +66,9 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `async` | boolean | `true` | Delivery is offloaded to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. On by default since 2.0; set `false` for pre-2.0 synchronous, inline delivery (each publish then blocks the logging thread until the HTTP exchange completes — the guarantee short-lived batch/CLI processes may prefer). See [alert-behavior.md](alert-behavior.md). |
 | `async-queue-capacity` | int | `1024` | Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when `async` is `true`; a non-positive value is clamped to a minimum of `1`. |
 | `startup-ping` | enum (`off`/`probe`/`publish`) | `off` | **Opt-in startup self-test.** Verifies at boot that the configured endpoint, credentials and topic actually work, instead of discovering a revoked token when the first real error alert silently fails to deliver. `off` is a true no-op — no request, and no extra diagnostic line, so output stays byte-identical. `probe` makes a read-only `GET {url}/{topic}/json?poll=1&since=none`: it validates DNS, reachability, TLS and *read* access, and publishes nothing, so subscribers see no noise. `publish` sends a real `low`-priority test notification through the production publish path, which is the only mode that proves alerts are actually deliverable. Runs asynchronously and never delays startup (unless `startup-ping-fail-fast` is on). An unrecognized value keeps the default and is warned about. See [Startup self-test](#startup-self-test). |
-| `startup-ping-fail-fast` | boolean | `false` | Whether a failed self-test **aborts application startup** (throwing `NtfyStartupSelfTestException` out of engine start) rather than only warning. Off by default: a logging backend must never be able to kill the application it instruments. Enabling it also switches the self-test from background to **inline** execution — a start that has already returned cannot be aborted — which adds at most `connect-timeout + request-timeout` to boot. Intended for CI/staging; leaving it off in production means a flaky ntfy server can never block a deployment. Inert (and warned about) when `startup-ping` is `off`. |
+| `startup-ping-warn` | enum (`off`/`probe`/`publish`) | `off` | The same self-test for the optional **WARN route** (`warn-topic`), configured completely independently of `startup-ping`. ntfy grants permissions per topic, so a healthy ERROR route is no evidence at all about the WARN one — and in `publish` mode each route costs its own notification on every boot, which is why neither flag opts the other in. Only consulted when `warn-topic` is set and its route survived its own preconditions; testing a route the engine has withdrawn would report on something that will never carry an alert. |
+| `startup-ping-notify-failures` | boolean | `true` | **The one opt-out here.** When a route's self-test fails and another route PASSED, the diagnosis is published as a notification on the passing route — so a broken route reaches you where you actually look instead of only in a status log nobody greps. It can never fire unless some route passed, which is what stops it from publishing to a topic the self-test has not just verified: with the WARN self-test off, nothing about that route is tested, nothing fails, and your ERROR topic is never pinged. See the caveat under [Startup self-test](#startup-self-test) about what this means for `probe`. |
+| `startup-ping-fail-fast` | boolean | `false` | Whether a failed self-test **aborts application startup** (throwing `NtfyStartupSelfTestException` out of engine start) rather than only warning. Off by default: a logging backend must never be able to kill the application it instruments. Enabling it also switches the self-test from background to **inline** execution — a start that has already returned cannot be aborted — which adds at most `connect-timeout + request-timeout` to boot. Intended for CI/staging; leaving it off in production means a flaky ntfy server can never block a deployment. Covers **every route whose self-test you enabled** — a route you explicitly asked to have verified is one whose failure gates the deploy. Inert (and warned about) when both mode flags are `off`. |
 | `require-https-for-credentials` | boolean | `true` | Strict transport mode, available on every surface like any other key (Logback XML `<requireHttpsForCredentials>`, Log4j2 `<Ntfy requireHttpsForCredentials="false">`, Spring and Micronaut `ntfy.require-https-for-credentials`, Quarkus `quarkus.ntfy.require-https-for-credentials`, env `NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS`, sysprop `ntfy.require-https-for-credentials`). When `true` (the default since 2.0) and credentials would traverse a cleartext `http://` endpoint — a configured `token`, a `username`/`password` pair, or userinfo embedded in the URL itself (`http://user:pass@host`) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set `false` to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See [authentication.md](authentication.md). |
 
 `url` and `topic` are the only two settings without which alerting stays inactive (silently if both
@@ -116,7 +118,7 @@ ntfy.startup-ping=probe
 | Mode | Request | Publishes? | Proves |
 |---|---|---|---|
 | `off` *(default)* | none | no | nothing — a true no-op, not even a diagnostic line |
-| `probe` | `GET {url}/{topic}/json?poll=1&since=none` | no | DNS, reachability, TLS, that the endpoint is really ntfy, and *read* access |
+| `probe` | `GET {url}/{topic}/json?poll=1&since=none` | no\* | DNS, reachability, TLS, that the endpoint is really ntfy, and *read* access |
 | `publish` | the production `POST {url}/{topic}` | yes, one `low`-priority notification per boot | that alerts are genuinely deliverable end-to-end |
 
 On success you get one `info` line. On failure you get one `warn` line that names the probable cause
@@ -130,6 +132,56 @@ revoked or expired, or it may not grant access to this topic
 `404` points at the most common ntfy mistake (appending the topic to `url`, which must be the base
 URL), `429` and `5xx` explicitly absolve your configuration and blame the server, and a connection
 or DNS failure tells you to check egress. No diagnostic ever echoes a token, password or username.
+
+\* `probe` publishes nothing **of its own**. With `startup-ping-notify-failures` left on (the
+default), a *different* route failing can still cause exactly one publish — the failure report, sent
+through this healthy route. Set `startup-ping-notify-failures=false` to keep `probe` absolutely
+publish-free.
+
+### Testing the WARN route
+
+`startup-ping` covers the primary topic. The optional [WARN route](level-routing.md) has its own
+flag, configured completely independently:
+
+```properties
+ntfy.warn-topic=my-app-warnings
+ntfy.startup-ping=publish
+ntfy.startup-ping-warn=publish
+```
+
+They are separate because ntfy grants permissions **per topic** — a token that publishes fine to
+your ERROR topic may have no write access to the WARN one, which is exactly the blind spot a
+self-test is for — and because in `publish` mode each route costs its own notification on every
+boot. Neither flag opts the other in, and both default to `off`.
+
+The WARN self-test is skipped when the engine has *withdrawn* the warn route (an invalid
+`warn-topic`, or a classpath-only one without `allow-classpath-endpoint`). There is no point
+verifying a route that will never carry an alert; the withdrawal itself is already reported.
+
+### When one route breaks and another works
+
+If a route's self-test fails while another **passed**, the diagnosis is published as a notification
+on the passing route:
+
+```
+[my-app — ntfy startup self-test FAILED]
+A startup self-test failed for this application's ntfy alerting. This notification was sent
+through a route that still works, so the route named below is the one that is broken:
+
+WARN route (topic 'my-app-warnings') — ntfy startup self-test FAILED (HTTP 403) — the server
+rejected the credentials; the token may be revoked or expired, or it may not grant access to
+this topic
+```
+
+This is on by default (`startup-ping-notify-failures`), because a diagnostic line lands on a status
+manager or stderr that nobody reads until they are already investigating, while the entire point of
+alerting is to reach people.
+
+It is gated on a route having **passed**, never merely being configured. That single rule is what
+guarantees it can never publish to a topic the self-test has not just verified — with the WARN
+self-test off, nothing about that route is tested, so nothing about it can fail, and your ERROR
+topic is never pinged. If *no* route passed, there is no channel worth trying and the diagnostics
+are the only report (the engine says so rather than staying silent).
 
 ### Which mode should I use?
 
@@ -153,7 +205,10 @@ ntfy.startup-ping-fail-fast=true
 ```
 
 turns a failed self-test into a failed startup (`NtfyStartupSelfTestException` out of engine start,
-after every resource the engine had acquired is released).
+after every resource the engine had acquired is released). It covers **every route whose self-test
+you enabled**: a route you explicitly asked to have verified is one whose failure should gate the
+deploy. The failure notification, if enabled, still goes out before the abort — aborting must not
+cost you the report.
 
 Two consequences worth knowing before you enable it:
 

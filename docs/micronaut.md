@@ -124,6 +124,19 @@ through the production path and is the only mode that proves alerts are genuinel
 startup in CI or staging. Full details, including the failure diagnostics, in
 [configuration.md](configuration.md#startup-self-test).
 
+`startup-ping` covers the primary topic only. The optional WARN route has its own independent flag —
+ntfy grants permissions per topic, so a healthy ERROR route proves nothing about the WARN one:
+
+```yaml
+ntfy:
+  warn-topic: my-app-warnings
+  startup-ping-warn: probe
+```
+
+When one route fails and another passed, the diagnosis is published as a notification on the passing
+route (`startup-ping-notify-failures`, on by default), so a broken route reaches you rather than only
+a status log.
+
 ## Scope: Logback only
 
 The automatic appender install is **Logback-specific, and only Logback**. Micronaut ships Logback

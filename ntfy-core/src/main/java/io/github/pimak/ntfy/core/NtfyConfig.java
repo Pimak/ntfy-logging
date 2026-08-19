@@ -50,8 +50,11 @@ public final class NtfyConfig {
   private final boolean endpointFromClasspathFile;
   private final boolean allowClasspathEndpoint;
   private final StartupPingMode startupPing;
+  private final StartupPingMode startupPingWarn;
   private final boolean startupPingFailFast;
   private final boolean startupPingValueRejected;
+  private final boolean startupPingWarnValueRejected;
+  private final boolean startupPingNotifyFailures;
   private final Locale locale;
 
   private NtfyConfig(Builder b) {
@@ -87,8 +90,11 @@ public final class NtfyConfig {
     this.endpointFromClasspathFile = b.endpointFromClasspathFile;
     this.allowClasspathEndpoint = b.allowClasspathEndpoint;
     this.startupPing = b.startupPing;
+    this.startupPingWarn = b.startupPingWarn;
     this.startupPingFailFast = b.startupPingFailFast;
     this.startupPingValueRejected = b.startupPingValueRejected;
+    this.startupPingWarnValueRejected = b.startupPingWarnValueRejected;
+    this.startupPingNotifyFailures = b.startupPingNotifyFailures;
     this.locale = b.locale;
   }
 
@@ -362,6 +368,44 @@ public final class NtfyConfig {
   }
 
   /**
+   * What the startup self-test does for the optional WARN route — see {@link StartupPingMode}.
+   * Independent of {@link #getStartupPing()} and likewise {@link StartupPingMode#OFF} by default,
+   * because the two routes are configured, permissioned and paid for separately: ntfy grants access
+   * per topic, so a healthy ERROR route is no evidence at all about the WARN one, and in {@code
+   * publish} mode each route costs its own notification on every boot. Never {@code null}.
+   *
+   * <p>Only consulted when the WARN route actually survived its own preconditions; testing a route
+   * the engine has withdrawn would report on something that is not going to be used.
+   */
+  public StartupPingMode getStartupPingWarn() {
+    return startupPingWarn;
+  }
+
+  /** As {@link #isStartupPingValueRejected()}, for {@code startup-ping-warn}. */
+  public boolean isStartupPingWarnValueRejected() {
+    return startupPingWarnValueRejected;
+  }
+
+  /**
+   * Whether a failed self-test should be announced as an ntfy notification on a route that PASSED.
+   * On by default — the one opt-OUT in this feature.
+   *
+   * <p>A diagnostic line lands on a status manager or stderr that nobody reads until they are
+   * already investigating; the point of alerting is that it reaches people. When one route is
+   * broken and another is proven healthy, the healthy one can carry that news to where operators
+   * actually look.
+   *
+   * <p>It cannot fire unless some route's self-test PASSED, which is what stops it from publishing
+   * to a topic the self-test has not just verified: with no WARN route tested, nothing fails, and
+   * the ERROR topic is never pinged. Note the one surprise it does introduce — with this on, a
+   * self-test configured purely as {@code probe} can still publish exactly one notification, the
+   * failure report. Set it {@code false} to keep {@code probe} absolutely publish-free.
+   */
+  public boolean isStartupPingNotifyFailures() {
+    return startupPingNotifyFailures;
+  }
+
+  /**
    * Language of the notification bodies and self-diagnostic messages the engine produces. Defaults
    * to {@link Locale#ENGLISH} and, deliberately, never follows the host JVM's default locale, so the
    * language of alerts is deterministic regardless of where the process runs. A locale with no
@@ -420,8 +464,15 @@ public final class NtfyConfig {
     private boolean endpointFromClasspathFile = false;
     private boolean allowClasspathEndpoint = false;
     private StartupPingMode startupPing = StartupPingMode.OFF;
+    private StartupPingMode startupPingWarn = StartupPingMode.OFF;
     private boolean startupPingFailFast = false;
     private boolean startupPingValueRejected = false;
+    private boolean startupPingWarnValueRejected = false;
+    // Opt-OUT: when a self-test fails and another route is proven healthy, saying so on that
+    // route is the whole difference between a log line nobody greps and news that reaches an
+    // operator. It can never fire without a passing route, so it cannot ping a topic the
+    // self-test has not just verified.
+    private boolean startupPingNotifyFailures = true;
     // Default English, NOT Locale.getDefault(): alert language must be deterministic and never
     // silently inherit whatever locale the host JVM happens to run under.
     private Locale locale = Locale.ENGLISH;
@@ -730,6 +781,41 @@ public final class NtfyConfig {
      */
     public Builder startupPingFailFast(boolean startupPingFailFast) {
       this.startupPingFailFast = startupPingFailFast;
+      return this;
+    }
+
+    /**
+     * Selects the startup self-test mode for the WARN route (see {@link
+     * NtfyConfig#getStartupPingWarn()}). A {@code null} argument resets to {@link
+     * StartupPingMode#OFF}.
+     */
+    public Builder startupPingWarn(StartupPingMode startupPingWarn) {
+      this.startupPingWarn = startupPingWarn == null ? StartupPingMode.OFF : startupPingWarn;
+      this.startupPingWarnValueRejected = false;
+      return this;
+    }
+
+    /** Lenient string overload for {@code startup-ping-warn}; see {@link #startupPing(String)}. */
+    public Builder startupPingWarn(String startupPingWarn) {
+      if (startupPingWarn == null || startupPingWarn.isBlank()) {
+        return this;
+      }
+      StartupPingMode parsed = StartupPingMode.fromValue(startupPingWarn);
+      if (parsed == null) {
+        this.startupPingWarnValueRejected = true;
+        return this;
+      }
+      this.startupPingWarn = parsed;
+      this.startupPingWarnValueRejected = false;
+      return this;
+    }
+
+    /**
+     * Toggles announcing a failed self-test on a route that passed; see {@link
+     * NtfyConfig#isStartupPingNotifyFailures()}. On by default.
+     */
+    public Builder startupPingNotifyFailures(boolean startupPingNotifyFailures) {
+      this.startupPingNotifyFailures = startupPingNotifyFailures;
       return this;
     }
 

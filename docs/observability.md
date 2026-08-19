@@ -16,7 +16,9 @@ counting its publish as `published` (or its failure as `failed`) would put a fix
 offset into every dashboard and alert-on-`failed` rule. For the same reason the self-test never
 routes through the delivery path that folds failures into the storm digest, so it can never
 manufacture a phantom suppressed error either. Its outcome is reported exclusively as a diagnostic
-line — see [troubleshooting.md](troubleshooting.md).
+line — see [troubleshooting.md](troubleshooting.md). The failure notification it can publish on a
+healthy route is uncounted for the same reason: it reports on the alerting pipeline rather than
+being traffic through it.
 
 | Counter | Increments when |
 |---------|-----------------|

@@ -599,6 +599,58 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void startupPingWarn_isIndependentOfStartupPing() {
+    Properties sys = props("ntfy.startup-ping", "probe");
+    sys.setProperty("ntfy.startup-ping-warn", "publish");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    assertThat(config.getStartupPing()).isEqualTo(StartupPingMode.PROBE);
+    assertThat(config.getStartupPingWarn()).isEqualTo(StartupPingMode.PUBLISH);
+  }
+
+  @Test
+  void startupPingWarn_defaultsToOffEvenWhenTheErrorRouteIsOn() {
+    Properties sys = props("ntfy.startup-ping", "publish");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    // Enabling one route must never opt the other in: in publish mode each route costs its own
+    // notification on every boot.
+    assertThat(config.getStartupPingWarn()).isEqualTo(StartupPingMode.OFF);
+  }
+
+  @Test
+  void startupPingWarn_fromEnv() {
+    Function<String, String> env = env(Map.of("NTFY_STARTUP_PING_WARN", "probe"));
+
+    assertThat(ConfigLoader.load(env, null, null).getStartupPingWarn())
+        .isEqualTo(StartupPingMode.PROBE);
+  }
+
+  @Test
+  void startupPingWarn_unparseableValueKeepsTheDefaultButIsFlagged() {
+    Properties sys = props("ntfy.startup-ping-warn", "prob");
+
+    NtfyConfig config = ConfigLoader.load(null, null, sys);
+
+    assertThat(config.getStartupPingWarn()).isEqualTo(StartupPingMode.OFF);
+    assertThat(config.isStartupPingWarnValueRejected()).isTrue();
+  }
+
+  @Test
+  void startupPingNotifyFailures_defaultsToOn() {
+    assertThat(ConfigLoader.load(null, null, null).isStartupPingNotifyFailures()).isTrue();
+  }
+
+  @Test
+  void startupPingNotifyFailures_canBeTurnedOff() {
+    Properties sys = props("ntfy.startup-ping-notify-failures", "false");
+
+    assertThat(ConfigLoader.load(null, null, sys).isStartupPingNotifyFailures()).isFalse();
+  }
+
+  @Test
   void startupPingFailFast_fromEnv() {
     Function<String, String> env = env(Map.of("NTFY_STARTUP_PING_FAIL_FAST", "true"));
 

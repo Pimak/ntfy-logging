@@ -96,6 +96,8 @@ final class Log4j2NtfyBackend implements NtfyBackend {
             .setRequireHttpsForCredentials(String.valueOf(p.isRequireHttpsForCredentials()))
             .setStartupPing(p.getStartupPing())
             .setStartupPingFailFast(String.valueOf(p.isStartupPingFailFast()))
+            .setStartupPingWarn(p.getStartupPingWarn())
+            .setStartupPingNotifyFailures(String.valueOf(p.isStartupPingNotifyFailures()))
             .build();
     appender.start();
     if (!appender.isStarted()) {
