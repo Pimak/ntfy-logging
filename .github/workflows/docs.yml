@@ -19,16 +19,20 @@ on:
       task:
         description: Which maintenance task to run
         type: choice
-        options: [republish, squash-history]
+        options: [republish, set-default, squash-history]
         default: republish
       version:
-        description: 'republish only - the mike version to rebuild (e.g. 2.0)'
+        description: 'republish / set-default - the version to act on (e.g. 2.0, latest, dev)'
         type: string
         default: ''
       ref:
         description: 'republish only - the git ref to build it from (tag or branch)'
         type: string
         default: ''
+      force:
+        description: 'set-default only - point the root at superseded docs anyway'
+        type: boolean
+        default: false
   schedule:
     # Monthly history squash, so gh-pages never accumulates unboundedly on its own.
     - cron: '0 5 1 * *'
@@ -66,6 +70,21 @@ jobs:
 
       - name: Build the site (strict)
         run: mkdocs build --strict
+
+      # --strict cannot see this class of bug: an unresolved Material shortcode is ordinary text,
+      # not a broken link, so the build stays green while the page renders ":material-arrow-right:"
+      # to the reader. That shipped once. Search the rendered HTML instead, skipping search/ whose
+      # index carries a copy of every page's text.
+      - name: Check no icon shortcode was left unrendered
+        run: |
+          set -euo pipefail
+          if grep -rlE ':(material|fontawesome|octicons)-[a-z0-9-]+:' site --include='*.html' \
+               --exclude-dir=search --exclude-dir=apidocs; then
+            echo "::error::The pages above render an icon shortcode as literal text. Enable the"
+            echo "::error::matching extension in mkdocs.yml, or drop the shortcode."
+            exit 1
+          fi
+          echo "No unrendered icon shortcodes."
 
   # ---------------------------------------------------------------------------------------------
   # main -> the `dev` version. Never touches `latest`, so readers on a release are unaffected.
@@ -204,6 +223,60 @@ jobs:
           # `latest`, which is the whole reason this is a separate job from deploy-release.
           mike deploy --push "$VERSION"
           echo "Republished $VERSION from $REF"
+
+  # ---------------------------------------------------------------------------------------------
+  # Point the site root at a version. Needed twice in the project's life at least: once at bootstrap
+  # (root -> dev, before anything is released) and again at the first release (root -> latest).
+  # Exists as a job so neither needs a local Python install in an otherwise pure Maven repository.
+  #
+  # `mike set-default` accepts any existing identifier without comment, including a superseded one:
+  # setting it to 2.0 while 2.1 is published silently sends every visitor to the old documentation.
+  # That is a realistic slip right after a backport — you republish the 2.0 pages, then set the
+  # default out of the same habit — so it is guarded rather than trusted.
+  # ---------------------------------------------------------------------------------------------
+  set-default:
+    if: github.event_name == 'workflow_dispatch' && inputs.task == 'set-default'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      # Deliberately NOT the build-docs composite: setting the root redirect rewrites no page, so
+      # there is nothing to build and no Javadoc to generate. Only mike is needed.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install the MkDocs toolchain
+        run: python -m pip install --disable-pip-version-check -r requirements-docs.txt
+
+      - name: Point the site root at that version
+        env:
+          VERSION: ${{ inputs.version }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+          test -n "$VERSION" || { echo "::error::'version' is required (e.g. latest, or dev at bootstrap)"; exit 1; }
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+
+          # Refuse a default that would send the root backwards. --force is a separate, explicit
+          # input, so pointing the root at superseded docs can never happen by accident.
+          FLAGS=""
+          if [ "$FORCE" = "true" ]; then FLAGS="--force"; fi
+          mike list -j | python .github/scripts/check-default-version.py "$VERSION" $FLAGS
+
+          mike set-default --push "$VERSION"
+          echo "The site root now redirects to $VERSION."
 
   # ---------------------------------------------------------------------------------------------
   # Bound the gh-pages history. Every deploy commits regenerated files, and git never reclaims blobs
