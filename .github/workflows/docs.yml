@@ -284,9 +284,18 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$VERSION" || { echo "::error::'version' is required (e.g. latest, or dev at bootstrap)"; exit 1; }
+          # Reject the dangerous SHAPE rather than an allow-list of names, so a future alias needs no
+          # change here: quoting stops word-splitting but not option parsing, so a value beginning
+          # with '-' would still be read as a flag by argparse and by mike. Which identifiers
+          # actually exist is checked against the deployed list further down.
+          printf '%s' "$VERSION" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$' \
+            || { echo "::error::'version' must start with a letter or digit and contain only letters, digits, dot, underscore or hyphen (got '$VERSION')"; exit 1; }
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin gh-pages
+          # Nothing to point the root at if the branch does not exist; say so plainly rather than
+          # failing on git's "couldn't find remote ref".
+          git fetch origin gh-pages \
+            || { echo "::error::There is no gh-pages branch yet — push to main once to publish the site before setting its root."; exit 1; }
 
           # Refuse a default that would send the root backwards. --force is a separate, explicit
           # input, so pointing the root at superseded docs can never happen by accident.
