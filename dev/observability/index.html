@@ -864,32 +864,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#micrometer-spring-boot" class="md-nav__link">
+  <a href="#metrics-bindings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Micrometer (Spring Boot)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#micronaut" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Micronaut
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#micrometer-quarkus" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Micrometer (Quarkus)
+        Metrics bindings
       
     </span>
   </a>
@@ -1017,32 +995,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#micrometer-spring-boot" class="md-nav__link">
+  <a href="#metrics-bindings" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Micrometer (Spring Boot)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#micronaut" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Micronaut
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#micrometer-quarkus" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Micrometer (Quarkus)
+        Metrics bindings
       
     </span>
   </a>
@@ -1144,7 +1100,13 @@ the appender.</p>
   handler belongs to the framework and is not reachable from application code; use the Micrometer
   binding below instead.</li>
 </ul>
-<h2 id="micrometer-spring-boot">Micrometer (Spring Boot)<a class="headerlink" href="#micrometer-spring-boot" title="Permanent link">&para;</a></h2>
+<h2 id="metrics-bindings">Metrics bindings<a class="headerlink" href="#metrics-bindings" title="Permanent link">&para;</a></h2>
+<p>Two of the three framework modules export the counters as Micrometer meters; Micronaut does not.
+The tab you pick here is the same one <a href="../configuration/#per-framework-examples">configuration.md</a>
+remembers.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="spring-boot" name="__tabbed_1" type="radio" /><input id="micronaut" name="__tabbed_1" type="radio" /><input id="quarkus" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="spring-boot">Spring Boot</label><label for="micronaut">Micronaut</label><label for="quarkus">Quarkus</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
 <p>The Spring Boot starter binds the counters to Micrometer as three monotonic <code>FunctionCounter</code>s:</p>
 <table>
 <thead>
@@ -1169,37 +1131,41 @@ the appender.</p>
 </tbody>
 </table>
 <p>This binding is <strong>classpath-conditional</strong>: it activates only when <code>micrometer-core</code> is on the
-classpath (any Spring Boot Actuator application) and a <code>MeterRegistry</code> bean exists. When Micrometer
-is absent, the starter has no Micrometer dependency of its own and adds nothing — <code>ntfy-core</code> stays
-dependency-free.</p>
+classpath (any Spring Boot Actuator application) and a <code>MeterRegistry</code> bean exists. When
+Micrometer is absent, the starter has no Micrometer dependency of its own and adds nothing —
+<code>ntfy-core</code> stays dependency-free.</p>
 <p>It is <strong>not</strong> backend-conditional: the starter installs onto whichever logging backend the
-application is actually running on (Logback or Log4j2), and the meters — like the <code>NtfyClient</code> bean —
-are exported either way. See <a href="../spring-boot/">spring-boot.md</a>.</p>
+application is actually running on (Logback or Log4j2), and the meters — like the <code>NtfyClient</code>
+bean — are exported either way. See <a href="../spring-boot/">spring-boot.md</a>.</p>
 <p>The meters resolve the current appender lazily at scrape time, so they always reflect the active
-appender and read <code>0</code> when none is installed. Note that a Spring re-install builds a <strong>new</strong> appender
-with fresh counters, and the meters follow it: <code>FunctionCounter</code> reports whatever its source function
-currently returns and does not clamp a decrease, so the exported value restarts from zero on that new
-instance. That is an ordinary counter reset — indistinguishable, to the monitoring system consuming
-it, from the process itself having restarted, and handled the same way (<code>rate()</code>/<code>increase()</code> in
-Prometheus, <code>.diff()</code> elsewhere).</p>
-<h2 id="micronaut">Micronaut<a class="headerlink" href="#micronaut" title="Permanent link">&para;</a></h2>
-<p><code>ntfy-micronaut</code> has <strong>no metrics binding</strong> — there is no Micrometer integration in the module and no
-counters bean, so it is not at parity with the Spring Boot starter here. What you get is the same
-counters the engine always tracks, reachable programmatically: the module installs the standard
-<code>LogbackAlertAppender</code> under the name <code>ntfy-auto</code> on the root logger, so look it up and call
-<code>getCounters()</code>.</p>
+appender and read <code>0</code> when none is installed. Note that a Spring re-install builds a <strong>new</strong>
+appender with fresh counters, and the meters follow it: <code>FunctionCounter</code> reports whatever its
+source function currently returns and does not clamp a decrease, so the exported value restarts
+from zero on that new instance. That is an ordinary counter reset — indistinguishable, to the
+monitoring system consuming it, from the process itself having restarted, and handled the same
+way (<code>rate()</code>/<code>increase()</code> in Prometheus, <code>.diff()</code> elsewhere).</p>
+</div>
+<div class="tabbed-block">
+<p><code>ntfy-micronaut</code> has <strong>no metrics binding</strong> — there is no Micrometer integration in the module
+and no counters bean, so it is not at parity with the Spring Boot starter here. What you get is
+the same counters the engine always tracks, reachable programmatically: the module installs the
+standard <code>LogbackAlertAppender</code> under the name <code>ntfy-auto</code> on the root logger, so look it up and
+call <code>getCounters()</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">var</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="n">ch</span><span class="p">.</span><span class="na">qos</span><span class="p">.</span><span class="na">logback</span><span class="p">.</span><span class="na">classic</span><span class="p">.</span><span class="na">LoggerContext</span><span class="p">)</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="na">slf4j</span><span class="p">.</span><span class="na">LoggerFactory</span><span class="p">.</span><span class="na">getILoggerFactory</span><span class="p">())</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="p">.</span><span class="na">getLogger</span><span class="p">(</span><span class="n">org</span><span class="p">.</span><span class="na">slf4j</span><span class="p">.</span><span class="na">Logger</span><span class="p">.</span><span class="na">ROOT_LOGGER_NAME</span><span class="p">);</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kd">var</span><span class="w"> </span><span class="n">appender</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">io</span><span class="p">.</span><span class="na">github</span><span class="p">.</span><span class="na">pimak</span><span class="p">.</span><span class="na">ntfy</span><span class="p">.</span><span class="na">logback</span><span class="p">.</span><span class="na">LogbackAlertAppender</span><span class="p">)</span><span class="w"> </span><span class="n">root</span><span class="p">.</span><span class="na">getAppender</span><span class="p">(</span><span class="s">"ntfy-auto"</span><span class="p">);</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kd">var</span><span class="w"> </span><span class="n">snapshot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">appender</span><span class="p">.</span><span class="na">getCounters</span><span class="p">().</span><span class="na">snapshot</span><span class="p">();</span><span class="w">   </span><span class="c1">// null appender ⇒ nothing was installed</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">// A null appender means nothing was installed — Logback is not the bound backend, or the</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1">// module skipped the install.</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="kd">var</span><span class="w"> </span><span class="n">snapshot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">appender</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">appender</span><span class="p">.</span><span class="na">getCounters</span><span class="p">().</span><span class="na">snapshot</span><span class="p">();</span>
 </code></pre></div>
-<p>Note that the injectable <code>NtfyClient</code> bean is <em>not</em> a route to these numbers: the ad-hoc publish path
-is deliberately uncounted (see above), and the bean exposes no counters. A Micronaut Micrometer
-binding is a possible follow-up: <code>micronaut-micrometer</code> would let it take the same shape as the
-Spring and Quarkus bindings.</p>
-<h2 id="micrometer-quarkus">Micrometer (Quarkus)<a class="headerlink" href="#micrometer-quarkus" title="Permanent link">&para;</a></h2>
-<p><code>ntfy-quarkus</code> exports the same three meters, with the same names and meanings, as the Spring Boot
-starter:</p>
+<p>Note that the injectable <code>NtfyClient</code> bean is <em>not</em> a route to these numbers: the ad-hoc publish
+path is deliberately uncounted (see above), and the bean exposes no counters. A Micronaut
+Micrometer binding is a possible follow-up: <code>micronaut-micrometer</code> would let it take the same
+shape as the Spring and Quarkus bindings.</p>
+</div>
+<div class="tabbed-block">
+<p><code>ntfy-quarkus</code> exports the same three meters, with the same names and meanings, as the Spring
+Boot starter:</p>
 <table>
 <thead>
 <tr>
@@ -1223,24 +1189,28 @@ starter:</p>
 </tbody>
 </table>
 <p>The binding is a CDI <code>MeterBinder</code> that the Quarkus Micrometer extension discovers and applies to
-whichever registry the application configured, so there is nothing to enable, configure, or inject —
-add <code>quarkus-micrometer</code> plus a registry (for example
+whichever registry the application configured, so there is nothing to enable, configure, or
+inject — add <code>quarkus-micrometer</code> plus a registry (for example
 <code>quarkus-micrometer-registry-prometheus</code>) and the meters appear under <code>/q/metrics</code> as
 <code>ntfy_pipeline_published_total</code> and friends.</p>
-<p>It is <strong>extension-conditional</strong>, the counterpart of the starter's classpath condition: the build step
-registers the bean only when the application provides the <code>io.quarkus.metrics</code> capability <em>and</em>
-Micrometer's <code>MeterRegistry</code> is on the runtime classpath. On a build without Micrometer the binder
-class is never even loaded, and <code>ntfy-quarkus</code> declares <code>micrometer-core</code> as an optional dependency,
-so an application that does not want metrics pulls in nothing.</p>
+<p>It is <strong>extension-conditional</strong>, the counterpart of the starter's classpath condition: the build
+step registers the bean only when the application provides the <code>io.quarkus.metrics</code> capability
+<em>and</em> Micrometer's <code>MeterRegistry</code> is on the runtime classpath. On a build without Micrometer the
+binder class is never even loaded, and <code>ntfy-quarkus</code> declares <code>micrometer-core</code> as an optional
+dependency, so an application that does not want metrics pulls in nothing.</p>
 <p>The meters read the counters of the installed log handler <strong>lazily at scrape time</strong>. That matters
 because of Quarkus's boot order: the handler is created at <code>RUNTIME_INIT</code>, long before the CDI
 container the binding lives in. Reading late means there is no ordering dependency in either
-direction, and a scrape that finds no handler — an inactive config (<code>quarkus.ntfy.enabled=false</code>, or
-no <code>url</code>/<code>topic</code>), or simply a scrape before logging is configured — reports <code>0</code> instead of failing
-or omitting the meters. A dev-mode reload installs a new handler whose counters restart from zero,
-and the meters follow it down; see the note at the end of the Spring section, which applies verbatim.</p>
-<p>The <strong>ad-hoc <code>NtfyClient</code> bean is not covered</strong>, by the same rule as everywhere else: <code>notify(...)</code> is
-a user-invoked API, not the alert pipeline.</p>
+direction, and a scrape that finds no handler — an inactive config (<code>quarkus.ntfy.enabled=false</code>,
+or no <code>url</code>/<code>topic</code>), or simply a scrape before logging is configured — reports <code>0</code> instead of
+failing or omitting the meters. A dev-mode reload installs a new handler whose counters restart
+from zero, and the meters follow it down; the counter-reset note in the <strong>Spring Boot</strong> tab
+applies verbatim.</p>
+<p>The <strong>ad-hoc <code>NtfyClient</code> bean is not covered</strong>, by the same rule as everywhere else:
+<code>notify(...)</code> is a user-invoked API, not the alert pipeline.</p>
+</div>
+</div>
+</div>
 
 
 
@@ -1258,6 +1228,8 @@ a user-invoked API, not the alert pipeline.</p>
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
@@ -1340,7 +1312,7 @@ a user-invoked API, not the alert pipeline.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>

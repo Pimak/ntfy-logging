@@ -1309,7 +1309,7 @@ Micronaut's. See <strong><a href="../log4j2/">log4j2.md</a></strong>.</p>
 (core 4.10.26). Micronaut 5 is <strong>not supported yet</strong>: its <code>micronaut-inject</code> and its
 <code>micronaut-inject-java</code> annotation processor ship Java 25 bytecode (class file version 69), which
 cannot be compiled or run against this project's Java 21 baseline. See
-<a href="../compatibility/#micronaut-ntfy-micronaut">compatibility.md</a>.</p>
+<a href="../compatibility/#micronaut">compatibility.md</a>.</p>
 <h2 id="the-example-in-full">The example, in full<a class="headerlink" href="#the-example-in-full" title="Permanent link">&para;</a></h2>
 <p>The <a href="https://github.com/Pimak/ntfy-logging/tree/main/examples/micronaut">runnable <code>examples/micronaut</code> app</a> boots on exactly this configuration — CI compiles it and its integration tests run against it, so nothing shown here
 can drift from what is actually tested.</p>
@@ -1357,12 +1357,12 @@ lives in the cross-cutting reference pages:</p>
   is no wildcard.</li>
 <li><strong><a href="../level-routing/">Level routing</a></strong> — the <code>warn-topic</code> opt-in: which levels alert and where.</li>
 <li><strong><a href="../filtering/">Filtering</a></strong> — <code>excluded-loggers</code>, the <code>NO_ALERT</code> marker, and self-exclusion.</li>
-<li><strong><a href="../observability/">Observability</a></strong> — the pipeline counters, and why there is no Micrometer
-  binding on Micronaut yet.</li>
+<li><strong><a href="../observability/#metrics-bindings">Observability</a></strong> — the pipeline counters, and why there is
+  no Micrometer binding on Micronaut yet.</li>
 <li><strong><a href="../troubleshooting/">Troubleshooting</a></strong> — the engine's diagnostics go to Logback's
   <code>StatusManager</code>; the module's own install/skip messages are ordinary SLF4J logs from
   <code>io.github.pimak.ntfy.micronaut.NtfyLogbackInstaller</code>.</li>
-<li><strong><a href="../compatibility/">Compatibility</a></strong> — tested Micronaut / JDK / Logback versions.</li>
+<li><strong><a href="../compatibility/#micronaut">Compatibility</a></strong> — tested Micronaut / JDK / Logback versions.</li>
 <li><strong><a href="../logback/">Plain Logback</a></strong> — the appender this module installs, and its standalone entry
   points.</li>
 </ul>
@@ -1383,6 +1383,8 @@ lives in the cross-cutting reference pages:</p>
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
@@ -1465,7 +1467,7 @@ lives in the cross-cutting reference pages:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>

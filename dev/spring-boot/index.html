@@ -1276,7 +1276,7 @@ a status log.</p>
 <code>ntfy.pipeline.published</code>, <code>ntfy.pipeline.suppressed</code>, <code>ntfy.pipeline.failed</code> — so you can alert on a
 spike in publish failures. The binding is classpath-conditional and adds no dependency when
 Micrometer is absent; it does not depend on which logging backend you run. See
-<strong><a href="../observability/">Observability</a></strong> for the full semantics.</p>
+<strong><a href="../observability/#metrics-bindings">Observability</a></strong> for the full semantics.</p>
 <h2 id="the-example-in-full">The example, in full<a class="headerlink" href="#the-example-in-full" title="Permanent link">&para;</a></h2>
 <p>The <a href="https://github.com/Pimak/ntfy-logging/tree/main/examples/spring-boot">runnable <code>examples/spring-boot</code> app</a> boots on exactly this configuration — CI compiles it and its integration tests run against it, so nothing shown here
 can drift from what is actually tested.</p>
@@ -1317,7 +1317,7 @@ lives in the cross-cutting reference pages:</p>
 <li><strong><a href="../filtering/">Filtering</a></strong> — <code>excluded-loggers</code>, the <code>NO_ALERT</code> marker, and self-exclusion.</li>
 <li><strong><a href="../troubleshooting/">Troubleshooting</a></strong> — the diagnostics the engine emits and where Spring
   surfaces them (Logback's <code>StatusManager</code>, or Log4j2's <code>StatusLogger</code> on a Log4j2 stack).</li>
-<li><strong><a href="../compatibility/">Compatibility</a></strong> — tested Spring Boot / JDK / Logback / Log4j2 versions.</li>
+<li><strong><a href="../compatibility/#spring-boot">Compatibility</a></strong> — tested Spring Boot / JDK / Logback / Log4j2 versions.</li>
 <li><strong><a href="../log4j2/">Plain Log4j2</a></strong> — the adapter the starter uses on a <code>spring-boot-starter-log4j2</code>
   classpath, and its standalone entry points.</li>
 </ul>
@@ -1338,6 +1338,8 @@ lives in the cross-cutting reference pages:</p>
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
@@ -1420,7 +1422,7 @@ lives in the cross-cutting reference pages:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
