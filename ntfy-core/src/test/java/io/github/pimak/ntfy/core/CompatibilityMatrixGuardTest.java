@@ -82,13 +82,19 @@ class CompatibilityMatrixGuardTest {
         violations.add(heading + " has no '**Tested (CI)**' table row");
         return;
       }
-      String expected = "{{ pin." + property + " }}";
       for (String row : testedRows) {
         String versionCell = versionCell(row);
-        if (!expected.equals(versionCell)) {
+        // Matched with the hook's own pattern rather than compared to a canonical string: spacing
+        // inside the braces is the hook's business, and a guard that failed on it would report two
+        // strings the reader cannot tell apart.
+        Matcher placeholder = PIN_PLACEHOLDER.matcher(versionCell);
+        if (!placeholder.matches()) {
           violations.add(heading + ": the '**Tested (CI)**' row states '" + versionCell
-              + "' where it must state '" + expected + "' — a literal here goes stale the next time"
-              + " Dependabot bumps <" + property + ">");
+              + "' where it must defer to <" + property + "> as '{{ pin." + property + " }}'"
+              + " — a literal here goes stale the next time Dependabot bumps that property");
+        } else if (!property.equals(placeholder.group(1))) {
+          violations.add(heading + ": the '**Tested (CI)**' row reports <" + placeholder.group(1)
+              + "> where this section documents <" + property + ">");
         }
       }
     });
