@@ -139,7 +139,7 @@ When `micrometer-core` is on the classpath (it is in any Spring Boot Actuator ap
 `ntfy.pipeline.published`, `ntfy.pipeline.suppressed`, `ntfy.pipeline.failed` — so you can alert on a
 spike in publish failures. The binding is classpath-conditional and adds no dependency when
 Micrometer is absent; it does not depend on which logging backend you run. See
-**[Observability](observability.md)** for the full semantics.
+**[Observability](observability.md#metrics-bindings)** for the full semantics.
 
 ## The example, in full
 
@@ -165,6 +165,6 @@ lives in the cross-cutting reference pages:
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits and where Spring
   surfaces them (Logback's `StatusManager`, or Log4j2's `StatusLogger` on a Log4j2 stack).
-- **[Compatibility](compatibility.md)** — tested Spring Boot / JDK / Logback / Log4j2 versions.
+- **[Compatibility](compatibility.md#spring-boot)** — tested Spring Boot / JDK / Logback / Log4j2 versions.
 - **[Plain Log4j2](log4j2.md)** — the adapter the starter uses on a `spring-boot-starter-log4j2`
   classpath, and its standalone entry points.

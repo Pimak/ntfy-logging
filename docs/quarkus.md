@@ -164,8 +164,8 @@ lives in the cross-cutting reference pages:
   is no wildcard.
 - **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers` and the always-on self-exclusion.
-- **[Observability](observability.md)** — the pipeline counters behind the meters above, and how to
-  read them without Micrometer.
+- **[Observability](observability.md#metrics-bindings)** — the pipeline counters behind the meters
+  above, and how to read them without Micrometer.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits; on Quarkus they go to
   `System.err`, each line prefixed `[ntfy]`.
-- **[Compatibility](compatibility.md)** — tested Quarkus / JDK / GraalVM versions.
+- **[Compatibility](compatibility.md#quarkus)** — tested Quarkus / JDK / GraalVM versions.

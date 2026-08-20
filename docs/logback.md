@@ -175,4 +175,4 @@ lives in the cross-cutting reference pages:
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits via Logback's
   `StatusManager`, and how to surface them.
-- **[Compatibility](compatibility.md)** — tested Logback / JDK versions.
+- **[Compatibility](compatibility.md#logback)** — tested Logback / JDK versions.
