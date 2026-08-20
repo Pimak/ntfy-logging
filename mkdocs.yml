@@ -53,6 +53,11 @@ theme:
         icon: material/brightness-4
         name: Switch to system preference
 
+# Fills the `{{ pin.<property> }}` placeholders in compatibility.md from the root pom.xml, so the
+# page reports the versions the build actually pins instead of a hand-copied snapshot of them.
+hooks:
+  - hooks/compat_pins.py
+
 plugins:
   - search
   - mike:

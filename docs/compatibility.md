@@ -18,13 +18,16 @@ here**); each is explained where it appears.
 A verified row is evidence, not a guarantee: a single green run on one JDK. Where a range is given,
 the listed versions are the ones actually run — the range between them is interpolation.
 
-**What keeps this page from going stale.** A measurement taken once decays silently, so two checks
-hold it in place:
+**What keeps this page from going stale.** A measurement taken once decays silently, so the page is
+held in place from three sides:
 
-- `CompatibilityMatrixGuardTest` (in `ntfy-core`, so it runs in every build) asserts that each
-  **Tested (CI)** row names the version the root `pom.xml` actually pins — the Dependabot-bump
-  failure mode — and that the **Verified** rows and the sweep's version list are the same set, in
-  both directions. Neither side can drift ahead of the other.
+- The **Tested (CI)** rows carry no number of their own. They name the `pom.xml` property, and
+  `hooks/compat_pins.py` substitutes the pinned value when the site is built — so a Dependabot bump
+  moves the page with it, and there is nothing left to forget.
+- `CompatibilityMatrixGuardTest` (in `ntfy-core`, so it runs in every build) holds that arrangement
+  up: every **Tested (CI)** row must use its placeholder rather than a literal, every placeholder
+  must resolve against `pom.xml`, and the **Verified** rows and the sweep's version list must be the
+  same set, in both directions. Neither side can drift ahead of the other.
 - The weekly `Compatibility sweep` workflow re-runs each module's suite against every **Verified**
   version, and files an issue when one stops passing. It is scheduled rather than blocking, because
   it can fail for reasons unrelated to the change in front of you.
@@ -58,7 +61,7 @@ extension installs this module's `NtfyJulHandler` and is exercised by the Quarku
 
 | Version | Status |
 |---------|--------|
-| 1.6.1 | **Tested (CI)** — the exact version pinned in this repo's `pom.xml` |
+| {{ pin.logback.version }} | **Tested (CI)** — the exact version pinned in this repo's `pom.xml` |
 | 1.5.0, 1.5.18, 1.5.38 | **Verified** — full suite green, including the `Configurator` SPI tests |
 | 1.4.14 | **Verified** — full suite green |
 | 1.3.14 | **Verified** — full suite green (37 tests), *but see below* |
@@ -82,7 +85,7 @@ today; nothing will tell you if that stops being true.
 
 | Version | Status |
 |---------|--------|
-| 2.26.1 | **Tested (CI)** — the exact version pinned in this repo's `pom.xml`, and the version the module compiles against |
+| {{ pin.log4j2.version }} | **Tested (CI)** — the exact version pinned in this repo's `pom.xml`, and the version the module compiles against |
 | 2.17.2, 2.20.0, 2.24.3, 2.25.2 | **Verified** — full suite green on each |
 | 2.x (other, ≥ 2.17) | **Expected to work** — the only API surface used is the stable `@Plugin`/`@PluginFactory` appender contract, `AbstractAppender`, `LogEvent`, `Marker`, and `LoggerContext`/`Configuration` reattachment |
 
@@ -99,7 +102,7 @@ processor and ships inside the jar.
 
 | Version | Status |
 |---------|--------|
-| 4.1.0 | **Tested (CI)** — the version pinned in this repo (`spring-boot.version` in `pom.xml`) |
+| {{ pin.spring-boot.version }} | **Tested (CI)** — the version pinned in this repo (`spring-boot.version` in `pom.xml`) |
 | 3.3.13, 3.4.10, 3.5.6 | **Verified** — full suite green on each |
 | 3.x / 4.x (other) | **Expected to work** — the starter uses stable `@AutoConfiguration` + `@ConfigurationProperties` binding and installs onto whichever logging backend is bound |
 
@@ -117,7 +120,7 @@ alongside it. The `NtfyClient` bean and the Micrometer meters are available eith
 
 | Version | Status |
 |---------|--------|
-| 4.10.17 | **Tested (CI)** — the `micronaut-platform` version pinned in this repo (`micronaut.version` in `pom.xml`), resolving Micronaut core 4.10.26 |
+| {{ pin.micronaut.version }} | **Tested (CI)** — the `micronaut-platform` version pinned in this repo (`micronaut.version` in `pom.xml`), resolving Micronaut core 4.10.26 |
 | 4.6.3, 4.9.4 | **Verified** — full suite green on each |
 | 4.x (other, ≥ 4.6) | **Expected to work** — the only API surface used is the stable `@ConfigurationProperties`, `@Factory`/`@Singleton`, `@Requires(classes = …)` and `ApplicationEventListener<StartupEvent>` contract |
 | 5.x | **Cannot be built here** — see below |
@@ -141,7 +144,7 @@ application on Log4j2 wires `ntfy-log4j2`'s `<Ntfy>` element itself. See
 
 | Version | Status |
 |---------|--------|
-| 3.38.1 | **Tested (CI)** — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
+| {{ pin.quarkus.version }} | **Tested (CI)** — the version pinned in this repo (`quarkus.version`), exercised JVM + native by the `ntfy-quarkus/integration-tests` module |
 | 3.15.7, 3.20.6, 3.24.5, 3.34.7 | **Verified** — full suite green on each, including the QuarkusUnitTests that boot a real application |
 | 3.x (other, ≥ 3.15) | **Expected to work** within the stable extension-API surface used (`LogHandlerBuildItem`, `@ConfigMapping @ConfigRoot(RUN_TIME)`, `@Recorder`, `Capability.METRICS`) |
 
@@ -158,7 +161,7 @@ application brings `quarkus-micrometer` itself. See the Micrometer section below
 | Version | Status |
 |---------|--------|
 | Whatever your application's BOM resolves | Supported — this project pins nothing |
-| 1.17.0 | **Tested (CI)** — what CI exercises on both surfaces; `spring-boot-dependencies` 4.1.0 and `quarkus-bom` 3.38.1 resolve the same version |
+| 1.17.0 | **Tested (CI)** — what CI exercises on both surfaces; `spring-boot-dependencies` {{ pin.spring-boot.version }} and `quarkus-bom` {{ pin.quarkus.version }} resolve the same version |
 | 1.9.17 → 1.17.0 | **API-checked only** — every signature the bindings call is present across that span, confirmed by inspecting the jars. The suites were *not* run against those versions. |
 
 The Micrometer row is weaker evidence than the others on this page, and deliberately marked as such.

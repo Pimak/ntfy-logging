@@ -16,6 +16,9 @@ target/
 .DS_Store
 Thumbs.db
 
+# Bytecode cache for the MkDocs hooks in hooks/ — written wherever mkdocs runs.
+__pycache__/
+
 # MkDocs build output (`mkdocs build`, and the intermediate build `mike deploy` runs).
 site/
 
