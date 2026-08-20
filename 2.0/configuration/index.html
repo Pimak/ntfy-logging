@@ -1,0 +1,1974 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for java.util.logging, Logback, Log4j2, Spring Boot and Micronaut, a native-ready Quarkus extension, and a plain programmatic client.">
+      
+      
+        <meta name="author" content="pimak">
+      
+      
+        <link rel="canonical" href="https://pimak.github.io/ntfy-logging/latest/configuration/">
+      
+      
+        <link rel="prev" href="../core/">
+      
+      
+        <link rel="next" href="../alert-behavior/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Configuration - ntfy-logging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ntfy-logging" class="md-header__button md-logo" aria-label="ntfy-logging" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ntfy-logging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Pimak/ntfy-logging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Pimak/ntfy-logging
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ntfy-logging" class="md-nav__button md-logo" aria-label="ntfy-logging" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ntfy-logging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Pimak/ntfy-logging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Pimak/ntfy-logging
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spring-boot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spring Boot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quarkus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarkus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../micronaut/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Micronaut
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plain Logback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../log4j2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plain Log4j2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../jul/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    java.util.logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (any JVM app)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#key-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#duration-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Duration syntax
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup-self-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup self-test
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Startup self-test">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#testing-the-warn-route" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing the WARN route
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-one-route-breaks-and-another-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When one route breaks and another works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#which-mode-should-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which mode should I use?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fail-fast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fail-fast
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notification-language-translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notification language (translations)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-framework-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-framework examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-framework examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-jul-plain-logback-plain-log4j2-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core / JUL / plain Logback / plain Log4j2 (environment)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plain-log4j2-log4j2xml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plain Log4j2 (log4j2.xml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spring-boot-applicationyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spring Boot (application.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#micronaut-applicationyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Micronaut (application.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quarkus-applicationproperties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quarkus (application.properties)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alert-behavior/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alert behavior
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../filtering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mdc-context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MDC context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#key-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#duration-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Duration syntax
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#startup-self-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Startup self-test
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Startup self-test">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#testing-the-warn-route" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing the WARN route
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-one-route-breaks-and-another-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When one route breaks and another works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#which-mode-should-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which mode should I use?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fail-fast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fail-fast
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notification-language-translations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notification language (translations)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-framework-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-framework examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-framework examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-jul-plain-logback-plain-log4j2-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core / JUL / plain Logback / plain Log4j2 (environment)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plain-log4j2-log4j2xml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plain Log4j2 (log4j2.xml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spring-boot-applicationyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spring Boot (application.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#micronaut-applicationyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Micronaut (application.yml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quarkus-applicationproperties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quarkus (application.properties)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Pimak/ntfy-logging/edit/main/docs/configuration.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h1>
+<p>Every adapter in the <code>ntfy-logging</code> family configures the same framework-neutral engine, so there
+is <strong>one set of settings</strong> with the same names, types, and defaults everywhere. What differs is only
+<em>where</em> you write them:</p>
+<ul>
+<li><strong>Core / JUL / plain Logback / plain Log4j2</strong> — resolved by <code>ConfigLoader</code> from, highest
+  precedence first: a JVM system property <code>ntfy.&lt;key&gt;</code>, then an environment variable <code>NTFY_&lt;KEY&gt;</code>,
+  then a classpath <code>ntfy.properties</code> entry <code>ntfy.&lt;key&gt;</code>. (You can also set them explicitly through
+  <code>LogbackAlertAppender</code>'s XML setters, the Log4j2 <code>&lt;Ntfy&gt;</code> element's attributes, or
+  <code>NtfyConfig.builder()</code> — the latter feeds <code>NtfyJulHandler.forConfig</code> on the JUL side.)</li>
+<li><strong>Spring Boot</strong> — your application's own config under the <code>ntfy.*</code> prefix (<code>application.yml</code> /
+  <code>application.properties</code>, environment, etc.), bound with Spring's relaxed binding.</li>
+<li><strong>Micronaut</strong> — your application's own config under the same <code>ntfy.*</code> prefix (<code>application.yml</code> /
+  <code>application.properties</code>, environment, etc.), bound with Micronaut's relaxed binding. Same key
+  names, types and defaults as the Spring surface.</li>
+<li><strong>Quarkus</strong> — your application's own config under the <code>quarkus.ntfy.*</code> prefix.</li>
+</ul>
+<blockquote>
+<p>The engine no longer refuses to read the process environment: config is resolved from
+<strong>sysprop &gt; env &gt; <code>ntfy.properties</code></strong> (core/JUL/Logback/Log4j2), or from <strong>your framework's native config</strong>
+(Spring / Micronaut <code>ntfy.*</code>, Quarkus <code>quarkus.ntfy.*</code>). The old "never reads <code>getenv</code>" guarantee was a
+property of the single Logback appender; it is intentionally gone.</p>
+</blockquote>
+<h2 id="key-reference">Key reference<a class="headerlink" href="#key-reference" title="Permanent link">&para;</a></h2>
+<p><code>Key</code> is the canonical kebab-case name. Read the per-surface columns as:</p>
+<ul>
+<li><strong>sysprop</strong> — <code>-Dntfy.&lt;key&gt;</code> (core/JUL/Logback/Log4j2)</li>
+<li><strong>env</strong> — <code>NTFY_&lt;KEY&gt;</code> with <code>-</code> → <code>_</code> and upper-cased (core/JUL/Logback/Log4j2)</li>
+<li><strong><code>ntfy.properties</code></strong> — <code>ntfy.&lt;key&gt;</code> (core/JUL/Logback/Log4j2)</li>
+<li><strong>Logback XML / Log4j2 XML</strong> — the camelCase form of the key: a <code>&lt;appName&gt;</code> element on
+  <code>LogbackAlertAppender</code>, an <code>appName="…"</code> attribute on <code>&lt;Ntfy&gt;</code></li>
+<li><strong>Spring</strong> — <code>ntfy.&lt;key&gt;</code> (relaxed: <code>ntfy.app-name</code>, <code>ntfy.appName</code>, and <code>NTFY_APP_NAME</code> all bind)</li>
+<li><strong>Micronaut</strong> — <code>ntfy.&lt;key&gt;</code> (relaxed the same way: <code>ntfy.app-name</code>, <code>ntfy.appName</code> and
+  <code>NTFY_APP_NAME</code> all bind)</li>
+<li><strong>Quarkus</strong> — <code>quarkus.ntfy.&lt;key&gt;</code></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td>String</td>
+<td><em>(none — required)</em></td>
+<td>Base URL of the ntfy server (e.g. <code>https://ntfy.example.com</code>). Alerting is inactive until both <code>url</code> and <code>topic</code> are set.</td>
+</tr>
+<tr>
+<td><code>topic</code></td>
+<td>String</td>
+<td><em>(none — required)</em></td>
+<td>ntfy topic to publish to. Must match ntfy's topic rule <code>[-_A-Za-z0-9]{1,64}</code> — anything else disables the engine with a warning.</td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>Bearer/access token (<code>tk_…</code>). Takes precedence over <code>username</code>/<code>password</code>.</td>
+</tr>
+<tr>
+<td><code>username</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>HTTP Basic username (used with <code>password</code> when no <code>token</code> is set).</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>HTTP Basic password.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>Notification title prefix; the root-cause exception class is appended for error alerts. Falls back to <code>app-name</code> when unset.</td>
+</tr>
+<tr>
+<td><code>app-name</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>Application name used as the title fallback when <code>title</code> is unset.</td>
+</tr>
+<tr>
+<td><code>max-stack-frames</code></td>
+<td>int</td>
+<td><code>5</code></td>
+<td>Maximum root-cause stack frames rendered into an alert body.</td>
+</tr>
+<tr>
+<td><code>connect-timeout</code></td>
+<td>Duration</td>
+<td><code>5s</code></td>
+<td>HTTP connect timeout.</td>
+</tr>
+<tr>
+<td><code>request-timeout</code></td>
+<td>Duration</td>
+<td><code>10s</code></td>
+<td>HTTP request/response round-trip timeout.</td>
+</tr>
+<tr>
+<td><code>max-alerts-per-window</code></td>
+<td>int</td>
+<td><code>3</code></td>
+<td>Individual alerts allowed per <code>suppression-window</code> before storm rate-limiting kicks in (<code>0</code>/negative disables the limiter). See <a href="../alert-behavior/">alert-behavior.md</a>.</td>
+</tr>
+<tr>
+<td><code>suppression-window</code></td>
+<td>Duration</td>
+<td><code>3m</code></td>
+<td>Rolling window for the burst allowance and the periodic digest timer.</td>
+</tr>
+<tr>
+<td><code>error-priority</code></td>
+<td>String</td>
+<td><code>high</code></td>
+<td>ntfy <code>Priority</code> header for individual error alerts.</td>
+</tr>
+<tr>
+<td><code>digest-priority</code></td>
+<td>String</td>
+<td><code>urgent</code></td>
+<td>ntfy <code>Priority</code> header for storm digests.</td>
+</tr>
+<tr>
+<td><code>error-tags</code></td>
+<td>String</td>
+<td><code>rotating_light</code></td>
+<td>ntfy <code>Tags</code> header (comma-separated) for individual error alerts.</td>
+</tr>
+<tr>
+<td><code>digest-tags</code></td>
+<td>String</td>
+<td><code>fire</code></td>
+<td>ntfy <code>Tags</code> header for storm digests.</td>
+</tr>
+<tr>
+<td><code>warn-topic</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>ntfy topic that WARN-level events are published to. <strong>Setting this is the entire opt-in for WARN alerting</strong> — unset, alerting stays ERROR-only and every path is byte-identical to before the option existed. Same topic rule as <code>topic</code>; an invalid value drops the WARN route with a warning and leaves ERROR alerting untouched. See <a href="../level-routing/">level-routing.md</a>.</td>
+</tr>
+<tr>
+<td><code>warn-priority</code></td>
+<td>String</td>
+<td><code>default</code></td>
+<td>ntfy <code>Priority</code> header for WARN alerts <strong>and the WARN digest</strong>. Only consulted when <code>warn-topic</code> is set.</td>
+</tr>
+<tr>
+<td><code>warn-tags</code></td>
+<td>String</td>
+<td><code>warning</code></td>
+<td>ntfy <code>Tags</code> header for WARN alerts and the WARN digest. Only consulted when <code>warn-topic</code> is set.</td>
+</tr>
+<tr>
+<td><code>click-url</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>URL ntfy opens when the notification is tapped (ntfy <code>Click</code> header). Applies to both error alerts and digests; sent as-is (no header when unset).</td>
+</tr>
+<tr>
+<td><code>actions</code></td>
+<td>String</td>
+<td><em>(none)</em></td>
+<td>Action buttons as a raw ntfy <code>Actions</code> header value in the short format (e.g. <code>view, View logs, https://grafana.example.com/d/abc</code>; up to 3, separated by <code>;</code>). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed <code>NtfyAction</code>s via <code>NtfyConfig.Builder.actions(List)</code> / <code>NtfyClient.notify(title, message, actions)</code>.</td>
+</tr>
+<tr>
+<td><code>excluded-loggers</code></td>
+<td>String (csv)</td>
+<td><em>(none)</em></td>
+<td>Comma-separated logger-name prefixes excluded from alerting entirely. See <a href="../filtering/">filtering.md</a>.</td>
+</tr>
+<tr>
+<td><code>include-mdc-keys</code></td>
+<td>String (csv)</td>
+<td><em>(none)</em></td>
+<td>Comma-separated <strong>allow-list</strong> of MDC keys whose values are rendered into the alert body, one <code>key: value</code> line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). Sourced per adapter: the Logback event's MDC snapshot, log4j2's <code>ThreadContext</code>, and <code>ExtLogRecord</code> under JBoss LogManager/Quarkus. No effect on plain <code>java.util.logging</code>, which has no MDC. See <a href="../mdc-context/">mdc-context.md</a>.</td>
+</tr>
+<tr>
+<td><code>locale</code></td>
+<td>String (BCP 47 tag)</td>
+<td><code>en</code></td>
+<td>Language of notification bodies and self-diagnostic messages (e.g. <code>fr</code>, <code>de-DE</code>). Defaults to English and <strong>never</strong> follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See <a href="#notification-language-translations">Notification language</a>.</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Master switch; when <code>false</code> the adapter installs nothing / stays inactive.</td>
+</tr>
+<tr>
+<td><code>allow-classpath-endpoint</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Opt-in for the zero-code auto-installs (Logback <code>Configurator</code>, JUL auto-handler/installer) and <code>NtfyLog4j2Installer</code> to accept an endpoint <code>url</code> that comes <strong>only</strong> from a classpath <code>ntfy.properties</code>. Without it, auto-install is refused (with a warn status) because any jar on the classpath can ship such a file and redirect your error logs. Deliberately <strong>not</strong> readable from <code>ntfy.properties</code> itself — set it as <code>-Dntfy.allow-classpath-endpoint=true</code> or <code>NTFY_ALLOW_CLASSPATH_ENDPOINT=true</code>.</td>
+</tr>
+<tr>
+<td><code>async</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Delivery is offloaded to a bounded queue drained by a daemon worker, so a slow/unreachable ntfy server never blocks application threads. On by default since 2.0; set <code>false</code> for pre-2.0 synchronous, inline delivery (each publish then blocks the logging thread until the HTTP exchange completes — the guarantee short-lived batch/CLI processes may prefer). See <a href="../alert-behavior/">alert-behavior.md</a>.</td>
+</tr>
+<tr>
+<td><code>async-queue-capacity</code></td>
+<td>int</td>
+<td><code>1024</code></td>
+<td>Maximum pending alerts the async queue holds before overflow (dropped alerts fold into the storm digest count). Only consulted when <code>async</code> is <code>true</code>; a non-positive value is clamped to a minimum of <code>1</code>.</td>
+</tr>
+<tr>
+<td><code>startup-ping</code></td>
+<td>enum (<code>off</code>/<code>probe</code>/<code>publish</code>)</td>
+<td><code>off</code></td>
+<td><strong>Opt-in startup self-test.</strong> Verifies at boot that the configured endpoint, credentials and topic actually work, instead of discovering a revoked token when the first real error alert silently fails to deliver. <code>off</code> is a true no-op — no request, and no extra diagnostic line, so output stays byte-identical. <code>probe</code> makes a read-only <code>GET {url}/{topic}/json?poll=1&amp;since=none</code>: it validates DNS, reachability, TLS and <em>read</em> access, and publishes nothing, so subscribers see no noise. <code>publish</code> sends a real <code>low</code>-priority test notification through the production publish path, which is the only mode that proves alerts are actually deliverable. Runs asynchronously and never delays startup (unless <code>startup-ping-fail-fast</code> is on). An unrecognized value keeps the default and is warned about. See <a href="#startup-self-test">Startup self-test</a>.</td>
+</tr>
+<tr>
+<td><code>startup-ping-warn</code></td>
+<td>enum (<code>off</code>/<code>probe</code>/<code>publish</code>)</td>
+<td><code>off</code></td>
+<td>The same self-test for the optional <strong>WARN route</strong> (<code>warn-topic</code>), configured completely independently of <code>startup-ping</code>. ntfy grants permissions per topic, so a healthy ERROR route is no evidence at all about the WARN one — and in <code>publish</code> mode each route costs its own notification on every boot, which is why neither flag opts the other in. Only consulted when <code>warn-topic</code> is set and its route survived its own preconditions; testing a route the engine has withdrawn would report on something that will never carry an alert.</td>
+</tr>
+<tr>
+<td><code>startup-ping-notify-failures</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td><strong>The one opt-out here.</strong> When a route's self-test fails and another route PASSED, the diagnosis is published as a notification on the passing route — so a broken route reaches you where you actually look instead of only in a status log nobody greps. It can never fire unless some route passed, which is what stops it from publishing to a topic the self-test has not just verified: with the WARN self-test off, nothing about that route is tested, nothing fails, and your ERROR topic is never pinged. See the caveat under <a href="#startup-self-test">Startup self-test</a> about what this means for <code>probe</code>.</td>
+</tr>
+<tr>
+<td><code>startup-ping-fail-fast</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Whether a failed self-test <strong>aborts application startup</strong> (throwing <code>NtfyStartupSelfTestException</code> out of engine start) rather than only warning. Off by default: a logging backend must never be able to kill the application it instruments. Enabling it also switches the self-test from background to <strong>inline</strong> execution — a start that has already returned cannot be aborted — which adds at most <code>connect-timeout + request-timeout</code> to boot. Intended for CI/staging; leaving it off in production means a flaky ntfy server can never block a deployment. Covers <strong>every route whose self-test you enabled</strong> — a route you explicitly asked to have verified is one whose failure gates the deploy. Inert (and warned about) when both mode flags are <code>off</code>.</td>
+</tr>
+<tr>
+<td><code>require-https-for-credentials</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Strict transport mode, available on every surface like any other key (Logback XML <code>&lt;requireHttpsForCredentials&gt;</code>, Log4j2 <code>&lt;Ntfy requireHttpsForCredentials="false"&gt;</code>, Spring and Micronaut <code>ntfy.require-https-for-credentials</code>, Quarkus <code>quarkus.ntfy.require-https-for-credentials</code>, env <code>NTFY_REQUIRE_HTTPS_FOR_CREDENTIALS</code>, sysprop <code>ntfy.require-https-for-credentials</code>). When <code>true</code> (the default since 2.0) and credentials would traverse a cleartext <code>http://</code> endpoint — a configured <code>token</code>, a <code>username</code>/<code>password</code> pair, or userinfo embedded in the URL itself (<code>http://user:pass@host</code>) — the engine refuses activation with a fixed diagnostic instead of warning and proceeding. Set <code>false</code> to restore the pre-2.0 warn-and-activate behavior for deliberate self-hosted plain-HTTP setups. See <a href="../authentication/">authentication.md</a>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>url</code> and <code>topic</code> are the only two settings without which alerting stays inactive (silently if both
+are unset; with a warning if only one is set — see <a href="../troubleshooting/">troubleshooting.md</a>). Every
+other setting has a safe default and can be omitted.</p>
+<p><code>warn-topic</code> is the one setting whose <em>presence</em> changes which events alert at all. There is
+deliberately no <code>alert-on-warn</code> boolean beside it: a route needs a destination, so naming the
+destination is the only thing the engine actually has to be told.</p>
+<h2 id="duration-syntax">Duration syntax<a class="headerlink" href="#duration-syntax" title="Permanent link">&para;</a></h2>
+<p><code>connect-timeout</code>, <code>request-timeout</code>, and <code>suppression-window</code> are durations. For the
+core/JUL/Logback/Log4j2/Quarkus surfaces they are parsed by <code>DurationParser</code>, which accepts:</p>
+<ul>
+<li>a <strong>bare integer</strong> — interpreted as <strong>milliseconds</strong> (<code>500</code> → 500 ms);</li>
+<li>a <strong>suffixed integer</strong> — <code>ms</code>, <code>s</code>, <code>m</code>, <code>h</code>, <code>d</code> (<code>5s</code>, <code>3m</code>, <code>2h</code>, <code>1d</code>);</li>
+<li>an <strong>ISO-8601</strong> duration — parsed by <code>java.time.Duration.parse</code> (<code>PT5S</code>, <code>PT3M</code>).</li>
+</ul>
+<p>An unparseable value throws <code>IllegalArgumentException</code> at startup rather than silently defaulting.</p>
+<p>In <strong>Spring Boot</strong>, these bind as native <code>java.time.Duration</code> values using Spring's own duration
+syntax (<code>5s</code>, <code>3m</code>, <code>PT5S</code>, or a bare number of milliseconds), so you get the same spellings through
+Spring's converter.</p>
+<p>In <strong>Micronaut</strong> they likewise bind as native <code>java.time.Duration</code> values through Micronaut's own
+converter (<code>5s</code>, <code>3m</code>, <code>500ms</code>, <code>PT10S</code>), and the integration hands them to the appender in
+milliseconds — so the same spellings work there too.</p>
+<h2 id="startup-self-test">Startup self-test<a class="headerlink" href="#startup-self-test" title="Permanent link">&para;</a></h2>
+<p>Alerting is silent by design: it only speaks when something breaks. That makes a broken <em>alerting</em>
+configuration invisible — a revoked token, a renamed topic, a typo'd base URL and a blocked egress
+route all behave identically at boot (nothing happens) and are only discovered when the first real
+production error fails to deliver and nobody is paged.</p>
+<p>The engine's start-up validation is entirely local: URL syntax, topic charset, auth-pair
+completeness, transport policy, timeouts. It never touches the network, so it cannot tell a working
+setup apart from one whose token was revoked last week.</p>
+<p><code>startup-ping</code> closes that gap by making one real round-trip at engine start:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">ntfy.startup-ping</span><span class="o">=</span><span class="s">probe</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Request</th>
+<th>Publishes?</th>
+<th>Proves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>off</code> <em>(default)</em></td>
+<td>none</td>
+<td>no</td>
+<td>nothing — a true no-op, not even a diagnostic line</td>
+</tr>
+<tr>
+<td><code>probe</code></td>
+<td><code>GET {url}/{topic}/json?poll=1&amp;since=none</code></td>
+<td>no*</td>
+<td>DNS, reachability, TLS, that the endpoint is really ntfy, and <em>read</em> access</td>
+</tr>
+<tr>
+<td><code>publish</code></td>
+<td>the production <code>POST {url}/{topic}</code></td>
+<td>yes, one <code>low</code>-priority notification per boot</td>
+<td>that alerts are genuinely deliverable end-to-end</td>
+</tr>
+</tbody>
+</table>
+<p>On success you get one <code>info</code> line. On failure you get one <code>warn</code> line that names the probable cause
+and the fix rather than making you look the status code up:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ntfy startup self-test FAILED (HTTP 401) — the server rejected the credentials; the token may be
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>revoked or expired, or it may not grant access to this topic
+</code></pre></div>
+<p><code>404</code> points at the most common ntfy mistake (appending the topic to <code>url</code>, which must be the base
+URL), <code>429</code> and <code>5xx</code> explicitly absolve your configuration and blame the server, and any failure
+that never got an HTTP response at all — a refused connection, DNS, a timeout, <strong>or a TLS handshake
+/ certificate-trust failure</strong> — points at <code>url</code>, DNS, TLS trust and egress rules, with the reason
+word naming which (<code>SSLHandshakeException</code> for an untrusted certificate, say). No diagnostic ever
+echoes a token, password or username.</p>
+<p>* <code>probe</code> publishes nothing <strong>of its own</strong>. With <code>startup-ping-notify-failures</code> left on (the
+default), a <em>different</em> route failing can still cause exactly one publish — the failure report, sent
+through this healthy route. Set <code>startup-ping-notify-failures=false</code> to keep <code>probe</code> absolutely
+publish-free.</p>
+<h3 id="testing-the-warn-route">Testing the WARN route<a class="headerlink" href="#testing-the-warn-route" title="Permanent link">&para;</a></h3>
+<p><code>startup-ping</code> covers the primary topic. The optional <a href="../level-routing/">WARN route</a> has its own
+flag, configured completely independently:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">ntfy.warn-topic</span><span class="o">=</span><span class="s">my-app-warnings</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">ntfy.startup-ping</span><span class="o">=</span><span class="s">publish</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="na">ntfy.startup-ping-warn</span><span class="o">=</span><span class="s">publish</span>
+</code></pre></div>
+<p>They are separate because ntfy grants permissions <strong>per topic</strong> — a token that publishes fine to
+your ERROR topic may have no write access to the WARN one, which is exactly the blind spot a
+self-test is for — and because in <code>publish</code> mode each route costs its own notification on every
+boot. Neither flag opts the other in, and both default to <code>off</code>.</p>
+<p>The WARN self-test is skipped when the engine has <em>withdrawn</em> the warn route (an invalid
+<code>warn-topic</code>, or a classpath-only one without <code>allow-classpath-endpoint</code>). There is no point
+verifying a route that will never carry an alert; the withdrawal itself is already reported.</p>
+<h3 id="when-one-route-breaks-and-another-works">When one route breaks and another works<a class="headerlink" href="#when-one-route-breaks-and-another-works" title="Permanent link">&para;</a></h3>
+<p>If a route's self-test fails while another <strong>passed</strong>, the diagnosis is published as a notification
+on the passing route:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[my-app — ntfy startup self-test FAILED]
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>A startup self-test failed for this application's ntfy alerting. This notification was sent
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>through a route that still works, so the route named below is the one that is broken:
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>WARN route (topic 'my-app-warnings') — ntfy startup self-test FAILED (HTTP 403) — the server
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>rejected the credentials; the token may be revoked or expired, or it may not grant access to
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>this topic
+</code></pre></div>
+<p>This is on by default (<code>startup-ping-notify-failures</code>), because a diagnostic line lands on a status
+manager or stderr that nobody reads until they are already investigating, while the entire point of
+alerting is to reach people.</p>
+<p>It is gated on a route having <strong>passed</strong>, never merely being configured. That single rule is what
+guarantees it can never publish to a topic the self-test has not just verified — with the WARN
+self-test off, nothing about that route is tested, so nothing about it can fail, and your ERROR
+topic is never pinged. If <em>no</em> route passed, there is no channel worth trying and the diagnostics
+are the only report (the engine says so rather than staying silent).</p>
+<h3 id="which-mode-should-i-use">Which mode should I use?<a class="headerlink" href="#which-mode-should-i-use" title="Permanent link">&para;</a></h3>
+<p><strong><code>publish</code>, if you can tolerate one notification per boot.</strong> ntfy ACLs grant read and write
+separately, so <code>probe</code> has a real blind spot: a read-only token — or one revoked for writes only —
+passes the probe and still fails every real alert. And on an open server, where reads are anonymous,
+a probe proves nothing whatsoever about credentials. <code>probe</code> answers <em>"can I reach this server?"</em>;
+only <code>publish</code> answers <em>"will my alerts actually arrive?"</em>.</p>
+<p>Use <code>probe</code> when publishing on every boot would be too noisy for the topic's subscribers — a
+frequently-restarting service, or a topic real humans watch.</p>
+<h3 id="fail-fast">Fail-fast<a class="headerlink" href="#fail-fast" title="Permanent link">&para;</a></h3>
+<p>By default a failed self-test only warns: a logging backend must never be able to take down the
+application it instruments.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">ntfy.startup-ping</span><span class="o">=</span><span class="s">probe</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">ntfy.startup-ping-fail-fast</span><span class="o">=</span><span class="s">true</span>
+</code></pre></div>
+<p>turns a failed self-test into a failed startup (<code>NtfyStartupSelfTestException</code> out of engine start,
+after every resource the engine had acquired is released). It covers <strong>every route whose self-test
+you enabled</strong>: a route you explicitly asked to have verified is one whose failure should gate the
+deploy. The failure notification, if enabled, still goes out before the abort — aborting must not
+cost you the report.</p>
+<p>Two consequences worth knowing before you enable it:</p>
+<ul>
+<li><strong>It makes the self-test synchronous.</strong> A start that has already returned cannot be aborted, so
+  fail-fast runs the round-trip inline and adds up to <code>connect-timeout + request-timeout</code> (15s with
+  the defaults) to boot. Without fail-fast the ping runs on a daemon thread and startup is never
+  delayed.</li>
+<li><strong>It couples your deployment to ntfy's availability.</strong> A <code>5xx</code> or a network blip on the ntfy side
+  will block a rollout. That is usually the wrong trade in production and the right one in CI or
+  staging, which is what this flag is for.</li>
+</ul>
+<h2 id="notification-language-translations">Notification language (translations)<a class="headerlink" href="#notification-language-translations" title="Permanent link">&para;</a></h2>
+<p>Every visible string the engine produces — the body labels (<code>Message:</code>, <code>Logger:</code>, <code>Caused by:</code>,
+<code>Time:</code>), the storm-digest title/body, and the self-diagnostic status/warning lines — can be
+rendered in a language other than English. Select it with the <code>locale</code> setting, spelled the same way
+as every other key on each surface:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>How to set it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Core / JUL / plain Logback</td>
+<td><code>-Dntfy.locale=fr</code>, <code>NTFY_LOCALE=fr</code>, or <code>ntfy.locale=fr</code> in <code>ntfy.properties</code>; XML <code>&lt;locale&gt;fr&lt;/locale&gt;</code>; <code>NtfyConfig.builder().locale("fr")</code> (or <code>.locale(Locale.FRENCH)</code>)</td>
+</tr>
+<tr>
+<td>Plain Log4j2</td>
+<td>the same ambient chain (<code>-Dntfy.locale=fr</code> / <code>NTFY_LOCALE=fr</code> / <code>ntfy.properties</code>), or the attribute <code>&lt;Ntfy locale="fr" …/&gt;</code></td>
+</tr>
+<tr>
+<td>Spring Boot</td>
+<td><code>ntfy.locale: fr</code></td>
+</tr>
+<tr>
+<td>Micronaut</td>
+<td><code>ntfy.locale: fr</code></td>
+</tr>
+<tr>
+<td>Quarkus</td>
+<td><code>quarkus.ntfy.locale=fr</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Semantics</strong></p>
+<ul>
+<li><strong>Default is <code>en</code>.</strong> The language is deterministic and, deliberately, never inherits
+  <code>Locale.getDefault()</code> from the host JVM.</li>
+<li><strong>Fallback is per-key.</strong> A locale with no shipped bundle falls back wholesale to English; a partial
+  translation falls back to English for each individual missing key. An unknown/garbage tag keeps
+  English rather than throwing.</li>
+<li><strong>Credentials are never translated in.</strong> The fixed status/warning strings take no arguments at all,
+  and the composed lines (ACTIVE line, publish-failure line, digest) keep their URL/credential
+  scrubbing in Java — a translation may move the already-safe <code>{0}</code>/<code>{1}</code> placeholders around in the
+  text but must keep exactly that placeholder set, never adding or removing one. This is enforced by
+  <code>AlertMessagesBundleSafetyTest</code>.</li>
+</ul>
+<p><strong>Shipped languages:</strong> English (<code>en</code>, base) and French (<code>fr</code>).</p>
+<p><strong>Contributing a translation</strong></p>
+<ol>
+<li>Copy <code>ntfy-core/src/main/resources/io/github/pimak/ntfy/core/AlertMessages.properties</code> to
+   <code>AlertMessages_&lt;lang&gt;.properties</code> (e.g. <code>AlertMessages_de.properties</code>) and translate every value.</li>
+<li>In the <strong>MessageFormat pattern keys</strong> (<code>status.active</code>, <code>publish.failed.*</code>,
+   <code>status.exclusions.list</code>, <code>status.includeMdcKeys.list</code>, <code>digest.*</code>, <code>window.*</code>) <strong>double every
+   literal single quote</strong> (<code>''</code>) —
+   French <code>l'</code>/<code>d'</code> need this — and keep the same <code>{0}</code>/<code>{1}</code> argument set. <strong>Never</strong> add a <code>{</code>
+   placeholder to a no-placeholder key (the labels and fixed status strings); the safety test fails
+   the build if you do.</li>
+<li>Add the locale to <code>ntfy-core/.../META-INF/native-image/.../resource-config.json</code> (<code>bundles[0].locales</code>)
+   so GraalVM native images ship the bundle — otherwise native builds silently keep only English.</li>
+<li>Extend <code>AlertMessagesBundleSafetyTest.TRANSLATION_RESOURCES</code> with the new file so it is checked.</li>
+</ol>
+<p><em>Limitation:</em> <code>MessageFormat</code> has no CLDR plural categories, so the "N errors suppressed" phrasing
+uses one form (with a simple singular/plural split only for the window unit). This is acceptable for
+diagnostic strings; languages with richer plural rules (Polish, Russian, Arabic) can only approximate
+it.</p>
+<h2 id="per-framework-examples">Per-framework examples<a class="headerlink" href="#per-framework-examples" title="Permanent link">&para;</a></h2>
+<h3 id="core-jul-plain-logback-plain-log4j2-environment">Core / JUL / plain Logback / plain Log4j2 (environment)<a class="headerlink" href="#core-jul-plain-logback-plain-log4j2-environment" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NTFY_URL</span><span class="o">=</span>https://ntfy.example.com
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NTFY_TOPIC</span><span class="o">=</span>my-app-alerts
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NTFY_TOKEN</span><span class="o">=</span>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NTFY_APP_NAME</span><span class="o">=</span>my-app
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NTFY_SUPPRESSION_WINDOW</span><span class="o">=</span>3m
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">export</span><span class="w"> </span><span class="nv">NTFY_STARTUP_PING</span><span class="o">=</span>probe
+</code></pre></div>
+<p>or a classpath <code>ntfy.properties</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">ntfy.url</span><span class="o">=</span><span class="s">https://ntfy.example.com</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">ntfy.topic</span><span class="o">=</span><span class="s">my-app-alerts</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">ntfy.app-name</span><span class="o">=</span><span class="s">my-app</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">ntfy.max-alerts-per-window</span><span class="o">=</span><span class="s">3</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="na">ntfy.suppression-window</span><span class="o">=</span><span class="s">3m</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="na">ntfy.include-mdc-keys</span><span class="o">=</span><span class="s">correlation-id,tenant</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="na">ntfy.warn-topic</span><span class="o">=</span><span class="s">my-app-warnings</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="na">ntfy.startup-ping</span><span class="o">=</span><span class="s">probe</span>
+</code></pre></div>
+<p>or explicit Logback XML (setters map JavaBean-style, <code>set&lt;Foo&gt;</code> → <code>&lt;foo&gt;</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">&lt;appender</span><span class="w"> </span><span class="na">name=</span><span class="s">"NTFY_ALERT_RAW"</span><span class="w"> </span><span class="na">class=</span><span class="s">"io.github.pimak.ntfy.logback.LogbackAlertAppender"</span><span class="nt">&gt;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&lt;url&gt;</span>https://ntfy.example.com<span class="nt">&lt;/url&gt;</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&lt;topic&gt;</span>my-app-alerts<span class="nt">&lt;/topic&gt;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&lt;token&gt;</span>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx<span class="nt">&lt;/token&gt;</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">&lt;appName&gt;</span>my-app<span class="nt">&lt;/appName&gt;</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">&lt;suppressionWindow&gt;</span>3m<span class="nt">&lt;/suppressionWindow&gt;</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">&lt;includeMdcKeys&gt;</span>correlation-id,tenant<span class="nt">&lt;/includeMdcKeys&gt;</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span><span class="nt">&lt;warnTopic&gt;</span>my-app-warnings<span class="nt">&lt;/warnTopic&gt;</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="nt">&lt;startupPing&gt;</span>probe<span class="nt">&lt;/startupPing&gt;</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nt">&lt;/appender&gt;</span>
+</code></pre></div>
+<h3 id="plain-log4j2-log4j2xml">Plain Log4j2 (<code>log4j2.xml</code>)<a class="headerlink" href="#plain-log4j2-log4j2xml" title="Permanent link">&para;</a></h3>
+<p>The <code>&lt;Ntfy&gt;</code> element takes the same roster of settings as attributes, in the same camelCase
+spelling; unset attributes keep the engine defaults. See <a href="../log4j2/">log4j2.md</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">&lt;Appenders&gt;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&lt;Ntfy</span><span class="w"> </span><span class="na">name=</span><span class="s">"ntfy"</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">        </span><span class="na">url=</span><span class="s">"https://ntfy.example.com"</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="na">topic=</span><span class="s">"my-app-alerts"</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">        </span><span class="na">token=</span><span class="s">"tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">        </span><span class="na">appName=</span><span class="s">"my-app"</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">        </span><span class="na">suppressionWindow=</span><span class="s">"3m"</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">        </span><span class="na">includeMdcKeys=</span><span class="s">"correlation-id,tenant"</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">        </span><span class="na">warnTopic=</span><span class="s">"my-app-warnings"</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">        </span><span class="na">startupPing=</span><span class="s">"probe"</span><span class="nt">/&gt;</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="nt">&lt;/Appenders&gt;</span>
+</code></pre></div>
+<h3 id="spring-boot-applicationyml">Spring Boot (<code>application.yml</code>)<a class="headerlink" href="#spring-boot-applicationyml" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">ntfy</span><span class="p">:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://ntfy.example.com</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-alerts</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">app-name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">suppression-window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3m</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nt">excluded-loggers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.apache.kafka, com.zaxxer.hikari</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="nt">include-mdc-keys</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">correlation-id, tenant</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">warn-topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-warnings</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">  </span><span class="nt">startup-ping</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">probe</span>
+</code></pre></div>
+<h3 id="micronaut-applicationyml">Micronaut (<code>application.yml</code>)<a class="headerlink" href="#micronaut-applicationyml" title="Permanent link">&para;</a></h3>
+<p>Same prefix and same spellings as Spring Boot — an <code>ntfy.*</code> block moves between the two unchanged.
+See <a href="../micronaut/">micronaut.md</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">ntfy</span><span class="p">:</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://ntfy.example.com</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-alerts</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="nt">app-name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nt">suppression-window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3m</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="nt">excluded-loggers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">io.micronaut.http.server, com.zaxxer.hikari</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">  </span><span class="nt">include-mdc-keys</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">correlation-id, tenant</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">  </span><span class="nt">warn-topic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-warnings</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">  </span><span class="nt">startup-ping</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">probe</span>
+</code></pre></div>
+<h3 id="quarkus-applicationproperties">Quarkus (<code>application.properties</code>)<a class="headerlink" href="#quarkus-applicationproperties" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="na">quarkus.ntfy.url</span><span class="o">=</span><span class="s">https://ntfy.example.com</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="na">quarkus.ntfy.topic</span><span class="o">=</span><span class="s">my-app-alerts</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="na">quarkus.ntfy.token</span><span class="o">=</span><span class="s">tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="na">quarkus.ntfy.app-name</span><span class="o">=</span><span class="s">my-app</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="na">quarkus.ntfy.suppression-window</span><span class="o">=</span><span class="s">3m</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="na">quarkus.ntfy.include-mdc-keys</span><span class="o">=</span><span class="s">correlation-id,tenant</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="na">quarkus.ntfy.warn-topic</span><span class="o">=</span><span class="s">my-app-warnings</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="na">quarkus.ntfy.startup-ping</span><span class="o">=</span><span class="s">probe</span>
+</code></pre></div>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../authentication/">authentication.md</a> — <code>token</code> vs <code>username</code>/<code>password</code> precedence and the
+  <code>None</code> (unauthenticated) mode.</li>
+<li><a href="../level-routing/">level-routing.md</a> — the <code>warn-topic</code> opt-in: which levels alert, where their
+  alerts go, and why the two routes keep separate storm budgets.</li>
+<li><a href="../filtering/">filtering.md</a> — how <code>excluded-loggers</code> combines with the always-on self-exclusion
+  and the <code>NO_ALERT</code> per-event opt-out (Logback and Log4j2).</li>
+<li><a href="../mdc-context/">mdc-context.md</a> — the <code>include-mdc-keys</code> allow-list: which MDC values are
+  attached to the alerts that do get through, and the guards on them.</li>
+<li><a href="../alert-behavior/">alert-behavior.md</a> — how the rate-limiting, digest, priority, and tag settings
+  combine at runtime.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../core/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Core (any JVM app)">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Core (any JVM app)
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../alert-behavior/" class="md-footer__link md-footer__link--next" aria-label="Next: Alert behavior">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Alert behavior
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Apache-2.0
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
