@@ -23,7 +23,7 @@ cover the base alert path, sync-vs-async delivery, and the clean-shutdown digest
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-logback</artifactId>
-  <version>1.2.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 

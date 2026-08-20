@@ -26,7 +26,7 @@ publish with no code, and exposes an injectable `NtfyClient` singleton for manua
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-micronaut</artifactId>
-  <version>1.2.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 
