@@ -328,10 +328,11 @@
                         <!-- extensions=true wires this plugin in as the deploy handler for the Central Portal.
                              Scoped to the release profile (NOT the main build) so the -P github-mirror leg's
                              `deploy` is handled by maven-deploy-plugin, keeping the two legs structurally
-                             separate (D-12). NOTE: the deploy MUST run under Maven 3.9 — this plugin (0.11.0)
-                             does not upload under Maven 4 (it stages the bundle locally and the session upload
-                             hook never fires, producing a green-but-unpublished build). release.yml pins
-                             Maven 3.9 for the deploy legs; the repo's ./mvnw (Maven 4) is used everywhere else. -->
+                             separate (D-12). NOTE: the deploy MUST run under Maven 3.9 — this plugin (0.11.0,
+                             its latest) does not upload under Maven 4 (it stages the bundle locally and the
+                             session upload hook never fires, producing a green-but-unpublished build). This is
+                             why ./mvnw pins the 3.9.x line for the whole project rather than only for release:
+                             see .mvn/wrapper/maven-wrapper.properties, and the version gate in release.yml. -->
                         <extensions>true</extensions>
                         <configuration>
                             <!-- Server credentials (Central Portal user token) resolved from settings.xml <server id="central">. -->
@@ -415,9 +416,9 @@
                                 `dev` is redeployed on every push to main, and git never reclaims
                                 blobs from past commits, so any per-run difference is committed
                                 forever: javadoc otherwise stamps a generation date into every page,
-                                and derives a copyright year that Maven 4 renders as 1980 while Maven
-                                3.9 renders as the current one. Pinning both makes unchanged sources
-                                produce byte-identical output under either Maven line.
+                                and derives a copyright year that turns over on 1 January (and that
+                                the 4.x line renders as 1980 outright). Pinning both makes unchanged
+                                sources produce byte-identical output on any date and any Maven line.
                             -->
                             <notimestamp>true</notimestamp>
                             <bottom><![CDATA[Copyright &#169; pimak. Licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0.txt">Apache License, Version 2.0</a>.]]></bottom>
