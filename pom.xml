@@ -242,6 +242,62 @@
                         <linkXRef>false</linkXRef>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>com.github.siom79.japicmp</groupId>
+                    <artifactId>japicmp-maven-plugin</artifactId>
+                    <version>0.26.1</version>
+                    <!--
+                        The API guard. Until now the ONLY thing standing between a refactor and a
+                        broken downstream build was prose in three tests (AlertEventLevelTest,
+                        AlertEventMdcTest, NtfyJulHandlerTest) that each pin one legacy constructor
+                        — and the release profile publishes with autoPublish=true, so a break
+                        reaches consumers on an immutable coordinate before anyone can look at it.
+                        This compares each published module's freshly built jar against that same
+                        module's own last release on Central.
+
+                        BASELINE. japicmp resolves the old side itself from the version range
+                        (,${project.version}) — the greatest RELEASED version strictly below the
+                        version being built. That range is not a choice: it is hardcoded in the mojo
+                        as versionRangeWithProjectVersion with editable=false. Configuring an
+                        explicit <oldVersion> is no way around it either — that code path hands the
+                        version string to a plain Aether ArtifactRequest, which wants a concrete
+                        version and cannot resolve a range at all. What makes the built-in range
+                        correct HERE is that this repo never carries -SNAPSHOT versions: the pom
+                        sits at the last released version until release.sh bumps it, so "strictly
+                        below the pom version" is always "the previous release" — on a feature
+                        branch and on the release tag alike.
+
+                        The tree is at 2.0.0 and 2.0.0 is already on Central, so the baseline right
+                        now is the 1.x line (1.2.0): a major bump, where breaks are legitimate. For
+                        artifacts first published in 2.0.0 the range resolves to nothing at all.
+                        Both are expected states of a just-released tree, not bugs.
+
+                        REPORT ONLY. No breakBuild* flag is set here, so `verify` writes
+                        target/japicmp/*.{html,xml,diff} and stays green whatever it finds. Making
+                        this block is a separate, deliberate act done in .github/workflows.
+
+                        Version is managed here; each PUBLISHED module activates it with a bare
+                        <plugin> declaration of its own, exactly as with pmd and enforcer above.
+                        That is also what keeps examples/* out: they are never published, so they
+                        simply never declare it — no exclude list to keep in sync.
+                    -->
+                    <executions>
+                        <execution>
+                            <id>api-compatibility</id>
+                            <!-- default phase = verify, no override needed -->
+                            <goals>
+                                <goal>cmp</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <parameter>
+                            <!-- Report the API delta, not the whole API surface: without this every
+                                 unchanged class is listed too and the report is unreadable. -->
+                            <onlyModified>true</onlyModified>
+                        </parameter>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
