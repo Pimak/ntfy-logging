@@ -11,4 +11,9 @@ metadata:
   categories:
     - "logging"
   status: "stable"
-  guide: "https://github.com/Pimak/ntfy-logging"
+  # The catalog surfaces `guide` as the extension's "Learn more" link on code.quarkus.io and
+  # in `quarkus ext list --full`, so it must land on the Quarkus guide itself, not the repo
+  # README the reader then has to search. The path is version-pinned by mike: `latest` is the
+  # alias that tracks the newest release, and the unversioned /quarkus/ path is a 404 — the
+  # site root only redirects its own index, not every page.
+  guide: "https://pimak.github.io/ntfy-logging/latest/quarkus/"
