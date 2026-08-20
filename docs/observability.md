@@ -105,7 +105,9 @@ remembers.
     var root = ((ch.qos.logback.classic.LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory())
         .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
     var appender = (io.github.pimak.ntfy.logback.LogbackAlertAppender) root.getAppender("ntfy-auto");
-    var snapshot = appender.getCounters().snapshot();   // null appender ⇒ nothing was installed
+    // A null appender means nothing was installed — Logback is not the bound backend, or the
+    // module skipped the install.
+    var snapshot = appender == null ? null : appender.getCounters().snapshot();
     ```
 
     Note that the injectable `NtfyClient` bean is *not* a route to these numbers: the ad-hoc publish
