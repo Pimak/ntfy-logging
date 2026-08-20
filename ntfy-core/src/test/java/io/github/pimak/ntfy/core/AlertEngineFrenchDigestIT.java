@@ -112,6 +112,17 @@ class AlertEngineFrenchDigestIT {
         && findAll(postRequestedFor(urlEqualTo("/alerts"))).size() < MAX_ALERTS_PER_WINDOW + 1) {
       Thread.sleep(25);
     }
+    boolean digestArrivedBeforeShutdown =
+        findAll(postRequestedFor(urlEqualTo("/alerts"))).size() >= MAX_ALERTS_PER_WINDOW + 1;
+
+    // Assert the poll actually succeeded BEFORE stopping, and this is load-bearing rather than
+    // belt-and-braces: stop() flushes a pending digest synchronously, so a scheduler that never
+    // ticked would still leave a digest on the wire once the engine shuts down. Every assertion
+    // below would then pass on the shutdown flush, and the test would go green having proved
+    // nothing about the window-close tick it exists to exercise.
+    assertThat(digestArrivedBeforeShutdown)
+        .as("the digest timer published at window close, not the stop() flush")
+        .isTrue();
     engine.stop();
 
     verify(
