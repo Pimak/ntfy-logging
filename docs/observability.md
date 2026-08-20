@@ -60,83 +60,90 @@ the appender.
   handler belongs to the framework and is not reachable from application code; use the Micrometer
   binding below instead.
 
-## Micrometer (Spring Boot)
+## Metrics bindings {#metrics-bindings}
 
-The Spring Boot starter binds the counters to Micrometer as three monotonic `FunctionCounter`s:
+Two of the three framework modules export the counters as Micrometer meters; Micronaut does not.
+The tab you pick here is the same one [configuration.md](configuration.md#per-framework-examples)
+remembers.
 
-| Metric | Meaning |
-|--------|---------|
-| `ntfy.pipeline.published` | Notifications successfully published (individual + digest). |
-| `ntfy.pipeline.suppressed` | Events suppressed by the rate limiter. |
-| `ntfy.pipeline.failed` | Failed publish attempts. |
+=== "Spring Boot"
 
-This binding is **classpath-conditional**: it activates only when `micrometer-core` is on the
-classpath (any Spring Boot Actuator application) and a `MeterRegistry` bean exists. When Micrometer
-is absent, the starter has no Micrometer dependency of its own and adds nothing — `ntfy-core` stays
-dependency-free.
+    The Spring Boot starter binds the counters to Micrometer as three monotonic `FunctionCounter`s:
 
-It is **not** backend-conditional: the starter installs onto whichever logging backend the
-application is actually running on (Logback or Log4j2), and the meters — like the `NtfyClient` bean —
-are exported either way. See [spring-boot.md](spring-boot.md).
+    | Metric | Meaning |
+    |--------|---------|
+    | `ntfy.pipeline.published` | Notifications successfully published (individual + digest). |
+    | `ntfy.pipeline.suppressed` | Events suppressed by the rate limiter. |
+    | `ntfy.pipeline.failed` | Failed publish attempts. |
 
-The meters resolve the current appender lazily at scrape time, so they always reflect the active
-appender and read `0` when none is installed. Note that a Spring re-install builds a **new** appender
-with fresh counters, and the meters follow it: `FunctionCounter` reports whatever its source function
-currently returns and does not clamp a decrease, so the exported value restarts from zero on that new
-instance. That is an ordinary counter reset — indistinguishable, to the monitoring system consuming
-it, from the process itself having restarted, and handled the same way (`rate()`/`increase()` in
-Prometheus, `.diff()` elsewhere).
+    This binding is **classpath-conditional**: it activates only when `micrometer-core` is on the
+    classpath (any Spring Boot Actuator application) and a `MeterRegistry` bean exists. When
+    Micrometer is absent, the starter has no Micrometer dependency of its own and adds nothing —
+    `ntfy-core` stays dependency-free.
 
-## Micronaut
+    It is **not** backend-conditional: the starter installs onto whichever logging backend the
+    application is actually running on (Logback or Log4j2), and the meters — like the `NtfyClient`
+    bean — are exported either way. See [spring-boot.md](spring-boot.md).
 
-`ntfy-micronaut` has **no metrics binding** — there is no Micrometer integration in the module and no
-counters bean, so it is not at parity with the Spring Boot starter here. What you get is the same
-counters the engine always tracks, reachable programmatically: the module installs the standard
-`LogbackAlertAppender` under the name `ntfy-auto` on the root logger, so look it up and call
-`getCounters()`.
+    The meters resolve the current appender lazily at scrape time, so they always reflect the active
+    appender and read `0` when none is installed. Note that a Spring re-install builds a **new**
+    appender with fresh counters, and the meters follow it: `FunctionCounter` reports whatever its
+    source function currently returns and does not clamp a decrease, so the exported value restarts
+    from zero on that new instance. That is an ordinary counter reset — indistinguishable, to the
+    monitoring system consuming it, from the process itself having restarted, and handled the same
+    way (`rate()`/`increase()` in Prometheus, `.diff()` elsewhere).
 
-```java
-var root = ((ch.qos.logback.classic.LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory())
-    .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-var appender = (io.github.pimak.ntfy.logback.LogbackAlertAppender) root.getAppender("ntfy-auto");
-var snapshot = appender.getCounters().snapshot();   // null appender ⇒ nothing was installed
-```
+=== "Micronaut"
 
-Note that the injectable `NtfyClient` bean is *not* a route to these numbers: the ad-hoc publish path
-is deliberately uncounted (see above), and the bean exposes no counters. A Micronaut Micrometer
-binding is a possible follow-up: `micronaut-micrometer` would let it take the same shape as the
-Spring and Quarkus bindings.
+    `ntfy-micronaut` has **no metrics binding** — there is no Micrometer integration in the module
+    and no counters bean, so it is not at parity with the Spring Boot starter here. What you get is
+    the same counters the engine always tracks, reachable programmatically: the module installs the
+    standard `LogbackAlertAppender` under the name `ntfy-auto` on the root logger, so look it up and
+    call `getCounters()`.
 
-## Micrometer (Quarkus)
+    ```java
+    var root = ((ch.qos.logback.classic.LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory())
+        .getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+    var appender = (io.github.pimak.ntfy.logback.LogbackAlertAppender) root.getAppender("ntfy-auto");
+    var snapshot = appender.getCounters().snapshot();   // null appender ⇒ nothing was installed
+    ```
 
-`ntfy-quarkus` exports the same three meters, with the same names and meanings, as the Spring Boot
-starter:
+    Note that the injectable `NtfyClient` bean is *not* a route to these numbers: the ad-hoc publish
+    path is deliberately uncounted (see above), and the bean exposes no counters. A Micronaut
+    Micrometer binding is a possible follow-up: `micronaut-micrometer` would let it take the same
+    shape as the Spring and Quarkus bindings.
 
-| Metric | Meaning |
-|--------|---------|
-| `ntfy.pipeline.published` | Notifications successfully published (individual + digest). |
-| `ntfy.pipeline.suppressed` | Events suppressed by the rate limiter. |
-| `ntfy.pipeline.failed` | Failed publish attempts. |
+=== "Quarkus"
 
-The binding is a CDI `MeterBinder` that the Quarkus Micrometer extension discovers and applies to
-whichever registry the application configured, so there is nothing to enable, configure, or inject —
-add `quarkus-micrometer` plus a registry (for example
-`quarkus-micrometer-registry-prometheus`) and the meters appear under `/q/metrics` as
-`ntfy_pipeline_published_total` and friends.
+    `ntfy-quarkus` exports the same three meters, with the same names and meanings, as the Spring
+    Boot starter:
 
-It is **extension-conditional**, the counterpart of the starter's classpath condition: the build step
-registers the bean only when the application provides the `io.quarkus.metrics` capability *and*
-Micrometer's `MeterRegistry` is on the runtime classpath. On a build without Micrometer the binder
-class is never even loaded, and `ntfy-quarkus` declares `micrometer-core` as an optional dependency,
-so an application that does not want metrics pulls in nothing.
+    | Metric | Meaning |
+    |--------|---------|
+    | `ntfy.pipeline.published` | Notifications successfully published (individual + digest). |
+    | `ntfy.pipeline.suppressed` | Events suppressed by the rate limiter. |
+    | `ntfy.pipeline.failed` | Failed publish attempts. |
 
-The meters read the counters of the installed log handler **lazily at scrape time**. That matters
-because of Quarkus's boot order: the handler is created at `RUNTIME_INIT`, long before the CDI
-container the binding lives in. Reading late means there is no ordering dependency in either
-direction, and a scrape that finds no handler — an inactive config (`quarkus.ntfy.enabled=false`, or
-no `url`/`topic`), or simply a scrape before logging is configured — reports `0` instead of failing
-or omitting the meters. A dev-mode reload installs a new handler whose counters restart from zero,
-and the meters follow it down; see the note at the end of the Spring section, which applies verbatim.
+    The binding is a CDI `MeterBinder` that the Quarkus Micrometer extension discovers and applies to
+    whichever registry the application configured, so there is nothing to enable, configure, or
+    inject — add `quarkus-micrometer` plus a registry (for example
+    `quarkus-micrometer-registry-prometheus`) and the meters appear under `/q/metrics` as
+    `ntfy_pipeline_published_total` and friends.
 
-The **ad-hoc `NtfyClient` bean is not covered**, by the same rule as everywhere else: `notify(...)` is
-a user-invoked API, not the alert pipeline.
+    It is **extension-conditional**, the counterpart of the starter's classpath condition: the build
+    step registers the bean only when the application provides the `io.quarkus.metrics` capability
+    *and* Micrometer's `MeterRegistry` is on the runtime classpath. On a build without Micrometer the
+    binder class is never even loaded, and `ntfy-quarkus` declares `micrometer-core` as an optional
+    dependency, so an application that does not want metrics pulls in nothing.
+
+    The meters read the counters of the installed log handler **lazily at scrape time**. That matters
+    because of Quarkus's boot order: the handler is created at `RUNTIME_INIT`, long before the CDI
+    container the binding lives in. Reading late means there is no ordering dependency in either
+    direction, and a scrape that finds no handler — an inactive config (`quarkus.ntfy.enabled=false`,
+    or no `url`/`topic`), or simply a scrape before logging is configured — reports `0` instead of
+    failing or omitting the meters. A dev-mode reload installs a new handler whose counters restart
+    from zero, and the meters follow it down; the counter-reset note in the **Spring Boot** tab
+    applies verbatim.
+
+    The **ad-hoc `NtfyClient` bean is not covered**, by the same rule as everywhere else:
+    `notify(...)` is a user-invoked API, not the alert pipeline.

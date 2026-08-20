@@ -26,6 +26,10 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.action.edit
+    # Ties every tab group on the site together by tab label, persisted across pages and visits:
+    # pick "Quarkus" once and each tabbed page opens on it. Sync is by exact label, so the labels
+    # in configuration.md and observability.md have to stay spelled identically.
+    - content.tabs.link
     - search.suggest
     - search.highlight
     - toc.follow
@@ -96,6 +100,7 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.tabbed:
       alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}
   # Inlines the real files from examples/; check_paths fails the build when one moves, so a page
   # can never show an example that no longer exists.
   - pymdownx.snippets:

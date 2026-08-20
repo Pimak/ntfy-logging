@@ -165,7 +165,7 @@ Micronaut's. See **[log4j2.md](log4j2.md)**.
 (core 4.10.26). Micronaut 5 is **not supported yet**: its `micronaut-inject` and its
 `micronaut-inject-java` annotation processor ship Java 25 bytecode (class file version 69), which
 cannot be compiled or run against this project's Java 21 baseline. See
-[compatibility.md](compatibility.md#micronaut-ntfy-micronaut).
+[compatibility.md](compatibility.md#micronaut).
 
 ## The example, in full
 
@@ -189,11 +189,11 @@ lives in the cross-cutting reference pages:
   is no wildcard.
 - **[Level routing](level-routing.md)** — the `warn-topic` opt-in: which levels alert and where.
 - **[Filtering](filtering.md)** — `excluded-loggers`, the `NO_ALERT` marker, and self-exclusion.
-- **[Observability](observability.md)** — the pipeline counters, and why there is no Micrometer
-  binding on Micronaut yet.
+- **[Observability](observability.md#metrics-bindings)** — the pipeline counters, and why there is
+  no Micrometer binding on Micronaut yet.
 - **[Troubleshooting](troubleshooting.md)** — the engine's diagnostics go to Logback's
   `StatusManager`; the module's own install/skip messages are ordinary SLF4J logs from
   `io.github.pimak.ntfy.micronaut.NtfyLogbackInstaller`.
-- **[Compatibility](compatibility.md)** — tested Micronaut / JDK / Logback versions.
+- **[Compatibility](compatibility.md#micronaut)** — tested Micronaut / JDK / Logback versions.
 - **[Plain Logback](logback.md)** — the appender this module installs, and its standalone entry
   points.

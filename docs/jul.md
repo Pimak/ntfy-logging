@@ -173,4 +173,4 @@ lives in the cross-cutting reference pages:
   does the `include-mdc-keys` context allow-list — see [mdc-context.md](mdc-context.md)).
 - **[Troubleshooting](troubleshooting.md)** — the diagnostics the engine emits on `System.err`
   (`[ntfy]`-prefixed), and what each line means.
-- **[Compatibility](compatibility.md)** — tested JDK versions and GraalVM notes.
+- **[Compatibility](compatibility.md#jul)** — tested JDK versions and GraalVM notes.

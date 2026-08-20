@@ -46,7 +46,7 @@ are non-LTS releases, and the two LTS versions on either side of them are both C
 Minimum supported JDK: **21** (`<maven.compiler.release>21</maven.compiler.release>`; required for
 `HttpClient.shutdownNow()`, used to release the client deterministically on stop/close).
 
-## java.util.logging (`ntfy-jul`, and Quarkus via it)
+## java.util.logging (`ntfy-jul`, and Quarkus via it) {#jul}
 
 JUL ships in `java.base`, so `ntfy-jul` has no framework dependency to version at all: it is
 supported on every JDK the family supports (21+, table above). The declarative
@@ -54,7 +54,7 @@ supported on every JDK the family supports (21+, table above). The declarative
 `LogManager`/`Handler` contract that Tomcat's `conf/logging.properties` also uses. The Quarkus
 extension installs this module's `NtfyJulHandler` and is exercised by the Quarkus CI legs below.
 
-## Logback (`ntfy-logback`, and Spring Boot / Micronaut via it)
+## Logback (`ntfy-logback`, and Spring Boot / Micronaut via it) {#logback}
 
 | Version | Status |
 |---------|--------|
@@ -78,7 +78,7 @@ That makes 1.3.x *known to work* rather than *supported*: no CI leg covers it, t
 1.6.x, and 1.3.x is an older line receiving no attention here. Run it if you must and it will work
 today; nothing will tell you if that stops being true.
 
-## Log4j2 (`ntfy-log4j2`, and Spring Boot on `spring-boot-starter-log4j2`)
+## Log4j2 (`ntfy-log4j2`, and Spring Boot on `spring-boot-starter-log4j2`) {#log4j2}
 
 | Version | Status |
 |---------|--------|
@@ -95,7 +95,7 @@ own onto your classpath, so the version your application declares is the one tha
 reachability metadata for the `Ntfy` plugin is generated at build time by log4j-core's own annotation
 processor and ships inside the jar.
 
-## Spring Boot (`ntfy-spring-boot-starter`)
+## Spring Boot (`ntfy-spring-boot-starter`) {#spring-boot}
 
 | Version | Status |
 |---------|--------|
@@ -113,7 +113,7 @@ transitively with the starter; Log4j2 applications additionally declare `io.gith
 alongside it. The `NtfyClient` bean and the Micrometer meters are available either way. See
 [spring-boot.md](spring-boot.md).
 
-## Micronaut (`ntfy-micronaut`)
+## Micronaut (`ntfy-micronaut`) {#micronaut}
 
 | Version | Status |
 |---------|--------|
@@ -137,7 +137,7 @@ application brings is the one that runs. There is no Log4j2 path in this module;
 application on Log4j2 wires `ntfy-log4j2`'s `<Ntfy>` element itself. See
 [micronaut.md](micronaut.md).
 
-## Quarkus (`ntfy-quarkus-runtime` / `-deployment`)
+## Quarkus (`ntfy-quarkus-runtime` / `-deployment`) {#quarkus}
 
 | Version | Status |
 |---------|--------|

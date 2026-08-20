@@ -274,109 +274,122 @@ it.
 
 ## Per-framework examples
 
-### Core / JUL / plain Logback / plain Log4j2 (environment)
+Pick your stack once: the choice follows you to every other tabbed page, and back here on your
+next visit.
 
-```bash
-export NTFY_URL=https://ntfy.example.com
-export NTFY_TOPIC=my-app-alerts
-export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-export NTFY_APP_NAME=my-app
-export NTFY_SUPPRESSION_WINDOW=3m
-export NTFY_STARTUP_PING=probe
-```
+=== "Core / JUL"
 
-or a classpath `ntfy.properties`:
+    ```bash
+    export NTFY_URL=https://ntfy.example.com
+    export NTFY_TOPIC=my-app-alerts
+    export NTFY_TOKEN=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    export NTFY_APP_NAME=my-app
+    export NTFY_SUPPRESSION_WINDOW=3m
+    export NTFY_STARTUP_PING=probe
+    ```
 
-```properties
-ntfy.url=https://ntfy.example.com
-ntfy.topic=my-app-alerts
-ntfy.app-name=my-app
-ntfy.max-alerts-per-window=3
-ntfy.suppression-window=3m
-ntfy.include-mdc-keys=correlation-id,tenant
-ntfy.warn-topic=my-app-warnings
-ntfy.startup-ping=probe
-```
+    or a classpath `ntfy.properties`:
 
-or explicit Logback XML (setters map JavaBean-style, `set<Foo>` → `<foo>`):
+    ```properties
+    ntfy.url=https://ntfy.example.com
+    ntfy.topic=my-app-alerts
+    ntfy.app-name=my-app
+    ntfy.max-alerts-per-window=3
+    ntfy.suppression-window=3m
+    ntfy.include-mdc-keys=correlation-id,tenant
+    ntfy.warn-topic=my-app-warnings
+    ntfy.startup-ping=probe
+    ```
 
-```xml
-<appender name="NTFY_ALERT_RAW" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
-  <url>https://ntfy.example.com</url>
-  <topic>my-app-alerts</topic>
-  <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token>
-  <appName>my-app</appName>
-  <suppressionWindow>3m</suppressionWindow>
-  <includeMdcKeys>correlation-id,tenant</includeMdcKeys>
-  <warnTopic>my-app-warnings</warnTopic>
-  <startupPing>probe</startupPing>
-</appender>
-```
+    Plain Logback and plain Log4j2 read these same two sources, so an environment or
+    `ntfy.properties` setup carries over to them unchanged.
 
-### Plain Log4j2 (`log4j2.xml`)
+=== "Logback XML"
 
-The `<Ntfy>` element takes the same roster of settings as attributes, in the same camelCase
-spelling; unset attributes keep the engine defaults. See [log4j2.md](log4j2.md).
+    Environment variables and a classpath `ntfy.properties` work here too (see the **Core / JUL**
+    tab). Explicit XML overrides them; setters map JavaBean-style, `set<Foo>` → `<foo>`:
 
-```xml
-<Appenders>
-  <Ntfy name="ntfy"
-        url="https://ntfy.example.com"
-        topic="my-app-alerts"
-        token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        appName="my-app"
-        suppressionWindow="3m"
-        includeMdcKeys="correlation-id,tenant"
-        warnTopic="my-app-warnings"
-        startupPing="probe"/>
-</Appenders>
-```
+    ```xml
+    <appender name="NTFY_ALERT_RAW" class="io.github.pimak.ntfy.logback.LogbackAlertAppender">
+      <url>https://ntfy.example.com</url>
+      <topic>my-app-alerts</topic>
+      <token>tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</token>
+      <appName>my-app</appName>
+      <suppressionWindow>3m</suppressionWindow>
+      <includeMdcKeys>correlation-id,tenant</includeMdcKeys>
+      <warnTopic>my-app-warnings</warnTopic>
+      <startupPing>probe</startupPing>
+    </appender>
+    ```
 
-### Spring Boot (`application.yml`)
+=== "Log4j2 XML"
 
-```yaml
-ntfy:
-  url: https://ntfy.example.com
-  topic: my-app-alerts
-  token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  app-name: my-app
-  suppression-window: 3m
-  excluded-loggers: org.apache.kafka, com.zaxxer.hikari
-  include-mdc-keys: correlation-id, tenant
-  warn-topic: my-app-warnings
-  startup-ping: probe
-```
+    The `<Ntfy>` element takes the same roster of settings as attributes, in the same camelCase
+    spelling; unset attributes keep the engine defaults. See [log4j2.md](log4j2.md).
 
-### Micronaut (`application.yml`)
+    ```xml
+    <Appenders>
+      <Ntfy name="ntfy"
+            url="https://ntfy.example.com"
+            topic="my-app-alerts"
+            token="tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            appName="my-app"
+            suppressionWindow="3m"
+            includeMdcKeys="correlation-id,tenant"
+            warnTopic="my-app-warnings"
+            startupPing="probe"/>
+    </Appenders>
+    ```
 
-Same prefix and same spellings as Spring Boot — an `ntfy.*` block moves between the two unchanged.
-See [micronaut.md](micronaut.md).
+=== "Spring Boot"
 
-```yaml
-ntfy:
-  url: https://ntfy.example.com
-  topic: my-app-alerts
-  token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  app-name: my-app
-  suppression-window: 3m
-  excluded-loggers: io.micronaut.http.server, com.zaxxer.hikari
-  include-mdc-keys: correlation-id, tenant
-  warn-topic: my-app-warnings
-  startup-ping: probe
-```
+    In `application.yml`:
 
-### Quarkus (`application.properties`)
+    ```yaml
+    ntfy:
+      url: https://ntfy.example.com
+      topic: my-app-alerts
+      token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      app-name: my-app
+      suppression-window: 3m
+      excluded-loggers: org.apache.kafka, com.zaxxer.hikari
+      include-mdc-keys: correlation-id, tenant
+      warn-topic: my-app-warnings
+      startup-ping: probe
+    ```
 
-```properties
-quarkus.ntfy.url=https://ntfy.example.com
-quarkus.ntfy.topic=my-app-alerts
-quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-quarkus.ntfy.app-name=my-app
-quarkus.ntfy.suppression-window=3m
-quarkus.ntfy.include-mdc-keys=correlation-id,tenant
-quarkus.ntfy.warn-topic=my-app-warnings
-quarkus.ntfy.startup-ping=probe
-```
+=== "Micronaut"
+
+    Same prefix and same spellings as Spring Boot — an `ntfy.*` block moves between the two
+    unchanged. In `application.yml`; see [micronaut.md](micronaut.md).
+
+    ```yaml
+    ntfy:
+      url: https://ntfy.example.com
+      topic: my-app-alerts
+      token: tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      app-name: my-app
+      suppression-window: 3m
+      excluded-loggers: io.micronaut.http.server, com.zaxxer.hikari
+      include-mdc-keys: correlation-id, tenant
+      warn-topic: my-app-warnings
+      startup-ping: probe
+    ```
+
+=== "Quarkus"
+
+    In `application.properties`:
+
+    ```properties
+    quarkus.ntfy.url=https://ntfy.example.com
+    quarkus.ntfy.topic=my-app-alerts
+    quarkus.ntfy.token=tk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    quarkus.ntfy.app-name=my-app
+    quarkus.ntfy.suppression-window=3m
+    quarkus.ntfy.include-mdc-keys=correlation-id,tenant
+    quarkus.ntfy.warn-topic=my-app-warnings
+    quarkus.ntfy.startup-ping=probe
+    ```
 
 ## See also
 
