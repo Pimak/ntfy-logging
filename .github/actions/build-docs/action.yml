@@ -24,8 +24,6 @@ runs:
       shell: bash
       run: python -m pip install --disable-pip-version-check -r requirements-docs.txt
 
-    # ./mvnw is fine here, unlike release.yml: javadoc:aggregate produces identical output under
-    # both Maven lines.
     - name: Generate the aggregated Javadoc
       shell: bash
       run: ./mvnw --batch-mode -P docs-site -DskipTests javadoc:aggregate

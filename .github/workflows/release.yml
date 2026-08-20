@@ -53,31 +53,29 @@ jobs:
           mkdir -p ~/.m2
           cp .github/release-settings.xml ~/.m2/settings.xml
 
-      # The repo's ./mvnw is Maven 4 (4.0.0-rc-5). central-publishing-maven-plugin 0.11.0 does NOT
-      # upload under Maven 4 — on `deploy` it stages the bundle to the local repo but its session
-      # upload hook never fires, so the build goes green without publishing (this bit 0.1.0/0.1.1).
-      # Pin Maven 3.9.x for the deploy legs. Checksum-verified download from the Apache archive.
-      - name: Set up Maven 3.9 for publishing
+      # Deploys run the repo's ./mvnw, exactly like CI and every local build — the wrapper pins the
+      # 3.9.x line for the whole project. This job used to download a second Maven because ./mvnw
+      # was on 4.0.0-rc: central-publishing-maven-plugin (0.11.0, its latest) does NOT upload under
+      # Maven 4 — on `deploy` it stages the bundle to the local repo but its session upload hook
+      # never fires, so the build goes green without publishing (this bit 0.1.0/0.1.1). The wrapper
+      # is the single Maven pin now; if it is ever moved to the 4.x line, this job stops publishing
+      # while still reporting success, so the version check below is a release gate, not a nicety.
+      - name: Verify the publish runs under Maven 3.9.x
         run: |
           set -euo pipefail
-          MV=3.9.9
-          # Pinned sha512 of apache-maven-3.9.9-bin.tar.gz — NOT fetched from the same origin as
-          # the tarball, so a compromised download channel cannot supply both artifact and checksum.
-          SHA512="a555254d6b53d267965a3404ecb14e53c3827c09c3b94b5678835887ab404556bfaf78dcfe03ba76fa2508649dca8531c74bca4d5846513522404d48e8c4ac8b"
-          BASE="https://archive.apache.org/dist/maven/maven-3/${MV}/binaries/apache-maven-${MV}-bin.tar.gz"
-          curl -fsSL "$BASE" -o /tmp/maven.tar.gz
-          printf '%s  /tmp/maven.tar.gz\n' "$SHA512" | sha512sum -c -
-          sudo tar -xzf /tmp/maven.tar.gz -C /opt
-          echo "/opt/apache-maven-${MV}/bin" >> "$GITHUB_PATH"
-
-      - name: Show Maven version (must be 3.9.x, not 4.x)
-        run: mvn --version
+          out=$(./mvnw --version)
+          echo "$out"
+          case "$out" in
+            "Apache Maven 3.9."*) ;;
+            *) echo "::error::Publish aborted: expected Maven 3.9.x, see .mvn/wrapper/maven-wrapper.properties" >&2
+               exit 1 ;;
+          esac
 
       # Step A — BLOCKING. No continue-on-error: a failed Central deploy MUST turn the job red.
       # waitUntil=published (pom) makes this block until Central actually publishes, so a green run
       # means the artifact is live — not merely staged.
       - name: Publish to Maven Central
-        run: mvn --batch-mode -P release deploy
+        run: ./mvnw --batch-mode -P release deploy
         env:
           MAVEN_CENTRAL_TOKEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_TOKEN_USERNAME }}
           MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
@@ -91,7 +89,7 @@ jobs:
       # can be observed on the first run rather than pre-solved.
       - name: Publish mirror to GitHub Packages
         continue-on-error: true
-        run: mvn --batch-mode -P github-mirror deploy
+        run: ./mvnw --batch-mode -P github-mirror deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

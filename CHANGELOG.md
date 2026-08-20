@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **One Maven line for the whole project.** Every build — local, CI, the compatibility sweep, the
+  docs site — ran Maven 4.0.0-rc-5 through `./mvnw`, while the release job downloaded its own Maven
+  3.9.9 to publish: `central-publishing-maven-plugin` does not upload under Maven 4, where `deploy`
+  stages the bundle to the local repository and the session upload hook never fires, so the build
+  reports success and publishes nothing (this bit 0.1.0 and 0.1.1). Nothing was therefore ever
+  tested on the toolchain that actually ships a release. The wrapper now pins Maven 3.9.16 and the
+  release job runs `./mvnw` like every other job — one pin to bump instead of two, and no second
+  distribution download with an inline checksum to keep current. Maven 4 buys the project nothing
+  in the meantime: it is still not GA (4.0.0-rc-6 is the latest published version), no pom uses anything
+  beyond model `4.0.0`, and its javadoc already needed a workaround here. Because the failure mode
+  it replaces is silent — a green release that published nothing — the publish job now asserts it is
+  running under 3.9.x and fails outright if the wrapper is ever moved to the 4.x line.
+
 ## [2.0.0] - 2026-08-20
 
 ### Added
