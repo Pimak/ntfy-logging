@@ -1236,13 +1236,16 @@ mean different things:</p>
 here</strong>); each is explained where it appears.</p>
 <p>A verified row is evidence, not a guarantee: a single green run on one JDK. Where a range is given,
 the listed versions are the ones actually run — the range between them is interpolation.</p>
-<p><strong>What keeps this page from going stale.</strong> A measurement taken once decays silently, so two checks
-hold it in place:</p>
+<p><strong>What keeps this page from going stale.</strong> A measurement taken once decays silently, so the page is
+held in place from three sides:</p>
 <ul>
-<li><code>CompatibilityMatrixGuardTest</code> (in <code>ntfy-core</code>, so it runs in every build) asserts that each
-  <strong>Tested (CI)</strong> row names the version the root <code>pom.xml</code> actually pins — the Dependabot-bump
-  failure mode — and that the <strong>Verified</strong> rows and the sweep's version list are the same set, in
-  both directions. Neither side can drift ahead of the other.</li>
+<li>The <strong>Tested (CI)</strong> rows carry no number of their own. They name the <code>pom.xml</code> property, and
+  <code>hooks/compat_pins.py</code> substitutes the pinned value when the site is built — so a Dependabot bump
+  moves the page with it, and there is nothing left to forget.</li>
+<li><code>CompatibilityMatrixGuardTest</code> (in <code>ntfy-core</code>, so it runs in every build) holds that arrangement
+  up: every <strong>Tested (CI)</strong> row must use its placeholder rather than a literal, every placeholder
+  must resolve against <code>pom.xml</code>, and the <strong>Verified</strong> rows and the sweep's version list must be the
+  same set, in both directions. Neither side can drift ahead of the other.</li>
 <li>The weekly <code>Compatibility sweep</code> workflow re-runs each module's suite against every <strong>Verified</strong>
   version, and files an issue when one stops passing. It is scheduled rather than blocking, because
   it can fail for reasons unrelated to the change in front of you.</li>
