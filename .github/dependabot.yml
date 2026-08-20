@@ -12,6 +12,14 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      # init and analyze are two paths inside one repository, and CodeQL refuses to run a mix of
+      # versions ("Loaded a configuration file for version X, but running version Y"). Ungrouped,
+      # Dependabot bumps each in its own PR, so neither can go green on its own and both stay red
+      # until the other merges. Grouping puts the pair in a single PR that moves them together.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
   # requirements-docs.txt — mkdocs-material and mike, pinned so site builds are reproducible.
   # Kept out of the Maven ecosystem entry above: it is documentation tooling, not a build input.
   - package-ecosystem: pip
