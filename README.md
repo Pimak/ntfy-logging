@@ -4,6 +4,7 @@
 [![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fio%2Fgithub%2Fpimak%2Fntfy-core%2Fmaven-metadata.xml&label=Maven%20Central&logo=apachemaven)](https://central.sonatype.com/artifact/io.github.pimak/ntfy-core)
 [![Java](https://img.shields.io/badge/Java-21%2B-orange?logo=openjdk&logoColor=white)](https://pimak.github.io/ntfy-logging/latest/compatibility/)
 [![Docs](https://img.shields.io/badge/docs-pimak.github.io-blue?logo=materialformkdocs&logoColor=white)](https://pimak.github.io/ntfy-logging/)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Pimak/ntfy-logging/badge)](https://scorecard.dev/viewer/?uri=github.com/Pimak/ntfy-logging)
 
 <!-- --8<-- [start:tagline] -->
 **ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for

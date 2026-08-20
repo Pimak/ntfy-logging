@@ -1,0 +1,75 @@
+# Supply-chain posture audit: OpenSSF Scorecard grades the repo against the Scorecard checks
+# (Pinned-Dependencies, Token-Permissions, Dangerous-Workflow, Signed-Releases, SBOM, Packaging, …)
+# and files the findings as SARIF in the Security tab next to the CodeQL alerts. The point is not
+# the number — it is that the report ranks what is still missing objectively, so hardening work
+# gets prioritised by evidence instead of by taste.
+name: Scorecard
+
+# NOT a `pull_request` workflow, deliberately. Scorecard grades the repository, not a diff: it
+# reads branch protection, release metadata, the Actions permission model and the commit history,
+# none of which a PR head commit can change on its own. Running it per-PR would grade the fork's
+# state and, worse, would need `id-token: write` on untrusted code. Hence: the default branch
+# after merge, plus a weekly re-grade — checks like Maintained and Dangerous-Workflow drift with
+# time and with newly-published Scorecard checks, not only with our commits.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, offset from codeql.yml's Monday 04:30 slot so the two SARIF uploads don't queue
+    # behind each other on the same runner minute.
+    - cron: '30 6 * * 2'
+
+# Scorecard's results API rejects a run whose *workflow* holds any write permission — it cannot
+# tell which job spent it. Read-only here; the single write scope lives on the job below.
+permissions:
+  contents: read
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read          # clone the repo for the local checks
+      actions: read           # read workflow definitions for Token-Permissions / Dangerous-Workflow
+      security-events: write  # upload SARIF results to code scanning
+      # The surprising one: `id-token: write` mints a GitHub OIDC token that proves to Scorecard's
+      # public results API that this run really came from this repo's default branch. Without it
+      # `publish_results: true` has no way to authenticate the upload, so the api.scorecard.dev
+      # entry — and the README badge that reads from it — never appear. It grants no repo access.
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Leave no writable git credential in the workspace: Scorecard analyses this checkout,
+          # and a persisted token is exactly the finding its own Token-Permissions check hunts for.
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publishes the score to the public api.scorecard.dev dataset, which is what backs the
+          # README badge and replaces the Scorecard team's own weekly scan of this repo with ours.
+          # Requires the repository to stay PUBLIC — on a private repo the API rejects the upload
+          # and the badge renders as unknown.
+          publish_results: true
+          # Branch-Protection is deliberately left unauthenticated. The check needs admin-level
+          # read that GITHUB_TOKEN does not have, so wiring it up means minting a fine-grained PAT
+          # (Administration: read) and storing it as a long-lived `SCORECARD_TOKEN` secret — a
+          # credential broader than anything else this repo holds, renewed by hand on expiry. The
+          # cost of skipping it is small: an unreadable check scores as inconclusive and is dropped
+          # from the aggregate, it does not score zero and does not fail the run. To opt in later,
+          # create the PAT and add: repo_token: ${{ secrets.SCORECARD_TOKEN }}
+
+      # Keeps the raw SARIF downloadable from the Actions tab for five days — enough to diff two
+      # runs when a score moves and the Security tab only shows the current state.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      # Same codeql-action pin as codeql.yml on purpose: one version of that action in the repo,
+      # so a bump is a single edit and the two SARIF uploads can never drift apart.
+      - uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        with:
+          sarif_file: results.sarif
