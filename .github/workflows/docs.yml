@@ -58,13 +58,20 @@ jobs:
       - name: Check no icon shortcode was left unrendered
         run: |
           set -euo pipefail
-          if grep -rlE ':(material|fontawesome|octicons)-[a-z0-9-]+:' site --include='*.html' \
-               --exclude-dir=search --exclude-dir=apidocs; then
-            echo "::error::The pages above render an icon shortcode as literal text. Enable the"
-            echo "::error::matching extension in mkdocs.yml, or drop the shortcode."
-            exit 1
-          fi
-          echo "No unrendered icon shortcodes."
+          # grep exits 2 on error, and `if grep` would read that as "no matches" while set -e stays
+          # out of an if-condition — a guard against a silent failure must not fail silently itself.
+          RC=0
+          FOUND=$(grep -rlE ':(material|fontawesome|octicons)-[a-z0-9-]+:' site --include='*.html' \
+                    --exclude-dir=search --exclude-dir=apidocs) || RC=$?
+          case "$RC" in
+            0)
+              printf '%s\n' "$FOUND"
+              echo "::error::The pages above render an icon shortcode as literal text. Enable the"
+              echo "::error::matching extension in mkdocs.yml, or drop the shortcode."
+              exit 1 ;;
+            1) echo "No unrendered icon shortcodes." ;;
+            *) echo "::error::grep exited $RC - the shortcode check did not run."; exit 1 ;;
+          esac
 
   deploy-dev:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
