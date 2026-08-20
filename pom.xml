@@ -329,7 +329,7 @@
                              Scoped to the release profile (NOT the main build) so the -P github-mirror leg's
                              `deploy` is handled by maven-deploy-plugin, keeping the two legs structurally
                              separate (D-12). NOTE: the deploy MUST run under Maven 3.9 — this plugin (0.11.0,
-                             its latest) does not upload under Maven 4 (it stages the bundle locally and the
+                             latest as of this pin) does not upload under Maven 4 (it stages the bundle locally and the
                              session upload hook never fires, producing a green-but-unpublished build). This is
                              why ./mvnw pins the 3.9.x line for the whole project rather than only for release:
                              see .mvn/wrapper/maven-wrapper.properties, and the version gate in release.yml. -->

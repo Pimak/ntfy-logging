@@ -55,7 +55,7 @@ jobs:
 
       # Deploys run the repo's ./mvnw, exactly like CI and every local build — the wrapper pins the
       # 3.9.x line for the whole project. This job used to download a second Maven because ./mvnw
-      # was on 4.0.0-rc: central-publishing-maven-plugin (0.11.0, its latest) does NOT upload under
+      # was on 4.0.0-rc: central-publishing-maven-plugin (0.11.0, latest as of this pin) does NOT upload under
       # Maven 4 — on `deploy` it stages the bundle to the local repo but its session upload hook
       # never fires, so the build goes green without publishing (this bit 0.1.0/0.1.1). The wrapper
       # is the single Maven pin now; if it is ever moved to the 4.x line, this job stops publishing
