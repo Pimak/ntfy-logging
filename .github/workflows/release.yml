@@ -71,7 +71,30 @@ jobs:
                exit 1 ;;
           esac
 
-      # Step A — BLOCKING. No continue-on-error: a failed Central deploy MUST turn the job red.
+      # Step A — BLOCKING. The SemVer gate. japicmp compares every published module's freshly
+      # built jar against that same module's last release on Central and fails the job when the
+      # version bump does not cover the API change: a dropped method under a minor bump is red,
+      # the same drop under a major bump is green. That is the whole point of running it HERE —
+      # autoPublish=true puts the next step's output on an immutable coordinate, so this is the
+      # last moment at which a break is still recallable.
+      #
+      # Placement follows the docs-sync check's rule — fail while nothing has been deployed — but
+      # cannot copy its position. That check is a bare python script; this one needs a JDK, Maven
+      # and a built reactor, so the earliest honest slot is right after the toolchain is up. The
+      # GPG key is on disk by then, which costs nothing: a key is only material, and no artifact
+      # has been signed, uploaded or published.
+      #
+      # `mvn` (3.9, on PATH from the step above) rather than ./mvnw, deliberately: the baseline is
+      # then resolved by the very Maven that is about to deploy. Tests are skipped because the
+      # deploy step below runs the full suite for real; this step exists to answer one question.
+      #
+      # Escape hatch, if a release must ship with this red: add -Djapicmp.skip=true to the command
+      # in a reviewed commit. Loud on purpose — visible in the diff and in the job log, and there
+      # is deliberately no way to switch the gate off from the pom.
+      - name: API compatibility gate (japicmp)
+        run: mvn --batch-mode verify -DskipTests -DskipITs -Djapicmp.breakBuildBasedOnSemanticVersioning=true
+
+      # Step B — BLOCKING. No continue-on-error: a failed Central deploy MUST turn the job red.
       # waitUntil=published (pom) makes this block until Central actually publishes, so a green run
       # means the artifact is live — not merely staged.
       - name: Publish to Maven Central
@@ -81,7 +104,7 @@ jobs:
           MAVEN_CENTRAL_TOKEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      # Step B — BEST-EFFORT (D-11). continue-on-error lives ONLY on this GitHub Packages step,
+      # Step C — BEST-EFFORT (D-11). continue-on-error lives ONLY on this GitHub Packages step,
       # NEVER on the Central step (Pitfall C): GitHub Packages permits republishing the same
       # version, Central's coordinates are immutable, so a transient GHP hiccup must not fail an
       # already-successful Central release. Try GITHUB_TOKEN first (Open Question 2); introduce a

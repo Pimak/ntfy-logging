@@ -280,9 +280,19 @@
                         artifacts first published in 2.0.0 the range resolves to nothing at all.
                         Both are expected states of a just-released tree, not bugs.
 
-                        REPORT ONLY. No breakBuild* flag is set here, so `verify` writes
-                        target/japicmp/*.{html,xml,diff} and stays green whatever it finds. Making
-                        this block is a separate, deliberate act done in .github/workflows.
+                        REPORT ONLY HERE. No breakBuild* flag is set, so `verify` writes
+                        target/japicmp/*.{html,xml,diff} and stays green whatever it finds. The
+                        gate is armed from exactly one place: release.yml passes
+                        -Djapicmp.breakBuildBasedOnSemanticVersioning=true in a blocking step
+                        ahead of the Central deploy. ci.yml deliberately does not — a check that
+                        can go red because somebody else cut a release, or because Central was
+                        slow, has no business being a required check on a PR.
+
+                        SEMVER MODE rather than a flat "never break binary compatibility" is what
+                        keeps a major release shippable: the gate weighs the API delta against the
+                        version delta, so dropping a method under 2.0.0 -> 2.1.0 fails while the
+                        same drop under 2.0.0 -> 3.0.0 passes. A deliberate break needs no
+                        override — it needs the major bump it already deserved.
 
                         Version is managed here; each PUBLISHED module activates it with a bare
                         <plugin> declaration of its own, exactly as with pmd and enforcer above.
