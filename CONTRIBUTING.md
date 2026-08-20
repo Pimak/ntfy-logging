@@ -26,7 +26,7 @@ the exact process. A PR that adds a dependency without updating the allowlist wi
 ## Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
-`type(scope): summary`, the summary in the imperative, lower case, no trailing period, on
+`type(scope): summary`, the summary in the imperative, lowercase, no trailing period, on
 one line. Nothing parses the log — the CHANGELOG is written by hand and the GitHub Release
 notes are extracted from it, not from commit subjects. The convention is there so that
 `git log --oneline` reads as a change history, and so the scope says which module a commit

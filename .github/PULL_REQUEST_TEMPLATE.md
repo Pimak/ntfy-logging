@@ -1,5 +1,5 @@
 <!--
-The checklist below is the three requirements CONTRIBUTING.md states under "Pull requests".
+The checklist below carries the three requirements CONTRIBUTING.md states under "Pull requests".
 Nothing else is asked of you.
 -->
 
@@ -18,4 +18,4 @@ Nothing else is asked of you.
       WireMock integration tests, the dependency-allowlist enforcer, and the PMD dead-code
       guard. A new direct or transitive dependency also needs the allowlist in `pom.xml`
       updated, or this fails; see
-      [CONTRIBUTING.md](../CONTRIBUTING.md#dependency-policy).
+      [CONTRIBUTING.md](https://github.com/Pimak/ntfy-logging/blob/main/CONTRIBUTING.md#dependency-policy).
