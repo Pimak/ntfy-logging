@@ -1,7 +1,12 @@
 name: CI
 
 on:
+  # Same shape as codeql.yml and docs.yml: post-merge on main, plus every PR. An unfiltered `push`
+  # ran the whole matrix twice for any branch with a PR open — once for the branch, once for the
+  # PR — which on Dependabot branches meant two full reactor builds and two native compiles per
+  # bump, and two independent chances to hit a flake.
   push:
+    branches: [main]
   pull_request:
 
 # The default GITHUB_TOKEN needs nothing beyond reading the repo; everything else stays denied.
