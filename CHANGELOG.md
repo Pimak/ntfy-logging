@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tested on the toolchain that actually ships a release. The wrapper now pins Maven 3.9.16 and the
   release job runs `./mvnw` like every other job — one pin to bump instead of two, and no second
   distribution download with an inline checksum to keep current. Maven 4 buys the project nothing
-  in the meantime: it is still not GA (4.0.0-rc-6 is the latest published version), no pom uses anything
-  beyond model `4.0.0`, and its javadoc already needed a workaround here. Because the failure mode
+  in the meantime: it was still not GA when this landed (the line was on 4.0.0-rc-6), no pom uses
+  anything beyond model `4.0.0`, and its javadoc already needed a workaround here. Because the failure mode
   it replaces is silent — a green release that published nothing — the publish job now asserts it is
   running under 3.9.x and fails outright if the wrapper is ever moved to the 4.x line.
 
