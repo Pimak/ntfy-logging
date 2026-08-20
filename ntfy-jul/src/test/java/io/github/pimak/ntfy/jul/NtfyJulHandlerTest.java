@@ -162,6 +162,7 @@ class NtfyJulHandlerTest {
       handler.publish(record);
 
       assertThat(server.waitForRequest()).isTrue();
+      assertThat(awaitPublished(handler, 1)).isTrue();
       assertThat(handler.counters().published()).isEqualTo(1);
       assertThat(handler.counters().suppressed()).isZero();
       assertThat(handler.counters().failed()).isZero();
@@ -229,5 +230,23 @@ class NtfyJulHandlerTest {
     } finally {
       handler.close();
     }
+  }
+
+  /**
+   * Polls up to ~5s for the engine to have counted at least {@code expected} publishes, mirroring
+   * {@link LoopbackNtfyServer#waitForRequest}. "A request arrived" is the strictly earlier event:
+   * the loopback handler records the path before it writes the response, while the engine counts a
+   * publish only once the client has that response back. Reading the tally the moment
+   * waitForRequest() returns is therefore a race, and lost it once in five local runs.
+   */
+  private static boolean awaitPublished(NtfyJulHandler handler, long expected)
+      throws InterruptedException {
+    for (int i = 0; i < 50; i++) {
+      if (handler.counters().published() >= expected) {
+        return true;
+      }
+      TimeUnit.MILLISECONDS.sleep(100);
+    }
+    return handler.counters().published() >= expected;
   }
 }
