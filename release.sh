@@ -36,8 +36,15 @@ EOF
 # Highest semver tag (vMAJOR.MINOR.PATCH) reachable on the current branch, or empty when the
 # branch carries none. Empty is a legitimate answer — the very first release has nothing behind it.
 previous_version() {
-  local tag
-  tag="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
+  local tags
+  # No `| head -n1`: under `set -o pipefail`, head closing the pipe early can leave git killed by
+  # SIGPIPE, and the pipeline's 141 would abort the whole script through `set -e` — turning this
+  # deliberately non-fatal lookup fatal. It takes thousands of tags to reach that, so it has never
+  # fired here, which is exactly why it would surface on someone else's repo instead of ours.
+  # Trimming the first line in the shell keeps a genuine git failure fatal, which `|| true` would
+  # have swallowed into a silent "no previous tag" — and that answer skips the SemVer guard.
+  tags="$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname)"
+  local tag="${tags%%$'\n'*}"
   echo "${tag#v}"
 }
 
