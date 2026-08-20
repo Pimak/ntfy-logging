@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -25,9 +26,11 @@ import org.junit.jupiter.api.Test;
  *
  * <ul>
  *   <li><strong>Tested (CI) rows vs. the root {@code pom.xml}.</strong> Those rows say "the exact
- *       version pinned in this repo". A Dependabot bump changes the pin and leaves the sentence
- *       behind, silently making it false — the likeliest way this page decays, since the pins move
- *       on their own schedule.
+ *       version pinned in this repo", and used to spell the number out — which a Dependabot bump
+ *       silently made false, since the pins move on their own schedule. They now write a
+ *       <code>pin.&lt;property&gt;</code> placeholder that {@code hooks/compat_pins.py} resolves
+ *       from {@code pom.xml} when the site is built, so what is checked here is that the placeholder
+ *       is used and that it resolves — not that a hand-copied number still matches.
  *   <li><strong>Verified rows vs. {@code .github/compat-versions.tsv}.</strong> That file drives the
  *       weekly compatibility sweep. Checked in <em>both</em> directions, so the page cannot claim a
  *       version the sweep never runs, and the sweep cannot cover one the page forgot to mention.
@@ -56,36 +59,69 @@ class CompatibilityMatrixGuardTest {
 
   private static final Pattern VERSION = Pattern.compile("\\b\\d+\\.\\d+\\.\\d+\\b");
 
+  /** Must stay in step with the placeholder syntax {@code hooks/compat_pins.py} recognises. */
+  private static final Pattern PIN_PLACEHOLDER =
+      Pattern.compile("\\{\\{\\s*pin\\.([A-Za-z0-9._-]+)\\s*\\}\\}");
+
   @Test
-  void everyPinnedVersionAppearsInItsTestedCiRow() throws IOException {
+  void everyTestedCiRowNamesItsPinByPlaceholder() throws IOException {
     Path root = repoRoot();
-    String pom = Files.readString(root.resolve("pom.xml"));
     Map<String, List<String>> doc = sections(Files.readString(root.resolve("docs/compatibility.md")));
 
     List<String> violations = new ArrayList<>();
     SECTION_TO_PROPERTY.forEach((heading, property) -> {
-      String pinned = pinnedVersion(pom, property);
-      if (pinned == null) {
-        violations.add("pom.xml has no <" + property + "> property");
-        return;
-      }
       List<String> lines = doc.get(heading);
       if (lines == null) {
         violations.add("docs/compatibility.md has no section starting '" + heading + "'");
         return;
       }
-      boolean claimed = lines.stream()
-          .filter(line -> line.contains("**Tested (CI)**"))
-          .anyMatch(line -> line.contains(pinned));
-      if (!claimed) {
-        violations.add(property + " is pinned to " + pinned
-            + " but no '**Tested (CI)**' row under '" + heading + "' mentions it");
+      List<String> testedRows = lines.stream()
+          .filter(line -> line.contains("**Tested (CI)**") && line.strip().startsWith("|"))
+          .toList();
+      if (testedRows.isEmpty()) {
+        violations.add(heading + " has no '**Tested (CI)**' table row");
+        return;
+      }
+      String expected = "{{ pin." + property + " }}";
+      for (String row : testedRows) {
+        String versionCell = versionCell(row);
+        if (!expected.equals(versionCell)) {
+          violations.add(heading + ": the '**Tested (CI)**' row states '" + versionCell
+              + "' where it must state '" + expected + "' — a literal here goes stale the next time"
+              + " Dependabot bumps <" + property + ">");
+        }
       }
     });
 
     assertThat(violations)
-        .as("docs/compatibility.md must name the versions the build actually pins")
+        .as("docs/compatibility.md must defer to pom.xml for the versions it says are pinned")
         .isEmpty();
+  }
+
+  /**
+   * The placeholders are resolved by {@code hooks/compat_pins.py} when the site is built, and a
+   * typo there would only surface in the docs workflow. Catching it here keeps the failure next to
+   * the edit that caused it.
+   */
+  @Test
+  void everyPinPlaceholderResolvesToAPomProperty() throws IOException {
+    Path root = repoRoot();
+    String pom = Files.readString(root.resolve("pom.xml"));
+
+    List<String> violations = new ArrayList<>();
+    try (Stream<Path> pages = Files.walk(root.resolve("docs"))) {
+      for (Path page : pages.filter(p -> p.toString().endsWith(".md")).toList()) {
+        Matcher m = PIN_PLACEHOLDER.matcher(Files.readString(page));
+        while (m.find()) {
+          if (pinnedVersion(pom, m.group(1)) == null) {
+            violations.add(root.relativize(page) + " references '" + m.group()
+                + "' but pom.xml has no <" + m.group(1) + "> property");
+          }
+        }
+      }
+    }
+
+    assertThat(violations).as("every {{ pin.… }} placeholder must resolve against pom.xml").isEmpty();
   }
 
   /** The JDK floor is stated in prose rather than a table row, so it is matched literally. */
@@ -203,6 +239,12 @@ class CompatibilityMatrixGuardTest {
       }
     }
     return sections;
+  }
+
+  /** The first cell of a markdown table row — the column these tables give to the version. */
+  private static String versionCell(String row) {
+    String[] cells = row.strip().split("\\|");
+    return cells.length > 1 ? cells[1].strip() : "";
   }
 
   private static String pinnedVersion(String pom, String property) {
