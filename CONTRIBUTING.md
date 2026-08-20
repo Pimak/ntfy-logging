@@ -62,3 +62,28 @@ breaking entry and the migration notes are written from.
 
 Use a body whenever the *why* does not fit in the subject — that is where the reasoning
 belongs, not in the code.
+
+## Releasing
+
+Cutting a release is the maintainer's operation. A contributor's part is the CHANGELOG: add
+your entries under the permanent `## [Unreleased]` heading at the top of
+[CHANGELOG.md](CHANGELOG.md), in the same PR as the change they describe. That heading is the
+only part of the file a PR should touch — the sections below it are already released, and the
+link block at the bottom is derived, not maintained. The entries are prose, written and
+consolidated by hand rather than generated from commit subjects; please do not add tooling
+that would generate them.
+
+Everything after that is [`release.sh`](release.sh), run by the maintainer from a clean
+`main`. It is deliberately one reviewed operation: it bumps the reactor version, inserts a
+dated release section under `## [Unreleased]` claiming whatever accumulated there,
+regenerates the compare links, stamps the version into every install snippet in the README
+and `docs/`, folds all of it into a single `chore(release): <version>` commit, and creates the
+annotated `v<version>` tag — and then **stops without pushing**. The script's header comment
+is the reference for what it does; none of those steps should be reproduced by hand, in a PR
+or anywhere else.
+
+Pushing that tag is the point of no return, and it is the maintainer's alone.
+[`.github/workflows/release.yml`](.github/workflows/release.yml) fires on `v*` and deploys to
+Maven Central with `autoPublish=true`, so a validation-passing bundle goes live on an
+immutable coordinate that can never be replaced or withdrawn. Nothing in a pull request
+should create or push a tag.
