@@ -193,6 +193,24 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <!--
+                            This artifact was first published in the 2.0.0 release, so nothing below
+                            2.0.0 exists for it on Central: the baseline range (,${project.version})
+                            resolves to an empty set and japicmp fails the module outright with
+                            "Could not find previous version". Scoped to this module, and inert
+                            rather than permanent — from the next version bump on, 2.0.0 sits below
+                            the pom version, the range resolves and the comparison runs for real.
+                            The only thing this can ever silence is an artifact's own first release.
+                        -->
+                        <ignoreMissingOldVersion>true</ignoreMissingOldVersion>
+                    </parameter>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -151,6 +151,10 @@
                 allowlist cannot usefully enumerate. PMD dead-code check is likewise skipped for this
                 module to avoid false positives on framework-shaped code.
             -->
+            <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 </project>
