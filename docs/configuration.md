@@ -274,8 +274,9 @@ it.
 
 ## Per-framework examples
 
-Pick your stack once: the choice follows you to every other tabbed page, and back here on your
-next visit.
+Pick your stack once: the choice is remembered on your next visit, and the three framework tabs —
+Spring Boot, Micronaut, Quarkus — carry over to the
+[metrics bindings](observability.md#metrics-bindings), the other tabbed section on this site.
 
 === "Core / JUL"
 
