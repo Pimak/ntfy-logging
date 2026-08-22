@@ -61,6 +61,13 @@ public class NtfyProperties {
    * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
    */
   private String icon;
+
+  /**
+   * Per-logger icon overrides as {@code prefix=url} pairs separated by commas. The
+   * longest prefix matching an alert's logger wins; anything unmatched keeps the default icon.
+   * Alerts only — a notification has no logger to match on.
+   */
+  private String iconsByLogger;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -296,6 +303,14 @@ public class NtfyProperties {
 
   public void setIcon(String icon) {
     this.icon = icon;
+  }
+
+  public String getIconsByLogger() {
+    return iconsByLogger;
+  }
+
+  public void setIconsByLogger(String iconsByLogger) {
+    this.iconsByLogger = iconsByLogger;
   }
 
   /**

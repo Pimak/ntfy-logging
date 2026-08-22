@@ -75,6 +75,7 @@ public class NtfyClientFactory {
         .cache(configuration.isCache())
         .firebase(configuration.isFirebase())
         .icon(configuration.getIcon())
+        .iconsByLoggerPrefixCsv(configuration.getIconsByLogger())
         .includeMdcKeysCsv(configuration.getIncludeMdcKeys())
         .enabled(configuration.isEnabled())
         .asyncEnabled(configuration.isAsync())

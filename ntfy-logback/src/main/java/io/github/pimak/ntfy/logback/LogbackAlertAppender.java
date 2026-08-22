@@ -48,6 +48,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String cache;
   private String firebase;
   private String icon;
+  private String iconsByLogger;
   private String includeMdcKeys;
   private String connectTimeout;
   private String requestTimeout;
@@ -249,6 +250,15 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Per-logger icon overrides as {@code prefix=url} pairs separated by commas. The
+   * longest prefix matching an alert's logger wins; anything unmatched keeps the default icon.
+   * Alerts only — a notification has no logger to match on.
+   */
+  public void setIconsByLogger(String iconsByLogger) {
+    this.iconsByLogger = iconsByLogger;
+  }
+
+  /**
    * A comma-separated allow-list of MDC keys rendered into alert bodies, one {@code key: value} line
    * each, in the order given here. Unset by default, and there is deliberately no wildcard form: an
    * MDC value reaches a notification only when an operator named its key, because a production MDC
@@ -410,6 +420,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .cache(cache)
             .firebase(firebase)
             .icon(icon)
+            .iconsByLoggerPrefixCsv(iconsByLogger)
             .warnTopic(warnTopic)
             // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
             // treats null/blank as "no keys", which is exactly the unset default.

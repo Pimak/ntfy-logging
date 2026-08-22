@@ -3,8 +3,10 @@ package io.github.pimak.ntfy.core;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Immutable, framework-neutral configuration for the ntfy engine and client. Built exclusively
@@ -47,6 +49,8 @@ public final class NtfyConfig {
   private final boolean firebase;
   private final boolean deliveryPolicyValueRejected;
   private final String icon;
+  private final Map<String, String> iconsByLoggerPrefix;
+  private final boolean iconsByLoggerValueRejected;
   private final List<String> includeMdcKeys;
   private final boolean enabled;
   private final boolean asyncEnabled;
@@ -93,6 +97,9 @@ public final class NtfyConfig {
     this.firebase = b.firebase;
     this.deliveryPolicyValueRejected = b.cacheValueRejected || b.firebaseValueRejected;
     this.icon = b.icon;
+    this.iconsByLoggerPrefix =
+        Collections.unmodifiableMap(new LinkedHashMap<>(b.iconsByLoggerPrefix));
+    this.iconsByLoggerValueRejected = b.iconsByLoggerValueRejected;
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -324,6 +331,35 @@ public final class NtfyConfig {
   }
 
   /**
+   * The unmodifiable logger-prefix &rarr; icon-URL table that overrides {@link #getIcon()} for
+   * alerts, in configured order. Empty by default.
+   *
+   * <p>A table rather than placeholders in a single URL, and the difference is a security one. The
+   * subscriber's client downloads the icon automatically when it DISPLAYS a notification — no tap
+   * involved — so an interpolated URL would send whatever it interpolated, plus the subscriber's
+   * IP, to a third-party host on every notification. A table only ever selects among URLs the
+   * operator wrote out in full, so nothing derived from a running application ever leaves.
+   *
+   * <p>Applies to alerts only. A notification published through {@link NtfyClient} has no logger
+   * to match on and always carries {@link #getIcon()}.
+   */
+  public Map<String, String> getIconsByLoggerPrefix() {
+    return iconsByLoggerPrefix;
+  }
+
+  /**
+   * True when an {@code icons-by-logger} entry could not be read as a {@code prefix=url}
+   * pair, so it was discarded. Exists for the same reason as {@link
+   * #isStartupPingValueRejected()}: without it a pair mistyped with a space instead of an
+   * {@code =} would be indistinguishable from an unset key, and would produce no icon and no
+   * signal — the invisible failure the icon URL check exists to prevent, reintroduced one
+   * layer earlier.
+   */
+  public boolean isIconsByLoggerValueRejected() {
+    return iconsByLoggerValueRejected;
+  }
+
+  /**
    * The unmodifiable, EXPLICIT allow-list of MDC keys whose values are rendered into alert bodies
    * (one {@code key: value} line each), in configured order — that order is the rendering order.
    * Empty by default, i.e. no MDC content is published at all unless an operator opts in.
@@ -532,6 +568,8 @@ public final class NtfyConfig {
     private boolean cacheValueRejected = false;
     private boolean firebaseValueRejected = false;
     private String icon;
+    private Map<String, String> iconsByLoggerPrefix = new LinkedHashMap<>();
+    private boolean iconsByLoggerValueRejected = false;
     private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
@@ -826,6 +864,58 @@ public final class NtfyConfig {
     public Builder icon(String icon) {
       this.icon = icon;
       return this;
+    }
+
+    /**
+     * Sets the logger-prefix &rarr; icon-URL table (defensively copied, null-safe). Entries with a
+     * blank prefix or URL are dropped; an entry whose URL ntfy could not render is dropped with a
+     * diagnostic at {@code start()}, leaving the rest of the table working.
+     */
+    public Builder iconsByLoggerPrefix(Map<String, String> icons) {
+      this.iconsByLoggerPrefix = normalizeIconTable(icons);
+      this.iconsByLoggerValueRejected = false;
+      return this;
+    }
+
+    /**
+     * Convenience: the same table as a single string, {@code prefix=url} pairs separated by commas
+     * — the spelling every adapter's flat configuration surface uses. Only the FIRST {@code =} of
+     * a pair separates prefix from URL, so a query string may contain more.
+     */
+    public Builder iconsByLoggerPrefixCsv(String csv) {
+      Map<String, String> icons = new LinkedHashMap<>();
+      boolean rejected = false;
+      if (csv != null && !csv.isBlank()) {
+        for (String pair : csv.split(",")) {
+          int split = pair.indexOf('=');
+          if (split > 0) {
+            icons.put(pair.substring(0, split), pair.substring(split + 1));
+          } else if (!pair.isBlank()) {
+            // Recorded rather than skipped: the engine warns about it at start(). Dropping a
+            // pair quietly would leave one mistyped with a space looking exactly like an
+            // unset key.
+            rejected = true;
+          }
+        }
+      }
+      this.iconsByLoggerPrefix = normalizeIconTable(icons);
+      this.iconsByLoggerValueRejected = rejected;
+      return this;
+    }
+
+    /** Trims both sides and drops any pair with a blank half, so the table never holds a no-op. */
+    private static Map<String, String> normalizeIconTable(Map<String, String> raw) {
+      Map<String, String> normalized = new LinkedHashMap<>();
+      if (raw != null) {
+        for (Map.Entry<String, String> entry : raw.entrySet()) {
+          String prefix = entry.getKey();
+          String url = entry.getValue();
+          if (prefix != null && !prefix.isBlank() && url != null && !url.isBlank()) {
+            normalized.put(prefix.trim(), url.trim());
+          }
+        }
+      }
+      return normalized;
     }
 
     /** Trims, drops nulls and blanks. Shared so the list and csv spellings cannot disagree. */

@@ -63,6 +63,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `cache` | boolean | `true` | `false` sends `Cache: no` — the server stores nothing, so only subscribers connected at that moment ever receive the message. See [Delivery privacy](#delivery-privacy). |
 | `firebase` | boolean | `true` | `false` sends `Firebase: no` — the server does not forward the message to Firebase Cloud Messaging. See [Delivery privacy](#delivery-privacy). |
 | `icon` | String | *(none)* | URL of the icon shown beside the notification. `http`/`https` only, and the path must end in `.png`, `.jpg` or `.jpeg` — ntfy supports no other format. Checked at startup; an unusable value is dropped with a diagnostic and alerting continues. |
+| `icons-by-logger` | String (csv) | *(none)* | Per-logger icon overrides as `prefix=url` pairs. The longest prefix matching an alert's logger wins; unmatched loggers keep `icon`. Alerts only. See [Icons](#icons). |
 | `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). Sourced per adapter: the Logback event's MDC snapshot, log4j2's `ThreadContext`, and `ExtLogRecord` under JBoss LogManager/Quarkus. No effect on plain `java.util.logging`, which has no MDC. See [mdc-context.md](mdc-context.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
@@ -122,6 +123,43 @@ subscribers; disabling Firebase costs you push latency on one platform. A single
 switch would also make a perfectly ordinary setup unreachable — a self-hosted server with no FCM
 configured wants `firebase: false` **and** `cache: true`, so alerts still reach a phone that was
 offline.
+
+## Icons
+
+`icon` puts your application's logo beside every notification. `icons-by-logger` lets that logo
+depend on which part of the application failed:
+
+```yaml
+ntfy:
+  icon: https://cdn.example.com/acme.png
+  icons-by-logger: com.acme.billing=https://cdn.example.com/billing.png, com.acme.shipping=https://cdn.example.com/shipping.png
+```
+
+An alert from `com.acme.billing.Ledger` carries the billing icon; one from anywhere else carries
+`acme.png`. Matching is on logger-hierarchy boundaries, so `com.acme.billingsystem` is *not* a match
+for `com.acme.billing`, and when several prefixes match the longest one wins.
+
+Two things it deliberately does not do:
+
+- **A notification never uses the table.** A notification you publish yourself through `NtfyClient`
+  has no logger to match on, so it always carries `icon`. Neither does a storm digest, which covers
+  many loggers at once and cannot honestly claim any one of their icons.
+- **There is no interpolation.** You cannot build an icon URL out of the logger name or anything
+  else from the running application. That is a security boundary, not a missing feature: the
+  subscriber's client downloads the icon automatically when it *displays* the notification — no tap
+  required — so an interpolated URL would send whatever it interpolated, plus the subscriber's IP,
+  to a third-party host on every single notification. A table only ever selects among URLs you wrote
+  out in full.
+
+### Validation
+
+Both keys are checked at startup, because an icon is the one setting here that fails invisibly: the
+ntfy server never fetches the URL, the subscriber's client does, so a wrong one produces no error
+and no diagnostic — just a notification with no icon, forever.
+
+A URL must be `http`/`https` and end in `.png`, `.jpg` or `.jpeg`; ntfy renders no other format. An
+unusable value is dropped with a diagnostic and alerting continues — decoration never stops the
+paging. In the table, a bad entry drops itself and leaves the rest of the table working.
 
 ## Duration syntax
 

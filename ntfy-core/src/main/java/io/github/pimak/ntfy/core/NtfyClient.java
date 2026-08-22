@@ -99,7 +99,6 @@ public final class NtfyClient implements AutoCloseable {
             icon()));
   }
 
-  /** This client's fixed destination: the configured endpoint, topic and credential. */
   /**
    * The configured icon, or {@code null} when it is not one ntfy could render. Dropped rather than
    * sent: this client has no diagnostics channel to warn through, and a header the subscriber's
@@ -109,6 +108,7 @@ public final class NtfyClient implements AutoCloseable {
     return NtfyPublisher.isValidIconUrl(config.getIcon()) ? config.getIcon() : null;
   }
 
+  /** This client's fixed destination: the configured endpoint, topic and credential. */
   private NtfyTarget target() {
     return new NtfyTarget(
         config.getUrl(), config.getTopic(), authMode, config.isCache(), config.isFirebase());

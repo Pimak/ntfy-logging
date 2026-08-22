@@ -47,6 +47,7 @@ public class NtfyConfiguration {
   private boolean cache = true;
   private boolean firebase = true;
   private String icon;
+  private String iconsByLogger;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -546,6 +547,26 @@ public class NtfyConfiguration {
    */
   public void setIcon(String icon) {
     this.icon = icon;
+  }
+
+  /**
+   * Per-logger icon overrides as {@code prefix=url} pairs separated by commas. The
+   * longest prefix matching an alert's logger wins; anything unmatched keeps the default icon.
+   * Alerts only — a notification has no logger to match on.
+   *
+   * @return the comma-separated pairs, or {@code null} when unset
+   */
+  public String getIconsByLogger() {
+    return iconsByLogger;
+  }
+
+  /**
+   * Sets the per-logger icon overrides.
+   *
+   * @param iconsByLogger the comma-separated prefix=url pairs
+   */
+  public void setIconsByLogger(String iconsByLogger) {
+    this.iconsByLogger = iconsByLogger;
   }
 
   /**

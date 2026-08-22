@@ -99,14 +99,16 @@ public final class AlertEngine {
   // submit() call may race a concurrent stop() nulling this field. Non-null exactly while the
   // engine is started, so it doubles as the "engine is live" sentinel the old `rateLimiter` field
   // was.
-  /**
-   * The configured icon URL once it has been checked at {@code start()}, or {@code null} when unset
-   * or unusable. Held here rather than read from the config on each publish so the check — and its
-   * diagnostic — happen exactly once.
-   */
+  private volatile RouteState errorRoute;
+
+  // The configured icon once checked at start(), or null when unset or unusable. Held here
+  // rather than re-read from the config on each publish so the check — and its diagnostic —
+  // happen once. Unlike the fields above this is NOT a liveness sentinel: it is null on a
+  // perfectly live engine that simply has no icon configured.
   private volatile String icon;
 
-  private volatile RouteState errorRoute;
+  // The logger-prefix -> icon table, unusable entries already removed at start(). Never null.
+  private volatile java.util.Map<String, String> iconsByLoggerPrefix = java.util.Map.of();
 
   // volatile: same model as `errorRoute`. Non-null ONLY when a warn-topic is configured — a null
   // here is what makes a WARN event a no-op, so submit() needs no separate feature flag.
@@ -323,13 +325,28 @@ public final class AlertEngine {
     // paging. Checked here because it cannot be checked anywhere else — the subscriber's client
     // fetches the icon, so a bad URL yields no non-2xx and no signal at all.
     String configuredIcon = config.getIcon();
-    if (configuredIcon != null && !configuredIcon.isBlank()
-        && !NtfyPublisher.isValidIconUrl(configuredIcon)) {
+    boolean iconUsable = NtfyPublisher.isValidIconUrl(configuredIcon);
+    if (!iconUsable && !isBlank(configuredIcon)) {
       diagnostics.warn(messages.statusInvalidIcon());
-      this.icon = null;
-    } else {
-      this.icon = NtfyPublisher.isValidIconUrl(configuredIcon) ? configuredIcon : null;
     }
+    this.icon = iconUsable ? configuredIcon : null;
+
+    // One unusable entry drops itself, not the table: an operator with six services should not
+    // lose five icons to one typo. A single diagnostic covers however many were dropped — one
+    // line per bad entry would bury the rest of the startup report.
+    java.util.Map<String, String> validIcons = new java.util.LinkedHashMap<>();
+    boolean droppedAnIcon = false;
+    for (java.util.Map.Entry<String, String> entry : config.getIconsByLoggerPrefix().entrySet()) {
+      if (NtfyPublisher.isValidIconUrl(entry.getValue())) {
+        validIcons.put(entry.getKey(), entry.getValue());
+      } else {
+        droppedAnIcon = true;
+      }
+    }
+    if (droppedAnIcon || config.isIconsByLoggerValueRejected()) {
+      diagnostics.warn(messages.statusInvalidIcon());
+    }
+    this.iconsByLoggerPrefix = java.util.Map.copyOf(validIcons);
 
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());
@@ -831,7 +848,7 @@ public final class AlertEngine {
                   route.tags(),
                   config.getClickUrl(),
                   config.getActions(),
-                  icon));
+                  iconFor(loggerName)));
       if (result.success()) {
         counters.incrementPublished();
       } else {
@@ -1066,6 +1083,29 @@ public final class AlertEngine {
   /** True when {@code event} carries the {@link #NO_ALERT_MARKER_NAME} marker. */
   boolean hasNoAlertMarker(AlertEvent event) {
     return event.markerNames().contains(NO_ALERT_MARKER_NAME);
+  }
+
+  /**
+   * The icon for an alert from {@code loggerName}: the longest configured prefix that matches it at
+   * a logger-hierarchy boundary, else the default icon.
+   *
+   * <p>Longest wins because a more specific prefix is the more deliberate statement — with both
+   * {@code com.acme.billing} and {@code com.acme.billing.invoices} configured, an alert from the
+   * latter was meant to get the latter's icon. The boundary check is the same one {@link
+   * #isExcluded} uses, and for the same reason: a bare {@code startsWith} would hand the billing
+   * icon to the unrelated sibling package {@code com.acme.billingsystem}.
+   */
+  private String iconFor(String loggerName) {
+    String best = icon;
+    int bestLength = -1;
+    for (java.util.Map.Entry<String, String> entry : iconsByLoggerPrefix.entrySet()) {
+      String prefix = entry.getKey();
+      if (prefix.length() > bestLength && matchesPrefix(loggerName, prefix)) {
+        best = entry.getValue();
+        bestLength = prefix.length();
+      }
+    }
+    return best;
   }
 
   /**
