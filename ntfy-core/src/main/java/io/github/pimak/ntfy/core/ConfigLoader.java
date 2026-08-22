@@ -86,6 +86,12 @@ public final class ConfigLoader {
       builder.excludedLoggers(excludedLoggers);
     }
 
+    String excludedExceptionTypes =
+        resolve("excluded-exception-types", envLookup, fileProps, sysProps);
+    if (excludedExceptionTypes != null) {
+      builder.excludedExceptionTypesCsv(excludedExceptionTypes);
+    }
+
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
     // redirect where alerts go, it only names which allow-listed context lines are rendered into a

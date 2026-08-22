@@ -35,6 +35,13 @@ public class NtfyProperties {
   private String actions;
   private String locale;
   private String excludedLoggers;
+
+  /**
+   * Comma-separated fully qualified exception class names. An event whose cause chain contains
+   * any of them never alerts — matched anywhere in the chain, not just on the surface
+   * throwable.
+   */
+  private String excludedExceptionTypes;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -238,6 +245,14 @@ public class NtfyProperties {
 
   public void setExcludedLoggers(String excludedLoggers) {
     this.excludedLoggers = excludedLoggers;
+  }
+
+  public String getExcludedExceptionTypes() {
+    return excludedExceptionTypes;
+  }
+
+  public void setExcludedExceptionTypes(String excludedExceptionTypes) {
+    this.excludedExceptionTypes = excludedExceptionTypes;
   }
 
   /**

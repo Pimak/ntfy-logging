@@ -333,6 +333,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String clickUrl;
     @PluginBuilderAttribute private String actions;
     @PluginBuilderAttribute private String excludedLoggers;
+    @PluginBuilderAttribute private String excludedExceptionTypes;
     @PluginBuilderAttribute private String includeMdcKeys;
     @PluginBuilderAttribute private String locale;
     @PluginBuilderAttribute private String enabled;
@@ -595,6 +596,19 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * A single comma-separated value of fully qualified exception class names. An event whose cause
+     * chain contains any of them never alerts — matched anywhere in the chain, not just on the
+     * surface throwable.
+     *
+     * @param excludedExceptionTypes the comma-separated list of fully qualified class names
+     * @return this builder
+     */
+    public Builder setExcludedExceptionTypes(String excludedExceptionTypes) {
+      this.excludedExceptionTypes = excludedExceptionTypes;
+      return asBuilder();
+    }
+
+    /**
      * A single comma-separated allow-list of MDC keys whose values are rendered into alert bodies,
      * one {@code key: value} line each. Empty by default, and there is deliberately no wildcard
      * form: log4j2's {@code ThreadContext} is application-owned and free-form, so only the keys
@@ -753,6 +767,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
               .title(title)
               .appName(appName)
               .excludedLoggers(excludedLoggers)
+              .excludedExceptionTypesCsv(excludedExceptionTypes)
               // Unconditional: warnTopic's core default IS null, so an absent attribute must map
               // to null rather than be skipped — it is the opt-in switch, not a styling value.
               .warnTopic(warnTopic)

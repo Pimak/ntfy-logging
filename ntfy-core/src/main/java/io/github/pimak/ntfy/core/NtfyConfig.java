@@ -42,6 +42,7 @@ public final class NtfyConfig {
   private final String clickUrl;
   private final String actions;
   private final List<String> excludedLoggerPrefixes;
+  private final List<String> excludedExceptionTypes;
   private final List<String> includeMdcKeys;
   private final boolean enabled;
   private final boolean asyncEnabled;
@@ -82,6 +83,8 @@ public final class NtfyConfig {
     this.actions = b.actions;
     this.excludedLoggerPrefixes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
+    this.excludedExceptionTypes =
+        Collections.unmodifiableList(new ArrayList<>(b.excludedExceptionTypes));
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -251,6 +254,19 @@ public final class NtfyConfig {
   /** The unmodifiable list of logger-name prefixes excluded from alerting. */
   public List<String> getExcludedLoggerPrefixes() {
     return excludedLoggerPrefixes;
+  }
+
+  /**
+   * The unmodifiable list of fully qualified exception class names whose presence ANYWHERE in an
+   * event's cause chain gates the event out. Empty by default.
+   *
+   * <p>Matched as whole names, not prefixes — the opposite of {@link #getExcludedLoggerPrefixes()},
+   * and deliberately so. A logger name is hierarchical, so a prefix names a subtree an operator can
+   * reason about; a class name is not, so a prefix there would silently catch unrelated types that
+   * merely share a spelling.
+   */
+  public List<String> getExcludedExceptionTypes() {
+    return excludedExceptionTypes;
   }
 
   /**
@@ -456,6 +472,7 @@ public final class NtfyConfig {
     private String clickUrl;
     private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
+    private List<String> excludedExceptionTypes = new ArrayList<>();
     private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
@@ -638,6 +655,44 @@ public final class NtfyConfig {
       }
       this.excludedLoggerPrefixes = prefixes;
       return this;
+    }
+
+    /**
+     * Sets the excluded exception types from an explicit list of fully qualified class names
+     * (defensively copied, null-safe, blanks dropped).
+     */
+    public Builder excludedExceptionTypes(List<String> types) {
+      this.excludedExceptionTypes = normalizeCsvEntries(types);
+      return this;
+    }
+
+    /**
+     * Convenience: sets the excluded exception types from a single comma-separated string of fully
+     * qualified class names, trimming each entry and dropping blanks. A {@code null}/blank csv
+     * clears the list. This is the spelling every adapter's flat configuration surface uses.
+     */
+    public Builder excludedExceptionTypesCsv(String csv) {
+      List<String> types = new ArrayList<>();
+      if (csv != null && !csv.isBlank()) {
+        for (String part : csv.split(",")) {
+          types.add(part);
+        }
+      }
+      this.excludedExceptionTypes = normalizeCsvEntries(types);
+      return this;
+    }
+
+    /** Trims, drops nulls and blanks. Shared so the list and csv spellings cannot disagree. */
+    private static List<String> normalizeCsvEntries(List<String> raw) {
+      List<String> normalized = new ArrayList<>();
+      if (raw != null) {
+        for (String entry : raw) {
+          if (entry != null && !entry.isBlank()) {
+            normalized.add(entry.trim());
+          }
+        }
+      }
+      return normalized;
     }
 
     /**

@@ -709,7 +709,9 @@ public final class AlertEngine {
    * a benign no-op return rather than an NPE misreported as an unexpected failure.
    */
   public void submit(AlertEvent event) {
-    if (isExcluded(event.loggerName()) || hasNoAlertMarker(event)) {
+    if (isExcluded(event.loggerName())
+        || hasNoAlertMarker(event)
+        || hasExcludedExceptionType(event)) {
       return;
     }
     // Snapshot the volatile fields once: a concurrent stop() nulling `publisher`/the routes
@@ -1025,6 +1027,33 @@ public final class AlertEngine {
   /** True when {@code event} carries the {@link #NO_ALERT_MARKER_NAME} marker. */
   boolean hasNoAlertMarker(AlertEvent event) {
     return event.markerNames().contains(NO_ALERT_MARKER_NAME);
+  }
+
+  /**
+   * True when any link of {@code event}'s cause chain names a configured excluded exception type.
+   *
+   * <p>The whole chain, not just the surface throwable: the case this gate exists for — a client
+   * that hung up mid-response — practically never reaches a logger bare. It arrives wrapped in
+   * whatever the servlet container, the framework, or the application threw around it. A gate
+   * reading only the surface type would leave the deny-list configured and inert, which is worse
+   * than not having one.
+   *
+   * <p>Names are compared whole. See {@link NtfyConfig#getExcludedExceptionTypes()} for why this
+   * differs from the prefix matching {@link #isExcluded} does on logger names.
+   */
+  boolean hasExcludedExceptionType(AlertEvent event) {
+    List<String> excluded = config.getExcludedExceptionTypes();
+    if (excluded.isEmpty()) {
+      return false;
+    }
+    for (AlertEvent.Cause cause : event.causeChain()) {
+      // className is documented as possibly null in degenerate cases; contains() on a null is
+      // false rather than an NPE, but going through equals() the other way round would throw.
+      if (cause.className() != null && excluded.contains(cause.className())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static boolean isBlank(String s) {

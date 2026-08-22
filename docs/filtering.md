@@ -1,8 +1,8 @@
 # Filtering
 
-The engine gives you three independent ways to control which log events actually generate a
-notification. Two are configurable — `excluded-loggers` on every adapter, the `NO_ALERT` marker on
-the adapters whose framework has markers — and one is always on.
+The engine gives you four independent ways to control which log events actually generate a
+notification. Three are configurable — `excluded-loggers` and `excluded-exception-types` on every
+adapter, the `NO_ALERT` marker on the adapters whose framework has markers — and one is always on.
 
 > Looking for `include-mdc-keys`? It is the opposite mechanism — it does not gate events at all, it
 > selects which MDC context is attached to an event that already alerts — and it has its own page:
@@ -54,7 +54,35 @@ On startup, the engine announces its exclusion configuration once (alongside its
 diagnostic), so you can confirm which prefixes are actually in effect. See
 [troubleshooting.md](troubleshooting.md) for the wording.
 
-## 2. The `NO_ALERT` marker — per-event opt-out (Logback and Log4j2)
+## 2. `excluded-exception-types` — configurable exception-type exclusion
+
+Some failures are expected and already handled, and the exception type says so on its own: a client
+that closed the connection mid-response, a cancelled request, a scheduled poll that timed out
+against a service you already monitor elsewhere. `excluded-exception-types` names those types, and
+an event whose exception chain contains any of them never alerts.
+
+```yaml
+ntfy:
+  excluded-exception-types: org.apache.catalina.connector.ClientAbortException, java.util.concurrent.CancellationException
+```
+
+Two properties are worth being explicit about, because they are what make the key usable:
+
+- **The whole cause chain is matched, not just the surface throwable.** A client disconnect almost
+  never reaches a logger bare — it arrives wrapped in whatever the container, the framework or your
+  own code threw around it. Matching only the outermost type would leave the key configured and
+  inert, which is worse than not having it: the noise continues and the config says it should not.
+- **Names are matched whole, and must be fully qualified.** Unlike `excluded-loggers`, this is not
+  prefix matching. A logger name is hierarchical, so a prefix names a subtree you can reason about;
+  a class name is not, so `java.io.IOException` here means that class and not everything whose name
+  happens to start the same way. `ClientAbortException` on its own matches nothing — write the
+  package.
+
+Use it when the *type* is what makes an error uninteresting. When it is the *source* that is noisy,
+`excluded-loggers` is the better tool; when it is one specific call site, the `NO_ALERT` marker
+below is.
+
+## 3. The `NO_ALERT` marker — per-event opt-out (Logback and Log4j2)
 
 Sometimes you want to suppress alerting for a single log statement rather than an entire logger. This
 rides on the marker concept, so it is available on the **Logback** and **Log4j2** adapters; the JUL
@@ -89,7 +117,7 @@ private static final Marker NO_ALERT = MarkerManager.getMarker("NO_ALERT");
 log.error(NO_ALERT, "Expected, already-handled failure — do not page anyone");
 ```
 
-## 3. Always-on self-exclusion — the anti-loop gate
+## 4. Always-on self-exclusion — the anti-loop gate
 
 The library's own package root, **`io.github.pimak.ntfy`**, is excluded from alerting
 unconditionally — independent of `excluded-loggers` and independent of any framework-level filter.
@@ -120,7 +148,8 @@ allowlist.
 
 ## See also
 
-- [configuration.md](configuration.md) — where `excluded-loggers` lives in each framework.
+- [configuration.md](configuration.md) — where `excluded-loggers` and `excluded-exception-types`
+  live in each framework.
 - [level-routing.md](level-routing.md) — the `warn-topic` opt-in: which levels alert and where their
   alerts go. Everything on this page applies to both routes.
 - [mdc-context.md](mdc-context.md) — the `include-mdc-keys` allow-list: attaching MDC context to the

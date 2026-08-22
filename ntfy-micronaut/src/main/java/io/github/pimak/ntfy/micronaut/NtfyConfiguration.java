@@ -43,6 +43,7 @@ public class NtfyConfiguration {
   private String actions;
   private String locale;
   private String excludedLoggers;
+  private String excludedExceptionTypes;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -464,6 +465,26 @@ public class NtfyConfiguration {
    */
   public void setExcludedLoggers(String excludedLoggers) {
     this.excludedLoggers = excludedLoggers;
+  }
+
+  /**
+   * Comma-separated fully qualified exception class names. An event whose cause chain contains
+   * any of them never alerts — matched anywhere in the chain, not just on the surface
+   * throwable.
+   *
+   * @return the excluded types, or {@code null} when unset
+   */
+  public String getExcludedExceptionTypes() {
+    return excludedExceptionTypes;
+  }
+
+  /**
+   * Sets the comma-separated fully qualified exception class names excluded from alerting.
+   *
+   * @param excludedExceptionTypes the excluded types
+   */
+  public void setExcludedExceptionTypes(String excludedExceptionTypes) {
+    this.excludedExceptionTypes = excludedExceptionTypes;
   }
 
   /**
