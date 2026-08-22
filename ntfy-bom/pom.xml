@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.pimak</groupId>
+        <artifactId>ntfy-logging</artifactId>
+        <version>2.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>ntfy-bom</artifactId>
+    <packaging>pom</packaging>
+
+    <name>ntfy-bom</name>
+    <description>
+        Bill of materials pinning every published ntfy-logging artifact to one version, so a
+        consumer states the version once in dependencyManagement and omits it on each dependency.
+    </description>
+
+    <!--
+        The USER-FACING artifacts only — the seven a consumer ever writes in a pom. Deliberately
+        NOT listed:
+          - ntfy-quarkus (packaging=pom): an aggregator, never a dependency.
+          - ntfy-quarkus-deployment: resolved by the Quarkus build from the runtime artifact's
+            metadata, never declared by hand. Managing it here would invite people to declare it.
+        Both are still published and still guarded by japicmp; being absent from the BOM says
+        "you don't depend on this", not "this isn't released".
+
+        No japicmp plugin declaration here, unlike the eight published jars: there is no jar to
+        compare, and the BOM's own compatibility surface IS this list — dropping an entry is what
+        would break a consumer, and that shows up as the artifact itself disappearing.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-jul</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-logback</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-log4j2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-micronaut</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ntfy-quarkus-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

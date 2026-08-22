@@ -162,6 +162,7 @@ the aggregated [Javadoc](https://pimak.github.io/ntfy-logging/latest/apidocs/) f
 | [docs/filtering.md](docs/filtering.md) | `excluded-loggers`, the `NO_ALERT` marker (Logback and Log4j2), and the always-on self-exclusion |
 | [docs/mdc-context.md](docs/mdc-context.md) | `include-mdc-keys` — attaching allow-listed MDC context to alert bodies, its guards, and why there is no wildcard |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Diagnostic messages the engine emits, where each framework surfaces them, and what to do |
+| [docs/bom.md](docs/bom.md) | `ntfy-bom` — importing one version for every published artifact instead of pinning each |
 | [docs/compatibility.md](docs/compatibility.md) | Tested JDK/Logback/Log4j2/Spring/Quarkus/Micronaut/GraalVM versions and the ntfy server API surface |
 
 ## License
