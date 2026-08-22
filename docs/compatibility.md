@@ -9,17 +9,17 @@ mean different things:
 | Status | Means |
 |--------|-------|
 | **Tested (CI)** | The pinned version. Exercised on every push and PR. |
-| **Verified** | The module's suite was run against this version and passed — once, locally, on JDK 21. Not re-run by CI, so it can regress without anything going red. |
+| **Verified** | The module's suite was run against this version and passed, on the JDK that version's row in `.github/compat-versions.tsv` names. Re-run weekly by the sweep, not on every push. |
 | **Expected to work** | Reasoned from the API surface used. Not run. |
 
-A few rows carry a more specific status (**API-checked only**, **Does not work**, **Cannot be built
-here**); each is explained where it appears.
+A few rows carry a more specific status (**API-checked only**, **Does not work**); each is explained
+where it appears.
 
-A verified row is evidence, not a guarantee: a single green run on one JDK. Where a range is given,
-the listed versions are the ones actually run — the range between them is interpolation.
+A verified row is evidence, not a guarantee: a green run on one JDK, repeated weekly. Where a range
+is given, the listed versions are the ones actually run — the range between them is interpolation.
 
 **What keeps this page from going stale.** A measurement taken once decays silently, so the page is
-held in place from three sides:
+held in place from four sides:
 
 - The **Tested (CI)** rows carry no number of their own. They name the `pom.xml` property, and
   `hooks/compat_pins.py` substitutes the pinned value when the site is built — so a Dependabot bump
@@ -29,8 +29,13 @@ held in place from three sides:
   must resolve against `pom.xml`, and the **Verified** rows and the sweep's version list must be the
   same set, in both directions. Neither side can drift ahead of the other.
 - The weekly `Compatibility sweep` workflow re-runs each module's suite against every **Verified**
-  version, and files an issue when one stops passing. It is scheduled rather than blocking, because
-  it can fail for reasons unrelated to the change in front of you.
+  version, on the JDK that version's row names, and files an issue when one stops passing. It is
+  scheduled rather than blocking, because it can fail for reasons unrelated to the change in front
+  of you.
+- One claim on this page is about the *published jar* rather than the sources, and so cannot be
+  checked by recompiling: that `ntfy-micronaut`, built by the Micronaut 4 annotation processor,
+  still runs on Micronaut 5. The sweep's `forward-compat` job guards it against whatever 5.x is
+  current — see [Micronaut](#micronaut).
 
 Both read `.github/compat-versions.tsv`, which is the single source of truth for the swept versions.
 To add or drop one, edit that file and the matching row here; the guard fails until they agree.
@@ -121,16 +126,34 @@ alongside it. The `NtfyClient` bean and the Micrometer meters are available eith
 | Version | Status |
 |---------|--------|
 | {{ pin.micronaut.version }} | **Tested (CI)** — the `micronaut-platform` version pinned in this repo (`micronaut.version` in `pom.xml`), resolving Micronaut core 4.10.26 |
-| 4.6.3, 4.9.4 | **Verified** — full suite green on each |
+| 4.6.3, 4.9.4 | **Verified** — full suite green on each, on JDK 21 |
 | 4.x (other, ≥ 4.6) | **Expected to work** — the only API surface used is the stable `@ConfigurationProperties`, `@Factory`/`@Singleton`, `@Requires(classes = …)` and `ApplicationEventListener<StartupEvent>` contract |
-| 5.x | **Cannot be built here** — see below |
+| 5.1.1 | **Verified** — full suite green, on JDK 25; requires a Java 25 runtime, see below |
+| 5.x (other) | **Expected to work** — same API surface as above, which 5.x keeps |
 
-Micronaut 5 is not merely untested, it cannot be built here: `micronaut-inject` **and** the
-`micronaut-inject-java` annotation processor ship Java 25 bytecode (class file version 69), so
-compiling or running them under this project's Java 21 baseline fails outright (`… has been compiled
-by a more recent version of the Java Runtime`). Micronaut 4.10.x is Java 17 bytecode and runs on both
-JDKs CI builds with (21 and 25). Support for Micronaut 5 can only be revisited together with the
-project's `maven.compiler.release` floor.
+**Micronaut 5 works, and needs no separate artifact — but it moves the JDK floor for this module
+only.** Micronaut 5 ships Java 25 bytecode (class file version 69) in `micronaut-inject` and
+`micronaut-core`, and in the `micronaut-inject-java` annotation processor. Two consequences, and
+they are different from each other:
+
+- **At build time**, the module can only be compiled on JDK 25. On JDK 21 the build fails before it
+  reaches your code, when javac tries to load the processor (`… has been compiled by a more recent
+  version of the Java Runtime`).
+- **At run time**, an application using Micronaut 5 needs a Java 25 JVM — which it does anyway,
+  since Micronaut 5 requires one. `ntfy-micronaut`'s own classes stay at the project's Java 21
+  baseline; it is the Micronaut jars on the classpath that raise the floor, not this module.
+
+`micronaut.version` stays pinned on the 4.10.x line in `pom.xml`, so the JDK 21 leg of CI keeps
+proving the project's own baseline. **That pin is a default, not a compatibility ceiling** — an
+application on Micronaut 5 overrides it and gets a supported combination.
+
+**The published jar is forward-compatible.** `ntfy-micronaut` is released compiled by the Micronaut
+4 annotation processor, and the bean definitions it generates are read unchanged by Micronaut 5's
+`micronaut-inject` — so an application on Micronaut 5 can use the artifact as published, without
+waiting for a rebuild. Micronaut publishes no promise to that effect, so it is not taken on trust:
+the sweep's `forward-compat` job rebuilds the module against Micronaut 4, then runs its suite with
+only the classpath moved to the latest Micronaut 5 release, and fails if the generated definitions
+were rebuilt, if the override missed, or if no test ran.
 
 The module is **Logback-only**: it installs the `ntfy-auto` appender on the root Logback logger —
 Logback being what `micronaut-logging` binds by default — and skips the install with a warning if
