@@ -212,6 +212,35 @@ for doc in "${DOC_FILES[@]}"; do
   sed -i "s#\(io.github.pimak:ntfy-[a-z0-9-]*:\)[0-9][0-9.]*#\1${VERSION}#g" "${doc}"
 done
 
+#    Reproducible-build stamp. <project.build.outputTimestamp> is what every archiver in the
+#    reactor writes into its zip entries instead of the wall clock, so a rebuild of this tag from
+#    clean sources is byte-identical to the jars published from it. That only stays true of THIS
+#    release if the stamp moves with it: left alone it reproduces perfectly while claiming the
+#    previous release's date, which is precisely the claim someone verifying the tag is checking.
+#
+#    Last of step 2's rewrites, and deliberately last: the ones above rewrite prose, CHANGELOG
+#    headings and install snippets, this one rewrites the reactor's own build inputs. Same ${TODAY}
+#    the CHANGELOG section was stamped with a few lines up — that shared origin is what
+#    ReproducibleBuildGuardTest checks, so the two cannot drift apart.
+#
+#    ONLY the root pom declares the property, so this is not the `find . -name pom.xml` sweep the
+#    version bump needs; step 1's versions:set has already rewritten the poms by now, so a stamp
+#    written before it would have been discarded.
+echo "==> Stamping reproducible-build timestamp ${TODAY}"
+grep -qF '<project.build.outputTimestamp>' pom.xml \
+  || { echo "ERROR: <project.build.outputTimestamp> not found in pom.xml — reproducible builds are off." >&2; exit 1; }
+sed -i "s#<project.build.outputTimestamp>[^<]*</project.build.outputTimestamp>#<project.build.outputTimestamp>${TODAY}T00:00:00Z</project.build.outputTimestamp>#" pom.xml
+#    Assert the rewrite actually landed, because the check above cannot tell you that it did. sed is
+#    line-based: reformat the property across several lines — which no XML tool would consider a
+#    change at all — and the opening tag still greps, the substitution matches nothing, and the
+#    release proceeds to commit and tag carrying the PREVIOUS release's date. That is the exact
+#    silent staleness this stamp exists to prevent, so it must not be reachable through the script
+#    that maintains it. Downstream nets exist (ReproducibleBuildGuardTest fails once the CHANGELOG
+#    has moved on) but they fire in the deploy job, after the tag is pushed — past the point of no
+#    return in D-03, and far past the point where failing is still free.
+grep -qF "<project.build.outputTimestamp>${TODAY}T00:00:00Z</project.build.outputTimestamp>" pom.xml \
+  || { echo "ERROR: the <project.build.outputTimestamp> rewrite did not land — the property is present but was not updated to ${TODAY}. Check whether its formatting in pom.xml still matches the substitution above (it must sit on one line)." >&2; exit 1; }
+
 # 3) Single reviewed commit folding the bump + docs pass. versions:set touches every
 #    module's pom.xml (root + each child), so stage them all by name, not just the root
 #    pom.xml — a partial stage here silently ships a reactor with mismatched module

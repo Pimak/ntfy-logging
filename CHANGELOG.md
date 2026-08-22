@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **The build is reproducible.** `project.build.outputTimestamp` is set at the parent pom, so every
+  archiver in the reactor writes that instant into its zip entries instead of the wall clock and a
+  rebuild of a tag from clean sources is byte-identical to the jars published from it — which is
+  what lets a third party check that what is on Central really came from the tag it names. It
+  generalises to the whole reactor what `<notimestamp>` already did for the javadoc alone. The stamp
+  is the release date and `release.sh` now rewrites it from the same `TODAY` that dates the
+  CHANGELOG section, in the same commit as the version bump, because a stamp nothing moves keeps
+  reproducing perfectly while claiming the previous release's date. A new `reproducible` CI job runs
+  `artifact:check-buildplan` on every push and PR, which fails both if the property goes missing and
+  if a plugin is bumped to a version whose output is not reproducible; `ReproducibleBuildGuardTest`
+  additionally holds the stamp against the CHANGELOG's newest dated heading, since Maven silently
+  ignores a value it cannot parse and would otherwise drop reproducibility without failing anything.
+
 ### Changed
 - **The GraalVM section says what the jars actually carry.** `docs/compatibility.md` described the
   hand-rolled (non-Quarkus) native path as `--enable-url-protocols=https` plus a resource

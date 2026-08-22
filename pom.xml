@@ -70,6 +70,23 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
+        <!--
+            Reproducible builds. Every archiver in the reactor (jar, source-jar, javadoc-jar) writes
+            this instant into its zip entries instead of the wall clock, so rebuilding a tag from
+            clean sources produces byte-identical artifacts — which is what lets a third party check
+            that the jar on Central was really built from the tag it claims. It generalises to the
+            whole reactor what <notimestamp> in the javadoc profile already does for one plugin.
+
+            The value is the RELEASE DATE, and release.sh rewrites it from the same ${TODAY} that
+            stamps the CHANGELOG section, in the same commit as the version bump. Left to drift it
+            would still reproduce — every rebuild would agree — while claiming a build date that is
+            not the release's, so ReproducibleBuildGuardTest holds it against the CHANGELOG's newest
+            dated heading and fails when the two part ways.
+
+            Maven silently IGNORES a value it cannot parse, which would drop reproducibility without
+            failing anything; the same guard parses it here so that cannot pass unnoticed.
+        -->
+        <project.build.outputTimestamp>2026-08-20T00:00:00Z</project.build.outputTimestamp>
         <logback.version>1.6.3</logback.version>
         <!--
             Latest stable of the maintained Log4j 2.x line (3.x is still 3.0.0-beta*). Consumed
@@ -224,6 +241,21 @@
                         logback adapter additionally allows logback/slf4j, etc.), so it cannot be a
                         single inherited execution. See each module pom for its allowlist and the
                         explanatory comment that travels with it.
+                    -->
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-artifact-plugin</artifactId>
+                    <version>3.6.0</version>
+                    <!--
+                        Version only — no execution, here or anywhere. The plugin's check-buildplan
+                        goal is invoked by its prefix from the `reproducible` CI job, which picks
+                        the version up from this block; binding it to a phase would put the check
+                        in every local build for a property that can only change at release time.
+
+                        Pinned here rather than spelled out in the workflow so Dependabot sees it:
+                        the goal's own rule set is what knows which plugin versions are
+                        reproducible, so a stale pin makes the gate quietly weaker over time.
                     -->
                 </plugin>
                 <plugin>

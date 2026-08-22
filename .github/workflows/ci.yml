@@ -37,6 +37,38 @@ jobs:
       - name: Build and test
         run: ./mvnw --batch-mode verify
 
+  # Reproducibility gate. `artifact:check-buildplan` reads the resolved build plan of every module
+  # and fails on anything known to make a rebuild differ from the build before it: a missing
+  # <project.build.outputTimestamp>, or a plugin at a version whose output is on the plugin's
+  # not-reproducible list.
+  #
+  # What green means here, precisely, because the honest claim is narrower than the obvious one:
+  # the build plan contains nothing known to break reproducibility. It is a static check. Nothing in
+  # CI builds the reactor twice and diffs the artifacts, so a plugin whose output varies without
+  # being on that list would pass here — the gate protects the property, it does not measure it. To
+  # measure it, build the reactor twice from a clean tree and compare the jar checksums.
+  #
+  # Separate job rather than a step in `build`: it needs no compile and no test run (the goal only
+  # inspects the plan), so it reports in seconds instead of waiting behind the matrix, and its
+  # failure reads as "the build stopped being reproducible" rather than as a build break.
+  #
+  # Single JDK on purpose. The build plan is the same on 21 and 25 — the property and the plugin
+  # versions come from pom.xml, not from the toolchain — so a matrix here would buy two identical
+  # answers.
+  reproducible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Check the build plan is reproducible
+        # Prefix form: the version is pinned in the root pom's <pluginManagement> so Dependabot can
+        # bump it, rather than being frozen in a coordinate here where nothing would ever move it.
+        run: ./mvnw --batch-mode artifact:check-buildplan
+
   # Slow leg (the native smoke): GraalVM-native-compiles the Quarkus integration-tests app and runs
   # its @QuarkusIntegrationTest against the native binary — proof the extension works in a native
   # image (URL protocols, log handler install, engine boot at RUNTIME_INIT). This is the expensive
