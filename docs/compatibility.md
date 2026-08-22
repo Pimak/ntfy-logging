@@ -220,13 +220,47 @@ Note that the native leg exercises the alert path, not the Micrometer binding: `
 deliberately kept out of the integration-tests app so the native build stays fast. The binder adds no
 reflection and no build-time initialization of its own, so nothing about it is native-specific.
 
-For a **hand-rolled** (non-Quarkus) native build of `ntfy-core` / `ntfy-logback`, `ntfy-core` ships
-native-image metadata under
-`META-INF/native-image/io.github.pimak/ntfy-core/` — `--enable-url-protocols=https` (so the JDK
-`HttpClient` TLS handler survives image build) and a resource registration for `ntfy.properties` (so
-`ConfigLoader` can read it at image run time). Any GraalVM 21+ picks these up automatically — that
-floor is about the metadata format, and applies to this non-Quarkus path only; it does not walk back
-the table above, where the Quarkus path needs 25.
+### Metadata shipped for a hand-rolled build
+
+For a **hand-rolled** (non-Quarkus) native build of `ntfy-core` / `ntfy-logback`, the jars carry
+their own reachability metadata at the canonical
+`META-INF/native-image/<groupId>/<artifactId>/` location, so any GraalVM 21+ picks it up with no
+flag and no hand-written config on your side. That floor is about the metadata format, and applies
+to this non-Quarkus path only; it does not walk back the table above, where the Quarkus path needs
+25. In full, and this is the whole of it:
+
+| Module | File | What it registers, and why |
+|--------|------|----------------------------|
+| `ntfy-core` | `native-image.properties` | `--enable-url-protocols=https`. native-image strips protocol handlers it cannot prove reachable, and the JDK `HttpClient`'s TLS handler is one of them; without this a native binary throws `unknown protocol: https` on its first publish. |
+| `ntfy-core` | `resource-config.json`, `resources` | `ntfy.properties`, so `ConfigLoader` can still find it at image run time, and `io/github/pimak/ntfy/core/AlertMessages(_…)?.properties` — the alert-message bundle files themselves. |
+| `ntfy-core` | `resource-config.json`, `bundles` | The `io.github.pimak.ntfy.core.AlertMessages` bundle, for locales `""` (the base), `en` and `fr`. Registering the `.properties` files as resources on the row above is **not** enough on its own: `ResourceBundle` lookup is a separate mechanism in a native image, and without this block a localized alert body comes out as its key. |
+| `ntfy-jul` | `reflect-config.json` | `NtfyJulAutoHandler`'s no-arg constructor, which `LogManager` instantiates reflectively when `logging.properties` names it, plus — conditionally on `org.jboss.logmanager.ExtLogRecord` being reachable — the `getMdc` accessor the MDC block reads under JBoss LogManager. |
+
+Every other published module ships no native-image metadata of its own, and each for a reason:
+`ntfy-logback`, `ntfy-micronaut` and `ntfy-spring-boot-starter` reach the network through
+`ntfy-core`, whose rows above travel with it and cover them; `ntfy-log4j2`'s plugin metadata is
+generated into the jar at build time by log4j-core's own annotation processor (see
+[Log4j2](#log4j2)); and `ntfy-quarkus-runtime` needs none, because the extension builds its
+`HttpClient`, threads and scheduler at `RUNTIME_INIT`, so Quarkus' own substitutions register the
+URL protocols and nothing is reachable at image build time to declare.
+
+### What is not covered
+
+The only native surface this project measures is the Quarkus one, in the `native-smoke` job. Two
+other native paths exist, and this page claims **neither**:
+
+- **Spring AOT** — `spring-boot:process-aot` followed by a native image of an application using
+  `ntfy-spring-boot-starter`.
+- **Micronaut native** — `micronaut-maven-plugin:native-image` on an application using
+  `ntfy-micronaut`.
+
+Neither is known to be broken, and no obstacle has been identified in either: both starters use the
+ordinary bean and auto-configuration mechanisms their AOT engines already handle generically, and
+both reach the wire through `ntfy-core`, whose metadata travels with its jar. But *no obstacle
+identified* is reasoning, and the rest of this page is measurement — so these two are recorded here
+as the gap they are, not folded into the Quarkus row's green tick. A hand-rolled native build of
+plain `ntfy-core` / `ntfy-logback` is unrun for the same reason, which is what makes the metadata
+table above worth reading rather than trusting.
 
 ## ntfy server
 

@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **The GraalVM section says what the jars actually carry.** `docs/compatibility.md` described the
+  hand-rolled (non-Quarkus) native path as `--enable-url-protocols=https` plus a resource
+  registration for `ntfy.properties`, and stopped there — omitting the `bundles` block that
+  registers `io.github.pimak.ntfy.core.AlertMessages`, without which a localized alert body comes
+  out as its key in a native image, and omitting `ntfy-jul`'s `reflect-config.json` entirely. A
+  reader following the page would have concluded both were missing and written them again by hand.
+  The section now lists every shipped metadata file and what each registers, and says which modules
+  ship none. It also states, rather than leaves to inference, the two native paths this project does
+  **not** measure — Spring AOT and Micronaut native — and why they are recorded as a gap rather than
+  folded into the Quarkus row's green tick. `NativeImageMetadataGuardTest` now fails the build when
+  any metadata file, resource, bundle, locale, reflectively registered type or image-builder flag is
+  shipped without appearing on the page — the file-set check included, so the page's claim to
+  inventory them in full cannot be quietly falsified by adding one. Two of its checks read no
+  documentation at all and compare build inputs to each other, which is what makes them survive a
+  registration being *deleted* rather than changed: a translation added as a `_xx.properties` file
+  but left out of the `locales` array, and any classpath resource the code reads or the jar ships
+  that no include pattern matches. Both resolve correctly on the JVM and silently fail in a native
+  image, which is the class of bug neither the suite nor the `native-smoke` job can see.
 - **One Maven line for the whole project.** Every build — local, CI, the compatibility sweep, the
   docs site — ran Maven 4.0.0-rc-5 through `./mvnw`, while the release job downloaded its own Maven
   3.9.9 to publish: `central-publishing-maven-plugin` does not upload under Maven 4, where `deploy`
