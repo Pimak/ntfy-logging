@@ -102,6 +102,11 @@ public final class ConfigLoader {
 
     apply(builder::icon, resolve("icon", envLookup, fileProps, sysProps));
 
+    String iconsByLogger = resolve("icons-by-logger", envLookup, fileProps, sysProps);
+    if (iconsByLogger != null) {
+      builder.iconsByLoggerPrefixCsv(iconsByLogger);
+    }
+
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
     // redirect where alerts go, it only names which allow-listed context lines are rendered into a

@@ -52,6 +52,7 @@ final class NtfyConfigFactory {
     b.cache(config.cache());
     b.firebase(config.firebase());
     config.icon().ifPresent(b::icon);
+    config.iconsByLogger().ifPresent(b::iconsByLoggerPrefixCsv);
     config.warnTopic().ifPresent(b::warnTopic);
     config.includeMdcKeys().ifPresent(b::includeMdcKeysCsv);
 

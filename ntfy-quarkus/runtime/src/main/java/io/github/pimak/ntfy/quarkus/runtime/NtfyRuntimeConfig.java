@@ -137,6 +137,13 @@ public interface NtfyRuntimeConfig {
   Optional<String> icon();
 
   /**
+   * Per-logger icon overrides as {@code prefix=url} pairs separated by commas. The
+   * longest prefix matching an alert's logger wins; anything unmatched keeps the default icon.
+   * Alerts only — a notification has no logger to match on.
+   */
+  Optional<String> iconsByLogger();
+
+  /**
    * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one {@code
    * key: value} line each, in the order given here.
    *
