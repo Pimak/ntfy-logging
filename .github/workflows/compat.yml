@@ -36,8 +36,18 @@ jobs:
       - id: read
         name: Read the version list
         run: |
+          set -euo pipefail
+          # An explicit existence check, because the guard below cannot tell "the file is gone" from
+          # "the file says nothing" — and with a fourth column now required, a row list that fails to
+          # parse is a likelier mistake than it was.
+          if [ ! -f .github/compat-versions.tsv ]; then
+            echo "::error::.github/compat-versions.tsv is missing"
+            exit 1
+          fi
+          # `|| true` because grep exits 1 on a file that is all comments and blank lines. That is a
+          # state this step reports on in its own words below, not a pipeline error to die on.
           combos=$(grep -vE '^[[:space:]]*(#|$)' .github/compat-versions.tsv \
-            | awk '{printf "%s{\"module\":\"%s\",\"property\":\"%s\",\"version\":\"%s\",\"jdk\":\"%s\"}", (NR>1 ? "," : ""), $1, $2, $3, $4}')
+            | awk '{printf "%s{\"module\":\"%s\",\"property\":\"%s\",\"version\":\"%s\",\"jdk\":\"%s\"}", (NR>1 ? "," : ""), $1, $2, $3, $4}' || true)
           if [ -z "$combos" ]; then
             echo "::error::.github/compat-versions.tsv yielded no combinations"
             exit 1
@@ -107,7 +117,7 @@ jobs:
           # Release versions only — the </version> tag immediately after the third digit group is
           # what rejects 5.0.0-M1 and 5.0.0-RC1, which must never gate a scheduled job.
           url=https://repo1.maven.org/maven2/io/micronaut/platform/micronaut-platform/maven-metadata.xml
-          version=$(curl -sSf --retry 3 --retry-delay 5 "$url" \
+          version=$(curl -sSf --retry 3 --retry-delay 5 --connect-timeout 10 --max-time 60 "$url" \
             | grep -oE '<version>5\.[0-9]+\.[0-9]+</version>' \
             | sed -E 's|</?version>||g' \
             | sort -V \
@@ -221,7 +231,7 @@ jobs:
           body=$(printf '%s\n' \
             'The weekly compatibility sweep failed. Either a version that `docs/compatibility.md`' \
             "reports as **Verified** no longer passes its module's test suite, or the" \
-            '`forward-compat` job did — meaning the published Micronaut 4-built jar no longer runs' \
+            '`forward-compat` job failed — meaning the published Micronaut 4-built jar no longer runs' \
             'on the latest Micronaut 5, which that page also claims.' \
             '' \
             "Run: $RUN_URL" \
