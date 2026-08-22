@@ -99,6 +99,13 @@ public final class AlertEngine {
   // submit() call may race a concurrent stop() nulling this field. Non-null exactly while the
   // engine is started, so it doubles as the "engine is live" sentinel the old `rateLimiter` field
   // was.
+  /**
+   * The configured icon URL once it has been checked at {@code start()}, or {@code null} when unset
+   * or unusable. Held here rather than read from the config on each publish so the check — and its
+   * diagnostic — happen exactly once.
+   */
+  private volatile String icon;
+
   private volatile RouteState errorRoute;
 
   // volatile: same model as `errorRoute`. Non-null ONLY when a warn-topic is configured — a null
@@ -309,6 +316,19 @@ public final class AlertEngine {
 
     if (config.isDeliveryPolicyValueRejected()) {
       diagnostics.warn(messages.statusInvalidDeliveryPolicyValue());
+    }
+
+    // Dropped loudly rather than refused, matching the priority/tags guard above and unlike the
+    // url/topic refusals: an icon is decoration, and decoration must never be able to stop the
+    // paging. Checked here because it cannot be checked anywhere else — the subscriber's client
+    // fetches the icon, so a bad URL yields no non-2xx and no signal at all.
+    String configuredIcon = config.getIcon();
+    if (configuredIcon != null && !configuredIcon.isBlank()
+        && !NtfyPublisher.isValidIconUrl(configuredIcon)) {
+      diagnostics.warn(messages.statusInvalidIcon());
+      this.icon = null;
+    } else {
+      this.icon = NtfyPublisher.isValidIconUrl(configuredIcon) ? configuredIcon : null;
     }
 
     this.authMode =
@@ -811,7 +831,7 @@ public final class AlertEngine {
                   route.tags(),
                   config.getClickUrl(),
                   config.getActions(),
-                  null));
+                  icon));
       if (result.success()) {
         counters.incrementPublished();
       } else {
@@ -1001,7 +1021,7 @@ public final class AlertEngine {
                 route.digestTags(),
                 config.getClickUrl(),
                 config.getActions(),
-                null));
+                icon));
     if (r.success()) {
       // A digest notification accepted by ntfy counts as one published notification. This site also
       // covers the stop()-flush path, which routes through this same method.

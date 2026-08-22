@@ -46,6 +46,7 @@ public class NtfyConfiguration {
   private String excludedExceptionTypes;
   private boolean cache = true;
   private boolean firebase = true;
+  private String icon;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -525,6 +526,26 @@ public class NtfyConfiguration {
    */
   public void setFirebase(boolean firebase) {
     this.firebase = firebase;
+  }
+
+  /**
+   * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
+   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
+   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+   *
+   * @return the icon URL, or {@code null} when unset
+   */
+  public String getIcon() {
+    return icon;
+  }
+
+  /**
+   * Sets the notification icon URL.
+   *
+   * @param icon the icon URL
+   */
+  public void setIcon(String icon) {
+    this.icon = icon;
   }
 
   /**

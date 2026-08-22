@@ -47,6 +47,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String excludedExceptionTypes;
   private String cache;
   private String firebase;
+  private String icon;
   private String includeMdcKeys;
   private String connectTimeout;
   private String requestTimeout;
@@ -239,6 +240,15 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
+   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
+   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+   */
+  public void setIcon(String icon) {
+    this.icon = icon;
+  }
+
+  /**
    * A comma-separated allow-list of MDC keys rendered into alert bodies, one {@code key: value} line
    * each, in the order given here. Unset by default, and there is deliberately no wildcard form: an
    * MDC value reaches a notification only when an operator named its key, because a production MDC
@@ -399,6 +409,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .excludedExceptionTypesCsv(excludedExceptionTypes)
             .cache(cache)
             .firebase(firebase)
+            .icon(icon)
             .warnTopic(warnTopic)
             // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
             // treats null/blank as "no keys", which is exactly the unset default.

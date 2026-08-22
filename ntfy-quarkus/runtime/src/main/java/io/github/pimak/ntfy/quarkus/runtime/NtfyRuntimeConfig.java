@@ -130,6 +130,13 @@ public interface NtfyRuntimeConfig {
   boolean firebase();
 
   /**
+   * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
+   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
+   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+   */
+  Optional<String> icon();
+
+  /**
    * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one {@code
    * key: value} line each, in the order given here.
    *

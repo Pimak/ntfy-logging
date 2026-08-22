@@ -369,6 +369,42 @@ public class NtfyPublisher {
     }
   }
 
+  /**
+   * True when {@code icon} is a URL ntfy can actually render: an {@code http}/{@code https} URL
+   * whose path ends in {@code .png}, {@code .jpg} or {@code .jpeg}.
+   *
+   * <p>Both halves matter, and both fail invisibly without this check. ntfy documents JPEG and PNG
+   * as the only supported formats, and — unlike every other header this library sends — the SERVER
+   * never fetches the icon: the subscriber's client downloads it when it displays the notification.
+   * So a wrong URL produces no non-2xx, no diagnostic, no signal of any kind. It produces a
+   * notification without an icon, indefinitely. Startup is the only place it can be caught.
+   *
+   * <p>Package-visible so {@code AlertEngine} can refuse the value at {@code start()} and {@code
+   * NtfyClient} can drop it, rather than either sending a header that will never render.
+   */
+  static boolean isValidIconUrl(String icon) {
+    if (isBlank(icon)) {
+      return false;
+    }
+    try {
+      URI uri = new URI(icon);
+      String scheme = uri.getScheme();
+      if (scheme == null
+          || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
+          || isBlank(uri.getAuthority())) {
+        return false;
+      }
+      String path = uri.getPath();
+      if (path == null) {
+        return false;
+      }
+      String lower = path.toLowerCase(java.util.Locale.ROOT);
+      return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg");
+    } catch (URISyntaxException e) {
+      return false;
+    }
+  }
+
   private static boolean isBlank(String s) {
     return s == null || s.isBlank();
   }

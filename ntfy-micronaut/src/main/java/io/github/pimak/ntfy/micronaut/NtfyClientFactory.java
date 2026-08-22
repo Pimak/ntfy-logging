@@ -74,6 +74,7 @@ public class NtfyClientFactory {
         .excludedExceptionTypesCsv(configuration.getExcludedExceptionTypes())
         .cache(configuration.isCache())
         .firebase(configuration.isFirebase())
+        .icon(configuration.getIcon())
         .includeMdcKeysCsv(configuration.getIncludeMdcKeys())
         .enabled(configuration.isEnabled())
         .asyncEnabled(configuration.isAsync())

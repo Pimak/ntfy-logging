@@ -309,6 +309,14 @@ final class AlertMessages {
   }
 
   /**
+   * Fixed warning for a configured {@code icon} that ntfy could never render. Names no value —
+   * the URL is operator-supplied and could carry a query string with anything in it.
+   */
+  String statusInvalidIcon() {
+    return get("status.invalidIcon");
+  }
+
+  /**
    * Fixed warning for an unparseable {@code startup-ping} value. Deliberately does NOT echo the
    * offending value: it arrives from the same configuration surfaces as the credentials, and a
    * misplaced token pasted into the wrong key must not be reflected into diagnostics.

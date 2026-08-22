@@ -54,6 +54,13 @@ public class NtfyProperties {
    * Firebase: no}). Default {@code true}.
    */
   private boolean firebase = true;
+
+  /**
+   * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
+   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
+   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+   */
+  private String icon;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -281,6 +288,14 @@ public class NtfyProperties {
 
   public void setFirebase(boolean firebase) {
     this.firebase = firebase;
+  }
+
+  public String getIcon() {
+    return icon;
+  }
+
+  public void setIcon(String icon) {
+    this.icon = icon;
   }
 
   /**
