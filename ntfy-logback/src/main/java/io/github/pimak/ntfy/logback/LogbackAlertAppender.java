@@ -44,6 +44,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String title;
   private String appName;
   private String excludedLoggers;
+  private String excludedExceptionTypes;
   private String includeMdcKeys;
   private String connectTimeout;
   private String requestTimeout;
@@ -206,6 +207,14 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * Comma-separated fully qualified exception class names. An event whose cause chain contains any
+   * of them never alerts — matched anywhere in the chain, not just on the surface throwable.
+   */
+  public void setExcludedExceptionTypes(String excludedExceptionTypes) {
+    this.excludedExceptionTypes = excludedExceptionTypes;
+  }
+
+  /**
    * A comma-separated allow-list of MDC keys rendered into alert bodies, one {@code key: value} line
    * each, in the order given here. Unset by default, and there is deliberately no wildcard form: an
    * MDC value reaches a notification only when an operator named its key, because a production MDC
@@ -363,6 +372,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .title(title)
             .appName(appName)
             .excludedLoggers(excludedLoggers)
+            .excludedExceptionTypesCsv(excludedExceptionTypes)
             .warnTopic(warnTopic)
             // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
             // treats null/blank as "no keys", which is exactly the unset default.

@@ -130,6 +130,7 @@ public class NtfyAutoConfiguration implements DisposableBean {
         .actionsHeader(p.getActions())
         .locale(p.getLocale())
         .excludedLoggers(p.getExcludedLoggers())
+        .excludedExceptionTypesCsv(p.getExcludedExceptionTypes())
         .includeMdcKeysCsv(p.getIncludeMdcKeys())
         .enabled(p.isEnabled())
         .asyncEnabled(p.isAsync())

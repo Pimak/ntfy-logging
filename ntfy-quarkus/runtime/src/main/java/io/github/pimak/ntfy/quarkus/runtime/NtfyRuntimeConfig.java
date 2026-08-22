@@ -110,6 +110,12 @@ public interface NtfyRuntimeConfig {
   Optional<String> excludedLoggers();
 
   /**
+   * Comma-separated fully qualified exception class names. An event whose cause chain contains any
+   * of them never alerts — matched anywhere in the chain, not just on the surface throwable.
+   */
+  Optional<String> excludedExceptionTypes();
+
+  /**
    * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one {@code
    * key: value} line each, in the order given here.
    *

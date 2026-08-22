@@ -59,6 +59,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `click-url` | String | *(none)* | URL ntfy opens when the notification is tapped (ntfy `Click` header). Applies to both error alerts and digests; sent as-is (no header when unset). |
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
+| `excluded-exception-types` | String (csv) | *(none)* | Comma-separated fully qualified exception class names. An event whose cause chain contains any of them never alerts — matched anywhere in the chain, and matched whole rather than by prefix. See [filtering.md](filtering.md). |
 | `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). Sourced per adapter: the Logback event's MDC snapshot, log4j2's `ThreadContext`, and `ExtLogRecord` under JBoss LogManager/Quarkus. No effect on plain `java.util.logging`, which has no MDC. See [mdc-context.md](mdc-context.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
@@ -398,7 +399,8 @@ Spring Boot, Micronaut, Quarkus — carry over to the
   `None` (unauthenticated) mode.
 - [level-routing.md](level-routing.md) — the `warn-topic` opt-in: which levels alert, where their
   alerts go, and why the two routes keep separate storm budgets.
-- [filtering.md](filtering.md) — how `excluded-loggers` combines with the always-on self-exclusion
+- [filtering.md](filtering.md) — how `excluded-loggers` and `excluded-exception-types` combine
+  with the always-on self-exclusion
   and the `NO_ALERT` per-event opt-out (Logback and Log4j2).
 - [mdc-context.md](mdc-context.md) — the `include-mdc-keys` allow-list: which MDC values are
   attached to the alerts that do get through, and the guards on them.

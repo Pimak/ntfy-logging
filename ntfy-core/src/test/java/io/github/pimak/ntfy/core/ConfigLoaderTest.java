@@ -321,6 +321,26 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void excludedExceptionTypesCsv_isSplitAndTrimmedAndDropsBlanks() {
+    Function<String, String> env =
+        env(
+            Map.of(
+                "NTFY_EXCLUDED_EXCEPTION_TYPES",
+                " org.apache.catalina.connector.ClientAbortException , ,java.io.IOException "));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    assertThat(config.getExcludedExceptionTypes())
+        .containsExactly("org.apache.catalina.connector.ClientAbortException", "java.io.IOException");
+  }
+
+  @Test
+  void excludedExceptionTypes_defaultsToEmpty() {
+    // The deny-list is opt-in: an unset key must never gate anything out.
+    assertThat(ConfigLoader.load(env(Map.of()), null, null).getExcludedExceptionTypes()).isEmpty();
+  }
+
+  @Test
   void includeMdcKeysCsv_isSplitAndTrimmed() {
     Function<String, String> env =
         env(Map.of("NTFY_INCLUDE_MDC_KEYS", " correlationId , tenant ,, "));

@@ -71,6 +71,7 @@ public class NtfyClientFactory {
         .actionsHeader(configuration.getActions())
         .locale(configuration.getLocale())
         .excludedLoggers(configuration.getExcludedLoggers())
+        .excludedExceptionTypesCsv(configuration.getExcludedExceptionTypes())
         .includeMdcKeysCsv(configuration.getIncludeMdcKeys())
         .enabled(configuration.isEnabled())
         .asyncEnabled(configuration.isAsync())
