@@ -20,6 +20,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   anything beyond model `4.0.0`, and its javadoc already needed a workaround here. Because the failure mode
   it replaces is silent — a green release that published nothing — the publish job now asserts it is
   running under 3.9.x and fails outright if the wrapper is ever moved to the 4.x line.
+- **Micronaut 5 is supported, and the compatibility page now says so.** `docs/compatibility.md`
+  reported Micronaut 5 as **Cannot be built here**, reasoning from the fact that
+  `micronaut-inject` and the `micronaut-inject-java` processor ship Java 25 bytecode. The bytecode
+  is real, but the conclusion was too strong: it describes a build running on JDK 21, not a limit of
+  this project. On JDK 25 the module compiles against Micronaut 5 and its whole suite passes with no
+  source change, and the jar published from the 4.x line is read by Micronaut 5 as-is — the bean
+  definitions the Micronaut 4 annotation processor generates load unchanged under
+  `micronaut-inject` 5.x, so an application on Micronaut 5 can use the artifact as released rather
+  than waiting for a rebuild. 5.1.1 is now a **Verified** row, `micronaut.version` stays pinned on
+  4.10.x so the JDK 21 leg keeps proving the project's own baseline, and the pin is documented as a
+  default rather than a compatibility ceiling.
+- **The compatibility sweep picks its JDK per row.** `.github/compat-versions.tsv` gains a fourth
+  column and every row states its build JDK, because the right JDK belongs to the version under test
+  rather than to the sweep: Micronaut 5 can only be built on 25, while every 4.x row is run on 21 on
+  purpose. A default would have hidden that distinction behind an omission, so
+  `CompatibilityMatrixGuardTest` requires the column and rejects a JDK below
+  `maven.compiler.release`, which could never have compiled at all.
+- **A sweep job watches the published jar, not just the sources.** Every other sweep leg recompiles,
+  so a green there says "our sources build against this version" — a weaker claim than the one the
+  compatibility page now makes about the released artifact. The new `forward-compat` job rebuilds
+  `ntfy-micronaut` against Micronaut 4, then runs its suite with only the classpath moved to
+  whatever 5.x is current, and fails if the generated definitions were rebuilt, if the version
+  override missed the classpath, or if no test ran. It tracks the latest release rather than a pin
+  because the risk being watched is a future 5.x dropping support for what the 4.x processor emits —
+  against a pinned version that job would stay green long after the claim stopped being true.
 
 ## [2.0.0] - 2026-08-20
 
