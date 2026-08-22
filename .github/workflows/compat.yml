@@ -37,7 +37,7 @@ jobs:
         name: Read the version list
         run: |
           combos=$(grep -vE '^[[:space:]]*(#|$)' .github/compat-versions.tsv \
-            | awk '{printf "%s{\"module\":\"%s\",\"property\":\"%s\",\"version\":\"%s\"}", (NR>1 ? "," : ""), $1, $2, $3}')
+            | awk '{printf "%s{\"module\":\"%s\",\"property\":\"%s\",\"version\":\"%s\",\"jdk\":\"%s\"}", (NR>1 ? "," : ""), $1, $2, $3, $4}')
           if [ -z "$combos" ]; then
             echo "::error::.github/compat-versions.tsv yielded no combinations"
             exit 1
@@ -54,13 +54,16 @@ jobs:
       fail-fast: false
       matrix:
         combo: ${{ fromJSON(needs.matrix.outputs.combos) }}
-    name: ${{ matrix.combo.property }}=${{ matrix.combo.version }}
+    name: ${{ matrix.combo.property }}=${{ matrix.combo.version }} (JDK ${{ matrix.combo.jdk }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: '21'
+          # From the row's fourth column, not a workflow-wide constant: Micronaut 5 ships Java 25
+          # bytecode in its annotation processor and cannot be built on 21, while the 4.x rows are
+          # run on 21 on purpose, to keep proving the project's own baseline still holds.
+          java-version: ${{ matrix.combo.jdk }}
           cache: maven
       - name: Test against the overridden version
         # -am is REQUIRED, not an optimization: without it the module resolves its ntfy-* siblings
