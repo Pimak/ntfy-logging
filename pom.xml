@@ -88,12 +88,20 @@
             needs it rather than here, so its managed versions cannot collide with the Quarkus BOM
             imported below; this property just keeps the version pinned in one visible place.
 
-            Held at the 4.10.x line ON PURPOSE: Micronaut 5 ships Java 25 bytecode (class file
-            version 69) in micronaut-inject AND in the micronaut-inject-java annotation processor,
-            so it cannot be compiled or run under this reactor's Java 21 baseline — the build fails
-            with "MixinVisitorProcessor has been compiled by a more recent version of the Java
-            Runtime". Micronaut 4.10.x is Java 17 bytecode and runs on both JDKs CI builds with
-            (21 and 25). Revisit only together with maven.compiler.release above.
+            Held at the 4.10.x line ON PURPOSE, and this is a CI constraint rather than a
+            compatibility one. Micronaut 5 ships Java 25 bytecode (class file version 69) in
+            micronaut-inject and micronaut-core, and in the micronaut-inject-java annotation
+            processor, so a build running on JDK 21 dies loading the processor
+            ("MixinVisitorProcessor has been compiled by a more recent version of the Java
+            Runtime"). Micronaut 4.10.x is Java 17 bytecode and builds on both JDKs the CI matrix
+            uses (21 and 25); moving this pin to 5.x would break the 21 leg, which exists to keep
+            proving maven.compiler.release above.
+
+            It does NOT mean Micronaut 5 is unsupported. On JDK 25 the module builds and its whole
+            suite passes against 5.x unchanged, and the jar published from this 4.x line is read by
+            Micronaut 5 as-is. Both facts are measured weekly by .github/workflows/compat.yml — the
+            5.x sweep row and the forward-compat job — and written up in docs/compatibility.md.
+            An application on Micronaut 5 simply overrides this property.
         -->
         <micronaut.version>4.10.17</micronaut.version>
     </properties>

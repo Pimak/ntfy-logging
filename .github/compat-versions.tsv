@@ -9,28 +9,34 @@
 # documented. To add or drop a version, edit here and update the matching doc row; the guard test
 # fails until the two agree.
 #
-# Columns: <maven -pl module>  <version property>  <version>
+# Columns: <maven -pl module>  <version property>  <version>  <build JDK>
+#
+# The JDK column is explicit on every row rather than defaulted, because the right JDK is a property
+# of the version under test, not of the sweep: Micronaut 5 ships Java 25 bytecode in its annotation
+# processor and cannot be built on 21, while every 4.x row is deliberately run on 21 to prove the
+# project's own baseline still holds. A default would hide that distinction behind an omission.
 # Blank lines and #-comments are ignored.
 
-ntfy-logback              logback.version       1.3.14
-ntfy-logback              logback.version       1.4.14
-ntfy-logback              logback.version       1.5.0
-ntfy-logback              logback.version       1.5.18
-ntfy-logback              logback.version       1.5.38
+ntfy-logback              logback.version       1.3.14    21
+ntfy-logback              logback.version       1.4.14    21
+ntfy-logback              logback.version       1.5.0     21
+ntfy-logback              logback.version       1.5.18    21
+ntfy-logback              logback.version       1.5.38    21
 
-ntfy-log4j2               log4j2.version        2.17.2
-ntfy-log4j2               log4j2.version        2.20.0
-ntfy-log4j2               log4j2.version        2.24.3
-ntfy-log4j2               log4j2.version        2.25.2
+ntfy-log4j2               log4j2.version        2.17.2    21
+ntfy-log4j2               log4j2.version        2.20.0    21
+ntfy-log4j2               log4j2.version        2.24.3    21
+ntfy-log4j2               log4j2.version        2.25.2    21
 
-ntfy-spring-boot-starter  spring-boot.version   3.3.13
-ntfy-spring-boot-starter  spring-boot.version   3.4.10
-ntfy-spring-boot-starter  spring-boot.version   3.5.6
+ntfy-spring-boot-starter  spring-boot.version   3.3.13    21
+ntfy-spring-boot-starter  spring-boot.version   3.4.10    21
+ntfy-spring-boot-starter  spring-boot.version   3.5.6     21
 
-ntfy-micronaut            micronaut.version     4.6.3
-ntfy-micronaut            micronaut.version     4.9.4
+ntfy-micronaut            micronaut.version     4.6.3     21
+ntfy-micronaut            micronaut.version     4.9.4     21
+ntfy-micronaut            micronaut.version     5.1.1     25
 
-ntfy-quarkus/deployment   quarkus.version       3.15.7
-ntfy-quarkus/deployment   quarkus.version       3.20.6
-ntfy-quarkus/deployment   quarkus.version       3.24.5
-ntfy-quarkus/deployment   quarkus.version       3.34.7
+ntfy-quarkus/deployment   quarkus.version       3.15.7    21
+ntfy-quarkus/deployment   quarkus.version       3.20.6    21
+ntfy-quarkus/deployment   quarkus.version       3.24.5    21
+ntfy-quarkus/deployment   quarkus.version       3.34.7    21
