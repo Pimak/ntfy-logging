@@ -51,6 +51,7 @@ final class NtfyConfigFactory {
     config.excludedExceptionTypes().ifPresent(b::excludedExceptionTypesCsv);
     b.cache(config.cache());
     b.firebase(config.firebase());
+    config.icon().ifPresent(b::icon);
     config.warnTopic().ifPresent(b::warnTopic);
     config.includeMdcKeys().ifPresent(b::includeMdcKeysCsv);
 

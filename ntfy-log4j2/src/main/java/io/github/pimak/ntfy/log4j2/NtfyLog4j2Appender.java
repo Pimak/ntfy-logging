@@ -336,6 +336,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String excludedExceptionTypes;
     @PluginBuilderAttribute private String cache;
     @PluginBuilderAttribute private String firebase;
+    @PluginBuilderAttribute private String icon;
     @PluginBuilderAttribute private String includeMdcKeys;
     @PluginBuilderAttribute private String locale;
     @PluginBuilderAttribute private String enabled;
@@ -639,6 +640,19 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
+     * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
+   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
+   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+     *
+     * @param icon the icon URL
+     * @return this builder
+     */
+    public Builder setIcon(String icon) {
+      this.icon = icon;
+      return asBuilder();
+    }
+
+    /**
      * A single comma-separated allow-list of MDC keys whose values are rendered into alert bodies,
      * one {@code key: value} line each. Empty by default, and there is deliberately no wildcard
      * form: log4j2's {@code ThreadContext} is application-owned and free-form, so only the keys
@@ -800,6 +814,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
               .excludedExceptionTypesCsv(excludedExceptionTypes)
               .cache(cache)
               .firebase(firebase)
+              .icon(icon)
               // Unconditional: warnTopic's core default IS null, so an absent attribute must map
               // to null rather than be skipped — it is the opt-in switch, not a styling value.
               .warnTopic(warnTopic)

@@ -43,7 +43,7 @@ public final class NtfyClient implements AutoCloseable {
     return publisher.publish(
         target(),
         new NtfyMessage(
-            title, message, null, null, config.getClickUrl(), config.getActions(), null));
+            title, message, null, null, config.getClickUrl(), config.getActions(), icon()));
   }
 
   /**
@@ -58,7 +58,7 @@ public final class NtfyClient implements AutoCloseable {
     return publisher.publish(
         target(),
         new NtfyMessage(
-            title, message, priority, tags, config.getClickUrl(), config.getActions(), null));
+            title, message, priority, tags, config.getClickUrl(), config.getActions(), icon()));
   }
 
   /**
@@ -74,7 +74,7 @@ public final class NtfyClient implements AutoCloseable {
       String title, String message, String priority, String tags, String click) {
     return publisher.publish(
         target(),
-        new NtfyMessage(title, message, priority, tags, click, config.getActions(), null));
+        new NtfyMessage(title, message, priority, tags, click, config.getActions(), icon()));
   }
 
   /**
@@ -96,10 +96,19 @@ public final class NtfyClient implements AutoCloseable {
             null,
             config.getClickUrl(),
             NtfyActionSerializer.serialize(actions),
-            null));
+            icon()));
   }
 
   /** This client's fixed destination: the configured endpoint, topic and credential. */
+  /**
+   * The configured icon, or {@code null} when it is not one ntfy could render. Dropped rather than
+   * sent: this client has no diagnostics channel to warn through, and a header the subscriber's
+   * client will fail to fetch is worse than none.
+   */
+  private String icon() {
+    return NtfyPublisher.isValidIconUrl(config.getIcon()) ? config.getIcon() : null;
+  }
+
   private NtfyTarget target() {
     return new NtfyTarget(
         config.getUrl(), config.getTopic(), authMode, config.isCache(), config.isFirebase());

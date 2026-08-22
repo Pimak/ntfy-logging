@@ -46,6 +46,7 @@ public final class NtfyConfig {
   private final boolean cache;
   private final boolean firebase;
   private final boolean deliveryPolicyValueRejected;
+  private final String icon;
   private final List<String> includeMdcKeys;
   private final boolean enabled;
   private final boolean asyncEnabled;
@@ -91,6 +92,7 @@ public final class NtfyConfig {
     this.cache = b.cache;
     this.firebase = b.firebase;
     this.deliveryPolicyValueRejected = b.cacheValueRejected || b.firebaseValueRejected;
+    this.icon = b.icon;
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -313,6 +315,15 @@ public final class NtfyConfig {
   }
 
   /**
+   * URL of the icon shown beside the notification (ntfy {@code Icon} header), or {@code null} when
+   * unset. Only JPEG and PNG are supported by ntfy, and the value is checked at startup because a
+   * bad one is otherwise undetectable — the subscriber's client fetches it, not the server.
+   */
+  public String getIcon() {
+    return icon;
+  }
+
+  /**
    * The unmodifiable, EXPLICIT allow-list of MDC keys whose values are rendered into alert bodies
    * (one {@code key: value} line each), in configured order — that order is the rendering order.
    * Empty by default, i.e. no MDC content is published at all unless an operator opts in.
@@ -520,6 +531,7 @@ public final class NtfyConfig {
     private boolean firebase = true;
     private boolean cacheValueRejected = false;
     private boolean firebaseValueRejected = false;
+    private String icon;
     private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
@@ -803,6 +815,16 @@ public final class NtfyConfig {
       this.firebase = firebase;
       // A typed value is unambiguous, so it also settles any earlier rejection of this key.
       this.firebaseValueRejected = false;
+      return this;
+    }
+
+    /**
+     * Sets the notification icon URL (ntfy {@code Icon} header). Must be an {@code http}/{@code
+     * https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy supports no other
+     * format. An unusable value is dropped with a diagnostic at {@code start()} rather than sent.
+     */
+    public Builder icon(String icon) {
+      this.icon = icon;
       return this;
     }
 

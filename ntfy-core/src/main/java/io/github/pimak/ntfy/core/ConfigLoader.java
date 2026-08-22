@@ -100,6 +100,8 @@ public final class ConfigLoader {
     builder.cache(resolve("cache", envLookup, fileProps, sysProps));
     builder.firebase(resolve("firebase", envLookup, fileProps, sysProps));
 
+    apply(builder::icon, resolve("icon", envLookup, fileProps, sysProps));
+
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
     // redirect where alerts go, it only names which allow-listed context lines are rendered into a
