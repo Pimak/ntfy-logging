@@ -45,6 +45,8 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String appName;
   private String excludedLoggers;
   private String excludedExceptionTypes;
+  private boolean cache = true;
+  private boolean firebase = true;
   private String includeMdcKeys;
   private String connectTimeout;
   private String requestTimeout;
@@ -215,6 +217,22 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
+   * {@code false} asks the server not to store the message ({@code Cache: no}). Subscribers who are
+   * offline at that moment never receive it. Default {@code true}.
+   */
+  public void setCache(boolean cache) {
+    this.cache = cache;
+  }
+
+  /**
+   * {@code false} asks the server not to forward the message to Firebase ({@code Firebase: no}).
+   * Default {@code true}.
+   */
+  public void setFirebase(boolean firebase) {
+    this.firebase = firebase;
+  }
+
+  /**
    * A comma-separated allow-list of MDC keys rendered into alert bodies, one {@code key: value} line
    * each, in the order given here. Unset by default, and there is deliberately no wildcard form: an
    * MDC value reaches a notification only when an operator named its key, because a production MDC
@@ -373,6 +391,8 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
             .appName(appName)
             .excludedLoggers(excludedLoggers)
             .excludedExceptionTypesCsv(excludedExceptionTypes)
+            .cache(cache)
+            .firebase(firebase)
             .warnTopic(warnTopic)
             // Unconditional, unlike the boxed setters below: the CSV overload is null-safe and
             // treats null/blank as "no keys", which is exactly the unset default.

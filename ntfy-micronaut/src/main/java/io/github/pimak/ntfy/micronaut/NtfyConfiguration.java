@@ -44,6 +44,8 @@ public class NtfyConfiguration {
   private String locale;
   private String excludedLoggers;
   private String excludedExceptionTypes;
+  private boolean cache = true;
+  private boolean firebase = true;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -485,6 +487,44 @@ public class NtfyConfiguration {
    */
   public void setExcludedExceptionTypes(String excludedExceptionTypes) {
     this.excludedExceptionTypes = excludedExceptionTypes;
+  }
+
+  /**
+   * {@code false} asks the server not to store the message ({@code Cache: no}).
+   * Subscribers who are offline at that moment never receive it. Default {@code true}.
+   *
+   * @return whether the server may cache published messages
+   */
+  public boolean isCache() {
+    return cache;
+  }
+
+  /**
+   * Sets whether the server may cache published messages.
+   *
+   * @param cache {@code false} to send {@code Cache: no}
+   */
+  public void setCache(boolean cache) {
+    this.cache = cache;
+  }
+
+  /**
+   * {@code false} asks the server not to forward the message to Firebase ({@code
+   * Firebase: no}). Default {@code true}.
+   *
+   * @return whether the server may forward published messages to FCM
+   */
+  public boolean isFirebase() {
+    return firebase;
+  }
+
+  /**
+   * Sets whether the server may forward published messages to FCM.
+   *
+   * @param firebase {@code false} to send {@code Firebase: no}
+   */
+  public void setFirebase(boolean firebase) {
+    this.firebase = firebase;
   }
 
   /**

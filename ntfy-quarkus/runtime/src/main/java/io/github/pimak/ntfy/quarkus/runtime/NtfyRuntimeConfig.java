@@ -116,6 +116,20 @@ public interface NtfyRuntimeConfig {
   Optional<String> excludedExceptionTypes();
 
   /**
+   * {@code false} asks the server not to store the message ({@code Cache: no}).
+   * Subscribers who are offline at that moment never receive it. Default {@code true}.
+   */
+  @WithDefault("true")
+  boolean cache();
+
+  /**
+   * {@code false} asks the server not to forward the message to Firebase ({@code
+   * Firebase: no}). Default {@code true}.
+   */
+  @WithDefault("true")
+  boolean firebase();
+
+  /**
    * Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one {@code
    * key: value} line each, in the order given here.
    *

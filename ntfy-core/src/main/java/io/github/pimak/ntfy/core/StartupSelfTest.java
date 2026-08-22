@@ -70,7 +70,9 @@ final class StartupSelfTest {
       NtfyPublisher publisher,
       AuthMode auth,
       AlertMessages messages) {
-    NtfyTarget destination = new NtfyTarget(config.getUrl(), target.topic(), auth);
+    NtfyTarget destination =
+        new NtfyTarget(
+            config.getUrl(), target.topic(), auth, config.isCache(), config.isFirebase());
     if (mode == StartupPingMode.PROBE) {
       return publisher.probe(destination);
     }
@@ -136,7 +138,8 @@ final class StartupSelfTest {
       AuthMode auth,
       AlertMessages messages) {
     return publisher.publish(
-        new NtfyTarget(config.getUrl(), healthy.topic(), auth),
+        new NtfyTarget(
+            config.getUrl(), healthy.topic(), auth, config.isCache(), config.isFirebase()),
         new NtfyMessage(
             messages.selfTestFailureTitle(appLabel(config)),
             messages.selfTestFailureBody(failures),

@@ -43,6 +43,8 @@ public final class NtfyConfig {
   private final String actions;
   private final List<String> excludedLoggerPrefixes;
   private final List<String> excludedExceptionTypes;
+  private final boolean cache;
+  private final boolean firebase;
   private final List<String> includeMdcKeys;
   private final boolean enabled;
   private final boolean asyncEnabled;
@@ -85,6 +87,8 @@ public final class NtfyConfig {
         Collections.unmodifiableList(new ArrayList<>(b.excludedLoggerPrefixes));
     this.excludedExceptionTypes =
         Collections.unmodifiableList(new ArrayList<>(b.excludedExceptionTypes));
+    this.cache = b.cache;
+    this.firebase = b.firebase;
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -267,6 +271,33 @@ public final class NtfyConfig {
    */
   public List<String> getExcludedExceptionTypes() {
     return excludedExceptionTypes;
+  }
+
+  /**
+   * Whether the ntfy server may cache published messages ({@code true} by default, matching ntfy's
+   * own default of storing them for 12 hours).
+   *
+   * <p>{@code false} sends {@code Cache: no}. The message then reaches CONNECTED subscribers only:
+   * a subscriber with a momentary network problem never receives it, and {@code since=}/{@code
+   * poll=1} stop returning it. That is a real trade — privacy against delivery to anyone who was
+   * not listening at the time.
+   */
+  public boolean isCache() {
+    return cache;
+  }
+
+  /**
+   * Whether the ntfy server may forward published messages to Firebase Cloud Messaging ({@code
+   * true} by default).
+   *
+   * <p>Worth knowing before leaving it on: ntfy.sh is configured to use FCM, so on the default
+   * endpoint every alert — stack traces and allow-listed MDC values included — also transits
+   * Google's infrastructure. {@code false} sends {@code Firebase: no}. The cost is delivery
+   * latency on the Google Play Android client when instant delivery is off (up to 15 minutes); on
+   * a self-hosted server with no FCM configured the header is simply inert.
+   */
+  public boolean isFirebase() {
+    return firebase;
   }
 
   /**
@@ -473,6 +504,8 @@ public final class NtfyConfig {
     private String actions;
     private List<String> excludedLoggerPrefixes = new ArrayList<>();
     private List<String> excludedExceptionTypes = new ArrayList<>();
+    private boolean cache = true;
+    private boolean firebase = true;
     private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
@@ -679,6 +712,28 @@ public final class NtfyConfig {
         }
       }
       this.excludedExceptionTypes = normalizeCsvEntries(types);
+      return this;
+    }
+
+    /**
+     * {@code false} asks the server not to store the message ({@code Cache: no}), at the cost of
+     * every subscriber who is not connected at that moment. Default {@code true}.
+     */
+    public Builder cache(boolean cache) {
+      this.cache = cache;
+      return this;
+    }
+
+    /**
+     * {@code false} asks the server not to forward the message to Firebase ({@code Firebase: no}),
+     * at the cost of push latency on the Google Play Android client. Default {@code true}.
+     *
+     * <p>Independent of {@link #cache(boolean)} on purpose: a self-hosted server with no FCM
+     * configured wants this off and caching on, and one combined switch would make that
+     * unreachable.
+     */
+    public Builder firebase(boolean firebase) {
+      this.firebase = firebase;
       return this;
     }
 
