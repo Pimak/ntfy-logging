@@ -28,6 +28,12 @@
         <!-- Micronaut integration on top of ntfy-logback: binds ntfy.* from application.yml and exposes an injectable NtfyClient. -->
         <module>ntfy-micronaut</module>
         <!--
+            Bill of materials over the seven user-facing artifacts. Last in this list, not first:
+            it is the only module whose content is a statement ABOUT the others, so it reads in
+            the right order once they have been introduced.
+        -->
+        <module>ntfy-bom</module>
+        <!--
             Runnable example applications that double as functional test-beds — one per adapter,
             plus the shared loopback ntfy stand-in their tests use. NEVER published (each module
             sets the full skip block; the release profile's excludeArtifacts below is the

@@ -131,4 +131,5 @@ nav:
       - Authentication: authentication.md
       - Observability: observability.md
       - Troubleshooting: troubleshooting.md
+      - BOM: bom.md
       - Compatibility: compatibility.md

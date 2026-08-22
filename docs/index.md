@@ -24,7 +24,8 @@ Everything beyond the base config — the [full key reference](configuration.md)
 [authentication](authentication.md), [alert behavior](alert-behavior.md),
 [level routing](level-routing.md), [filtering](filtering.md), [MDC context](mdc-context.md),
 [observability](observability.md), [troubleshooting](troubleshooting.md) and
-[compatibility](compatibility.md) — is shared across all seven and listed in the sidebar.
+[compatibility](compatibility.md) and the [BOM](bom.md) — is shared across all seven
+and listed in the sidebar.
 
 ## API documentation
 
