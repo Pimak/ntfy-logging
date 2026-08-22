@@ -74,8 +74,115 @@ jobs:
           -pl ${{ matrix.combo.module }} -am
           -D${{ matrix.combo.property }}=${{ matrix.combo.version }}
 
+  # Guards a claim the sweep above cannot make: that the artifact this project PUBLISHES — compiled
+  # by the Micronaut 4 annotation processor — still runs on Micronaut 5. Every sweep leg recompiles
+  # from source, so a green there says "our sources build against 5.x", which is a different and much
+  # weaker statement. Consumers get the jar, not the sources.
+  #
+  # Measured 2026-08-22: the four generated $…$Definition classes are Java 17 bytecode extending
+  # AbstractInitializableBeanDefinitionAndReference, and micronaut-inject 5.x loads them unchanged.
+  # Micronaut publishes no promise about that, which is exactly why it needs a job watching it rather
+  # than a sentence in the docs.
+  #
+  # Runs against whatever 5.x is current rather than a pinned version: the risk being watched is a
+  # FUTURE 5.x dropping support for definitions the 4.x processor emits. A pin would stay green
+  # forever while the thing it guards quietly stopped being true.
+  forward-compat:
+    name: micronaut 4-built artifact on latest Micronaut 5
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          # 25, not the project baseline: a JDK 21 runtime cannot load Micronaut 5 at all.
+          java-version: '25'
+          cache: maven
+
+      - name: Resolve the latest Micronaut 5 release
+        id: latest
+        run: |
+          set -euo pipefail
+          # Release versions only — the </version> tag immediately after the third digit group is
+          # what rejects 5.0.0-M1 and 5.0.0-RC1, which must never gate a scheduled job.
+          url=https://repo1.maven.org/maven2/io/micronaut/platform/micronaut-platform/maven-metadata.xml
+          version=$(curl -sSf --retry 3 --retry-delay 5 "$url" \
+            | grep -oE '<version>5\.[0-9]+\.[0-9]+</version>' \
+            | sed -E 's|</?version>||g' \
+            | sort -V \
+            | tail -1)
+          if [ -z "$version" ]; then
+            echo "::error::no Micronaut 5.x release found in Central metadata"
+            exit 1
+          fi
+          echo "Latest Micronaut 5: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build the module the way a release builds it — against Micronaut 4
+        # No -Dmicronaut.version here, deliberately: this step must use the pinned 4.x line, so that
+        # the annotation processor writing the bean definitions is the 4.x one.
+        run: |
+          set -euo pipefail
+          ./mvnw --batch-mode clean install -pl ntfy-core,ntfy-logback -DskipTests
+          ./mvnw --batch-mode package -pl ntfy-micronaut -DskipTests
+
+      - name: Fingerprint the generated bean definitions
+        # The whole experiment rests on these classes NOT being rebuilt by the next step. Hashing
+        # them before and after is what turns "the tests passed" into "the tests passed against
+        # definitions the 4.x processor wrote".
+        #
+        # The hash discriminates, which is the part worth checking: measured 2026-08-22, the 5.x
+        # processor emits different bytes for all four definitions, so a run that recompiled would
+        # be caught rather than sliding through on a coincidence.
+        run: |
+          set -euo pipefail
+          find ntfy-micronaut/target/classes -name '*$Definition.class' | sort > /tmp/defs.txt
+          if [ ! -s /tmp/defs.txt ]; then
+            echo "::error::no generated bean definitions found — the 4.x build never ran the processor"
+            exit 1
+          fi
+          xargs md5sum < /tmp/defs.txt | tee /tmp/defs-before.txt
+
+      - name: Run the suite against Micronaut ${{ steps.latest.outputs.version }}
+        # -Dmaven.main.skip=true is the load-bearing flag: it leaves target/classes exactly as the
+        # step above left it, so only the test classpath moves to 5.x. Note the absence of `clean`.
+        run: >
+          ./mvnw --batch-mode test -pl ntfy-micronaut
+          -Dmicronaut.version=${{ steps.latest.outputs.version }}
+          -Dmaven.main.skip=true
+
+      - name: Prove the run actually proved something
+        # Three ways this job could go green while testing nothing, each checked rather than assumed:
+        # the main classes were quietly recompiled against 5.x; the version override never reached
+        # the classpath; or no test ran at all.
+        run: |
+          set -euo pipefail
+
+          xargs md5sum < /tmp/defs.txt > /tmp/defs-after.txt
+          if ! diff -u /tmp/defs-before.txt /tmp/defs-after.txt; then
+            echo "::error::the generated bean definitions changed — main was recompiled, so this run says nothing about forward compatibility"
+            exit 1
+          fi
+
+          ./mvnw --batch-mode dependency:build-classpath -pl ntfy-micronaut \
+            -Dmicronaut.version=${{ steps.latest.outputs.version }} \
+            -Dmdep.outputFile=/tmp/cp.txt -q
+          if ! grep -qE 'micronaut-inject[/-]5\.' /tmp/cp.txt; then
+            echo "::error::micronaut-inject 5.x is not on the test classpath — the version override did not take effect"
+            exit 1
+          fi
+
+          total=$(grep -ho 'tests="[0-9]*"' ntfy-micronaut/target/surefire-reports/*.xml \
+            | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          echo "tests executed: $total"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::no tests ran"
+            exit 1
+          fi
+
   report:
-    needs: sweep
+    needs: [sweep, forward-compat]
     if: failure() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
@@ -94,8 +201,10 @@ jobs:
           set -euo pipefail
           title='Compatibility sweep is failing'
           body=$(printf '%s\n' \
-            'The weekly compatibility sweep failed: one or more versions that `docs/compatibility.md`' \
-            "reports as **Verified** no longer pass their module's test suite." \
+            'The weekly compatibility sweep failed. Either a version that `docs/compatibility.md`' \
+            "reports as **Verified** no longer passes its module's test suite, or the" \
+            '`forward-compat` job did — meaning the published Micronaut 4-built jar no longer runs' \
+            'on the latest Micronaut 5, which that page also claims.' \
             '' \
             "Run: $RUN_URL" \
             '' \
