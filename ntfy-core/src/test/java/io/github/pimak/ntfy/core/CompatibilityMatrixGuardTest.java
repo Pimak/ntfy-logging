@@ -186,6 +186,35 @@ class CompatibilityMatrixGuardTest {
         .isEmpty();
   }
 
+  /**
+   * The sweep's fourth column picks the JDK each leg builds on. Two ways it can be wrong are worth
+   * catching here rather than fifteen minutes into a scheduled run: a value that is not a JDK
+   * number at all, and one below the compiler release — javac cannot target a release newer than
+   * itself, so such a row could never have built.
+   */
+  @Test
+  void everySweptRowNamesABuildJdkThatCouldCompileTheProject() throws IOException {
+    Path root = repoRoot();
+    String release = pinnedVersion(Files.readString(root.resolve("pom.xml")), "maven.compiler.release");
+    assertThat(release).as("<maven.compiler.release> in pom.xml").isNotNull();
+    int floor = Integer.parseInt(release);
+
+    List<String> violations = new ArrayList<>();
+    for (String[] row : sweepRows(root)) {
+      String jdk = row[3];
+      if (jdk.isEmpty() || !jdk.chars().allMatch(Character::isDigit)) {
+        violations.add(row[1] + "=" + row[2] + ": build JDK '" + jdk + "' is not a JDK number");
+      } else if (Integer.parseInt(jdk) < floor) {
+        violations.add(row[1] + "=" + row[2] + ": build JDK " + jdk
+            + " is below <maven.compiler.release> " + floor + ", so that leg cannot compile at all");
+      }
+    }
+
+    assertThat(violations)
+        .as("every row in .github/compat-versions.tsv must name a build JDK that can compile this project")
+        .isEmpty();
+  }
+
   /** Every module named in the sweep list must be a real directory with a POM. */
   @Test
   void sweptModulesExist() throws IOException {
@@ -208,7 +237,7 @@ class CompatibilityMatrixGuardTest {
     return byProperty;
   }
 
-  /** Parses the sweep list into {@code {module, property, version}} rows, skipping comments. */
+  /** Parses the sweep list into {@code {module, property, version, jdk}} rows, skipping comments. */
   private static List<String[]> sweepRows(Path root) throws IOException {
     List<String[]> rows = new ArrayList<>();
     for (String line : Files.readAllLines(root.resolve(".github/compat-versions.tsv"))) {
@@ -218,8 +247,9 @@ class CompatibilityMatrixGuardTest {
       }
       String[] parts = trimmed.split("\\s+");
       assertThat(parts)
-          .as("malformed row in .github/compat-versions.tsv: '" + line + "'")
-          .hasSize(3);
+          .as("malformed row in .github/compat-versions.tsv: '" + line
+              + "' — expected <module> <property> <version> <build JDK>")
+          .hasSize(4);
       rows.add(parts);
     }
     return rows;
