@@ -301,6 +301,16 @@ final class AlertMessages {
   }
 
   /**
+   * Fixed warning explaining why a self-test the operator configured as {@code publish} ran as a
+   * probe instead. Emitted once per start, and only when {@code cache=false} actually forced the
+   * downgrade — a silent switch would leave an operator reading "PASSED (probe)" with nothing to
+   * account for the discrepancy. Credential-safe.
+   */
+  String statusStartupPingDowngradedToProbe() {
+    return get("status.startupPing.downgradedToProbe");
+  }
+
+  /**
    * Fixed warning for an unparseable {@code startup-ping} value. Deliberately does NOT echo the
    * offending value: it arrives from the same configuration surfaces as the credentials, and a
    * misplaced token pasted into the wrong key must not be reflected into diagnostics.
