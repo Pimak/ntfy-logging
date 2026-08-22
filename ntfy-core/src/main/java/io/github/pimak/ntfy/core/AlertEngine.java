@@ -494,12 +494,25 @@ public final class AlertEngine {
     // when it survived the withdrawal guards above — probing a route the engine has already
     // retracted would report on something that will never carry an alert.
     List<Leg> legs = new ArrayList<>();
+    boolean downgraded = false;
     if (config.getStartupPing() != StartupPingMode.OFF) {
-      legs.add(new Leg(config.getStartupPing(), new StartupSelfTest.Target(config.getTopic(), false)));
+      StartupPingMode mode = conclusiveMode(config.getStartupPing());
+      downgraded |= mode != config.getStartupPing();
+      legs.add(new Leg(mode, new StartupSelfTest.Target(config.getTopic(), false)));
     }
     RouteState warn = this.warnRoute;
     if (config.getStartupPingWarn() != StartupPingMode.OFF && warn != null) {
-      legs.add(new Leg(config.getStartupPingWarn(), new StartupSelfTest.Target(warn.topic(), true)));
+      StartupPingMode mode = conclusiveMode(config.getStartupPingWarn());
+      downgraded |= mode != config.getStartupPingWarn();
+      legs.add(new Leg(mode, new StartupSelfTest.Target(warn.topic(), true)));
+    }
+    // Only when a leg was ACTUALLY downgraded, and once per start rather than once per leg:
+    // with both routes configured to publish, one explanation is the whole story and two would
+    // read like two different problems. Deriving this from the configured modes instead would
+    // warn about a route that never ran — a warn leg configured to publish with no warn-topic
+    // never becomes a leg at all.
+    if (downgraded) {
+      diagnostics.warn(messages.statusStartupPingDowngradedToProbe());
     }
 
     if (legs.isEmpty()) {
@@ -554,6 +567,25 @@ public final class AlertEngine {
 
   /** One route under test and the mode its own flag selected for it. */
   private record Leg(StartupPingMode mode, StartupSelfTest.Target target) {}
+
+  /**
+   * Downgrades a publishing self-test to a probe when {@code cache=false}, because under {@code
+   * Cache: no} a publish is no longer conclusive: the server stores nothing, so a 2xx says it
+   * accepted the message and nothing about whether a subscriber — who may simply have been offline
+   * for a moment — ever received it. Reporting "verified" on that basis is the silent success this
+   * library exists to prevent.
+   *
+   * <p>Deliberately NOT a refusal at {@code start()}. Both settings are legitimate on their own,
+   * and rejecting a combination the operator explicitly asked for turns a guard into an obstacle.
+   * The probe stays conclusive because it asks the server a question instead of depending on a
+   * stored message.
+   */
+  private StartupPingMode conclusiveMode(StartupPingMode configured) {
+    if (configured == StartupPingMode.PUBLISH && !config.isCache()) {
+      return StartupPingMode.PROBE;
+    }
+    return configured;
+  }
 
   /**
    * Runs every enabled route in turn, reports each, and — when any failed and any other passed —

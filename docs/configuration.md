@@ -185,6 +185,21 @@ default), a *different* route failing can still cause exactly one publish — th
 through this healthy route. Set `startup-ping-notify-failures=false` to keep `probe` absolutely
 publish-free.
 
+### Under `cache: false`, a publish is downgraded to a probe
+
+`startup-ping: publish` proves an alert is deliverable by actually sending one. With
+[`cache: false`](#cache) that proof evaporates: the server stores nothing, so a 2xx means it
+accepted the message and says nothing about whether a subscriber — who may have been offline for a
+moment — ever received it. The engine would be reporting "verified" on a boot where nobody saw
+anything.
+
+So it runs the probe instead, and says so in a diagnostic. The probe stays conclusive because it
+asks the server a question rather than depending on a stored message.
+
+This is a downgrade, not a refusal. Both settings are legitimate on their own, and rejecting a
+combination you explicitly asked for would turn a guard into an obstacle. If you want the stronger
+proof, leave `cache` at its default.
+
 ### Testing the WARN route
 
 `startup-ping` covers the primary topic. The optional [WARN route](level-routing.md) has its own
