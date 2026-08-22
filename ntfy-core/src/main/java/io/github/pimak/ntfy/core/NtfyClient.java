@@ -41,8 +41,9 @@ public final class NtfyClient implements AutoCloseable {
    */
   public PublishResult notify(String title, String message) {
     return publisher.publish(
-        config.getUrl(), config.getTopic(), title, authMode, message, null, null,
-        config.getClickUrl(), config.getActions());
+        target(),
+        new NtfyMessage(
+            title, message, null, null, config.getClickUrl(), config.getActions(), null));
   }
 
   /**
@@ -55,8 +56,9 @@ public final class NtfyClient implements AutoCloseable {
    */
   public PublishResult notify(String title, String message, String priority, String tags) {
     return publisher.publish(
-        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags,
-        config.getClickUrl(), config.getActions());
+        target(),
+        new NtfyMessage(
+            title, message, priority, tags, config.getClickUrl(), config.getActions(), null));
   }
 
   /**
@@ -71,8 +73,8 @@ public final class NtfyClient implements AutoCloseable {
   public PublishResult notify(
       String title, String message, String priority, String tags, String click) {
     return publisher.publish(
-        config.getUrl(), config.getTopic(), title, authMode, message, priority, tags, click,
-        config.getActions());
+        target(),
+        new NtfyMessage(title, message, priority, tags, click, config.getActions(), null));
   }
 
   /**
@@ -86,8 +88,20 @@ public final class NtfyClient implements AutoCloseable {
    */
   public PublishResult notify(String title, String message, List<NtfyAction> actions) {
     return publisher.publish(
-        config.getUrl(), config.getTopic(), title, authMode, message, null, null,
-        config.getClickUrl(), NtfyActionSerializer.serialize(actions));
+        target(),
+        new NtfyMessage(
+            title,
+            message,
+            null,
+            null,
+            config.getClickUrl(),
+            NtfyActionSerializer.serialize(actions),
+            null));
+  }
+
+  /** This client's fixed destination: the configured endpoint, topic and credential. */
+  private NtfyTarget target() {
+    return new NtfyTarget(config.getUrl(), config.getTopic(), authMode);
   }
 
   /**
