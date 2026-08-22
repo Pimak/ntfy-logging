@@ -129,39 +129,67 @@ public class NtfyPublisher {
       String tags,
       String click,
       String actions) {
-    if (!isValidTopic(topic)) {
+    return publish(
+        new NtfyTarget(url, topic, auth),
+        new NtfyMessage(title, body, priority, tags, click, actions, null));
+  }
+
+  /**
+   * The single publish path. Every overload above collapses onto this one, and so does every caller
+   * inside this package.
+   *
+   * <p>Package-private, and that is the point: the arguments a publish needs keep growing as ntfy
+   * grows headers, and threading them positionally through public overloads meant a new overload
+   * per header, deprecated forever under the binary-compatibility guard. Taking two objects instead
+   * moves that churn somewhere it costs nothing — nothing outside this package can see the shape,
+   * so it is free to change.
+   *
+   * <p>A blank/null value for any optional header sends no corresponding header. Values containing
+   * non-printable-ASCII characters are omitted rather than forwarded: the CRLF-injection guard must
+   * not depend solely on the JDK client's header validation, and a single invalid configured value
+   * must not abort every publish at the header-build boundary.
+   *
+   * <p>The {@code Authorization} header (if any) comes entirely from the target's {@link AuthMode}:
+   * {@code auth.buildHeader()} returns the header value to send, or {@code Optional.empty()} to send
+   * no {@code Authorization} header at all (a valid anonymous publish).
+   *
+   * @return a {@link PublishResult} describing the outcome; never throws
+   */
+  PublishResult publish(NtfyTarget target, NtfyMessage message) {
+    if (!isValidTopic(target.topic())) {
       return PublishResult.failure(GENERIC_INVALID_REQUEST_MESSAGE);
     }
     try {
-      String base = url.replaceAll("/+$", "");
-      URI uri = URI.create(base + "/" + topic);
+      String base = target.url().replaceAll("/+$", "");
+      URI uri = URI.create(base + "/" + target.topic());
 
+      String body = message.body();
       HttpRequest.Builder builder =
           HttpRequest.newBuilder()
               .uri(uri)
               .timeout(requestTimeout)
               .POST(HttpRequest.BodyPublishers.ofString(body == null ? "" : body));
 
-      auth.buildHeader().ifPresent(header -> builder.header("Authorization", header));
+      target.auth().buildHeader().ifPresent(header -> builder.header("Authorization", header));
 
-      if (!isBlank(title)) {
-        builder.header("Title", asciiSafeTitle(title));
+      if (!isBlank(message.title())) {
+        builder.header("Title", asciiSafeTitle(message.title()));
       }
 
-      if (!isBlank(priority) && isAsciiPrintable(priority)) {
-        builder.header("Priority", priority);
-      }
+      header(builder, "Priority", message.priority());
+      header(builder, "Tags", message.tags());
+      header(builder, "Click", message.click());
+      header(builder, "Actions", message.actions());
+      header(builder, "Icon", message.icon());
 
-      if (!isBlank(tags) && isAsciiPrintable(tags)) {
-        builder.header("Tags", tags);
+      // Only the opt-OUT is ever expressed on the wire. ntfy caches and forwards to Firebase by
+      // default, so sending "Cache: yes"/"Firebase: yes" would be a no-op that merely widens the
+      // request; the absent header and the affirmative header mean the same thing to the server.
+      if (!target.cache()) {
+        builder.header("Cache", "no");
       }
-
-      if (!isBlank(click) && isAsciiPrintable(click)) {
-        builder.header("Click", click);
-      }
-
-      if (!isBlank(actions) && isAsciiPrintable(actions)) {
-        builder.header("Actions", actions);
+      if (!target.firebase()) {
+        builder.header("Firebase", "no");
       }
 
       HttpResponse<String> response =
@@ -192,6 +220,16 @@ public class NtfyPublisher {
   }
 
   /**
+   * Sets {@code name} to {@code value} unless it is blank or carries a character outside printable
+   * ASCII. Collapses the identical guard the optional headers each repeated.
+   */
+  private static void header(HttpRequest.Builder builder, String name, String value) {
+    if (!isBlank(value) && isAsciiPrintable(value)) {
+      builder.header(name, value);
+    }
+  }
+
+  /**
    * Read-only reachability check against {@code {url}/{topic}/json?poll=1&since=none}, used by the
    * opt-in startup self-test. Sends the configured {@code Authorization} header but publishes
    * nothing, so subscribers of the topic see no notification.
@@ -201,8 +239,8 @@ public class NtfyPublisher {
    * {@code since=none} suppresses replay of cached messages, so a busy topic does not return a
    * large body just to prove the endpoint answers.
    *
-   * <p>Deliberately shares {@link #publish}'s URL normalization, topic validation and — most
-   * importantly — its catch-chain, which classifies failures by exception TYPE and never by {@code
+   * <p>Deliberately shares {@link #publish(NtfyTarget, NtfyMessage)}'s URL normalization, topic
+   * validation and — most importantly — its catch-chain, which classifies failures by exception TYPE and never by {@code
    * e.getMessage()}, because that message can embed the request URI or a plaintext credential.
    * Reuses {@link PublishResult} rather than introducing a parallel result type: it already carries
    * exactly what the caller needs, an HTTP status (or {@code null} when the request never reached
@@ -210,17 +248,17 @@ public class NtfyPublisher {
    *
    * @return a {@link PublishResult} describing the outcome; never throws
    */
-  PublishResult probe(String url, String topic, AuthMode auth) {
-    if (!isValidTopic(topic)) {
+  PublishResult probe(NtfyTarget target) {
+    if (!isValidTopic(target.topic())) {
       return PublishResult.failure(GENERIC_INVALID_REQUEST_MESSAGE);
     }
     try {
-      String base = url.replaceAll("/+$", "");
-      URI uri = URI.create(base + "/" + topic + "/json?poll=1&since=none");
+      String base = target.url().replaceAll("/+$", "");
+      URI uri = URI.create(base + "/" + target.topic() + "/json?poll=1&since=none");
 
       HttpRequest.Builder builder = HttpRequest.newBuilder().uri(uri).timeout(requestTimeout).GET();
 
-      auth.buildHeader().ifPresent(header -> builder.header("Authorization", header));
+      target.auth().buildHeader().ifPresent(header -> builder.header("Authorization", header));
 
       // discarding(), not ofString(): only the status code is ever inspected, and a self-test is
       // precisely the situation where the endpoint may NOT be an ntfy server — a typo'd url can
@@ -287,8 +325,8 @@ public class NtfyPublisher {
    * failure is deliberately collapsed into a generic no-leak message).
    *
    * <p>The URL is normalized with the character-for-character identical expression the publish
-   * path uses ({@code replaceAll("/+$", "")} — see {@link #publish(String, String, String,
-   * AuthMode, String, String, String, String, String)}), and deliberately nothing more. In
+   * path uses ({@code replaceAll("/+$", "")} — see {@link #publish(NtfyTarget, NtfyMessage)}), and
+   * deliberately nothing more. In
    * particular there is no {@code trim()}: neither {@code NtfyConfig} nor the publisher trims, so a
    * whitespace-padded URL fails {@code URI} parsing on every publish; trimming here would accept a
    * config the publisher cannot consume and recreate the silent-failure gap this guard closes. Any

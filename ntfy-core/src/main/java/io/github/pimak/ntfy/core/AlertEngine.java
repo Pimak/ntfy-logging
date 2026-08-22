@@ -797,15 +797,15 @@ public final class AlertEngine {
     try {
       PublishResult result =
           p.publish(
-              config.getUrl(),
-              route.topic(),
-              payload.title(),
-              auth,
-              payload.body(),
-              route.priority(),
-              route.tags(),
-              config.getClickUrl(),
-              config.getActions());
+              new NtfyTarget(config.getUrl(), route.topic(), auth),
+              new NtfyMessage(
+                  payload.title(),
+                  payload.body(),
+                  route.priority(),
+                  route.tags(),
+                  config.getClickUrl(),
+                  config.getActions(),
+                  null));
       if (result.success()) {
         counters.incrementPublished();
       } else {
@@ -987,15 +987,15 @@ public final class AlertEngine {
     String truncatedBody = PayloadTruncator.truncate(body, PayloadTruncator.NTFY_MAX_BYTES);
     PublishResult r =
         p.publish(
-            config.getUrl(),
-            route.topic(),
-            digestTitleText,
-            auth,
-            truncatedBody,
-            route.digestPriority(),
-            route.digestTags(),
-            config.getClickUrl(),
-            config.getActions());
+            new NtfyTarget(config.getUrl(), route.topic(), auth),
+            new NtfyMessage(
+                digestTitleText,
+                truncatedBody,
+                route.digestPriority(),
+                route.digestTags(),
+                config.getClickUrl(),
+                config.getActions(),
+                null));
     if (r.success()) {
       // A digest notification accepted by ntfy counts as one published notification. This site also
       // covers the stop()-flush path, which routes through this same method.
