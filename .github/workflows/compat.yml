@@ -147,6 +147,12 @@ jobs:
       - name: Run the suite against Micronaut ${{ steps.latest.outputs.version }}
         # -Dmaven.main.skip=true is the load-bearing flag: it leaves target/classes exactly as the
         # step above left it, so only the test classpath moves to 5.x. Note the absence of `clean`.
+        #
+        # It is maven-compiler-plugin's own skipMain parameter, so no pom declares it and grepping
+        # the poms for it finds nothing — it is settable from the command line all the same, and the
+        # build prints "Not compiling main sources" when it takes effect. Do not remove it as dead
+        # configuration: without it this step recompiles main against 5.x as soon as the sources are
+        # newer than target/classes, and the job then measures the wrong thing.
         run: >
           ./mvnw --batch-mode test -pl ntfy-micronaut
           -Dmicronaut.version=${{ steps.latest.outputs.version }}
@@ -173,11 +179,23 @@ jobs:
             exit 1
           fi
 
-          total=$(grep -ho 'tests="[0-9]*"' ntfy-micronaut/target/surefire-reports/*.xml \
-            | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          # The file check comes first and stands alone: under `set -o pipefail` an unmatched glob
+          # would hand the literal pattern to grep and kill the step with "No such file or
+          # directory" — a generic error in place of the specific one this check exists to give.
+          if ! ls ntfy-micronaut/target/surefire-reports/TEST-*.xml >/dev/null 2>&1; then
+            echo "::error::no surefire report was written — the suite never ran"
+            exit 1
+          fi
+          # sed rather than grep for the same reason: it exits 0 on no match, so a report carrying
+          # no tests= attribute reports zero here instead of failing the pipeline upstream of the
+          # message that would have explained it.
+          total=$(cat ntfy-micronaut/target/surefire-reports/TEST-*.xml \
+            | tr ' ' '\n' \
+            | sed -n 's/^tests="\([0-9]*\)"$/\1/p' \
+            | awk '{s+=$1} END {print s+0}')
           echo "tests executed: $total"
           if [ "$total" -eq 0 ]; then
-            echo "::error::no tests ran"
+            echo "::error::surefire reports exist but account for no tests"
             exit 1
           fi
 
