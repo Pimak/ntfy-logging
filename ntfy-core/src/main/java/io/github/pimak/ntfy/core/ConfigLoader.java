@@ -92,6 +92,20 @@ public final class ConfigLoader {
       builder.excludedExceptionTypesCsv(excludedExceptionTypes);
     }
 
+    // Both default to true and are only ever expressed on the wire as an opt-OUT, so the
+    // Boolean.parseBoolean convention used by every other flag here reads correctly: anything that
+    // is not "true" turns the feature off, which is the direction an operator setting these keys
+    // at all is asking for.
+    String cache = resolve("cache", envLookup, fileProps, sysProps);
+    if (cache != null) {
+      builder.cache(Boolean.parseBoolean(cache.trim()));
+    }
+
+    String firebase = resolve("firebase", envLookup, fileProps, sysProps);
+    if (firebase != null) {
+      builder.firebase(Boolean.parseBoolean(firebase.trim()));
+    }
+
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
     // redirect where alerts go, it only names which allow-listed context lines are rendered into a

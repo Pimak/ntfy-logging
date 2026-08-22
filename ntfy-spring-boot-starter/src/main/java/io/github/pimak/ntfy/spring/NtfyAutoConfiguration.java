@@ -131,6 +131,8 @@ public class NtfyAutoConfiguration implements DisposableBean {
         .locale(p.getLocale())
         .excludedLoggers(p.getExcludedLoggers())
         .excludedExceptionTypesCsv(p.getExcludedExceptionTypes())
+        .cache(p.isCache())
+        .firebase(p.isFirebase())
         .includeMdcKeysCsv(p.getIncludeMdcKeys())
         .enabled(p.isEnabled())
         .asyncEnabled(p.isAsync())

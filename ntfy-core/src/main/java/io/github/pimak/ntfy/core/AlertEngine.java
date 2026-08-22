@@ -797,7 +797,7 @@ public final class AlertEngine {
     try {
       PublishResult result =
           p.publish(
-              new NtfyTarget(config.getUrl(), route.topic(), auth),
+              target(route, auth),
               new NtfyMessage(
                   payload.title(),
                   payload.body(),
@@ -987,7 +987,7 @@ public final class AlertEngine {
     String truncatedBody = PayloadTruncator.truncate(body, PayloadTruncator.NTFY_MAX_BYTES);
     PublishResult r =
         p.publish(
-            new NtfyTarget(config.getUrl(), route.topic(), auth),
+            target(route, auth),
             new NtfyMessage(
                 digestTitleText,
                 truncatedBody,
@@ -1040,6 +1040,16 @@ public final class AlertEngine {
   /** True when {@code event} carries the {@link #NO_ALERT_MARKER_NAME} marker. */
   boolean hasNoAlertMarker(AlertEvent event) {
     return event.markerNames().contains(NO_ALERT_MARKER_NAME);
+  }
+
+  /**
+   * This route's destination and delivery policy. Assembled per publish rather than cached on the
+   * {@link RouteState}: {@code authMode} is a volatile the engine nulls on {@code stop()}, and the
+   * callers already snapshot it precisely so a shutdown race is a no-op instead of an NPE.
+   */
+  private NtfyTarget target(RouteState route, AuthMode auth) {
+    return new NtfyTarget(
+        config.getUrl(), route.topic(), auth, config.isCache(), config.isFirebase());
   }
 
   /**

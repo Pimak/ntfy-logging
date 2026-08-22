@@ -335,6 +335,27 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void cacheAndFirebase_defaultToTrue_soNoHeaderIsEverSentUnasked() {
+    NtfyConfig config = ConfigLoader.load(env(Map.of()), null, null);
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isFirebase()).isTrue();
+  }
+
+  @Test
+  void cacheAndFirebase_areIndependentlySettable() {
+    // The combination that must stay reachable: no Firebase forwarding, but server-side caching
+    // kept so offline subscribers still get their alerts.
+    Function<String, String> env =
+        env(Map.of("NTFY_FIREBASE", "false", "NTFY_CACHE", "true"));
+
+    NtfyConfig config = ConfigLoader.load(env, null, null);
+
+    assertThat(config.isFirebase()).isFalse();
+    assertThat(config.isCache()).isTrue();
+  }
+
+  @Test
   void excludedExceptionTypes_defaultsToEmpty() {
     // The deny-list is opt-in: an unset key must never gate anything out.
     assertThat(ConfigLoader.load(env(Map.of()), null, null).getExcludedExceptionTypes()).isEmpty();

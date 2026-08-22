@@ -60,6 +60,8 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `actions` | String | *(none)* | Action buttons as a raw ntfy `Actions` header value in the short format (e.g. `view, View logs, https://grafana.example.com/d/abc`; up to 3, separated by `;`). Applies to both error alerts and digests; sent as-is (no header when unset). Programmatic core users can instead build typed `NtfyAction`s via `NtfyConfig.Builder.actions(List)` / `NtfyClient.notify(title, message, actions)`. |
 | `excluded-loggers` | String (csv) | *(none)* | Comma-separated logger-name prefixes excluded from alerting entirely. See [filtering.md](filtering.md). |
 | `excluded-exception-types` | String (csv) | *(none)* | Comma-separated fully qualified exception class names. An event whose cause chain contains any of them never alerts — matched anywhere in the chain, and matched whole rather than by prefix. See [filtering.md](filtering.md). |
+| `cache` | boolean | `true` | `false` sends `Cache: no` — the server stores nothing, so only subscribers connected at that moment ever receive the message. See [Delivery privacy](#delivery-privacy). |
+| `firebase` | boolean | `true` | `false` sends `Firebase: no` — the server does not forward the message to Firebase Cloud Messaging. See [Delivery privacy](#delivery-privacy). |
 | `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). Sourced per adapter: the Logback event's MDC snapshot, log4j2's `ThreadContext`, and `ExtLogRecord` under JBoss LogManager/Quarkus. No effect on plain `java.util.logging`, which has no MDC. See [mdc-context.md](mdc-context.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
 | `enabled` | boolean | `true` | Master switch; when `false` the adapter installs nothing / stays inactive. |
@@ -79,6 +81,47 @@ other setting has a safe default and can be omitted.
 `warn-topic` is the one setting whose *presence* changes which events alert at all. There is
 deliberately no `alert-on-warn` boolean beside it: a route needs a destination, so naming the
 destination is the only thing the engine actually has to be told.
+
+## Delivery privacy
+
+Two keys control what the ntfy **server** is allowed to do with a message once it has accepted it.
+Both default to ntfy's own behaviour, and both are only ever sent as an opt-out — leaving them on
+puts no header on the wire at all.
+
+### `cache`
+
+By default an ntfy server keeps messages on disk for 12 hours, so a subscriber whose phone was in a
+tunnel still gets them on reconnect. `cache: false` sends `Cache: no` and the server stores nothing.
+
+What it costs is not subtle: the message reaches **connected subscribers only**. A subscriber with a
+momentary network problem never receives it at all, and `since=`/`poll=1` stop returning it. For an
+alerting tool that is a real trade — you are choosing privacy over delivery to anyone who was not
+listening at the time.
+
+It also changes what the [startup self-test](#startup-self-test) can prove: under `Cache: no` a 2xx
+means the server accepted the message, not that anyone will ever see it. The engine handles this for
+you rather than letting the promise quietly become false — see
+[Startup self-test](#startup-self-test).
+
+### `firebase`
+
+An ntfy server can be configured to deliver to Android through Firebase Cloud Messaging, which is
+how it keeps the app's battery footprint small. **ntfy.sh is configured this way**, so on the default
+endpoint every alert this library publishes — stack traces, logger names and allow-listed MDC values
+included — also transits Google's infrastructure. `firebase: false` sends `Firebase: no` and the
+server keeps it to itself.
+
+The cost is bounded and known: on the Google Play Android client with instant delivery switched off,
+messages can arrive up to 15 minutes late. Turning instant delivery on removes the delay. On a
+self-hosted server with no FCM configured the header does nothing at all.
+
+### Why two keys and not one
+
+They answer the same worry and have nothing else in common. Disabling the cache costs you offline
+subscribers; disabling Firebase costs you push latency on one platform. A single "private delivery"
+switch would also make a perfectly ordinary setup unreachable — a self-hosted server with no FCM
+configured wants `firebase: false` **and** `cache: true`, so alerts still reach a phone that was
+offline.
 
 ## Duration syntax
 

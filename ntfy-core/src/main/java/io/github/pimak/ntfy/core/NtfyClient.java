@@ -101,7 +101,8 @@ public final class NtfyClient implements AutoCloseable {
 
   /** This client's fixed destination: the configured endpoint, topic and credential. */
   private NtfyTarget target() {
-    return new NtfyTarget(config.getUrl(), config.getTopic(), authMode);
+    return new NtfyTarget(
+        config.getUrl(), config.getTopic(), authMode, config.isCache(), config.isFirebase());
   }
 
   /**

@@ -42,6 +42,18 @@ public class NtfyProperties {
    * throwable.
    */
   private String excludedExceptionTypes;
+
+  /**
+   * {@code false} asks the server not to store the message ({@code Cache: no}).
+   * Subscribers who are offline at that moment never receive it. Default {@code true}.
+   */
+  private boolean cache = true;
+
+  /**
+   * {@code false} asks the server not to forward the message to Firebase ({@code
+   * Firebase: no}). Default {@code true}.
+   */
+  private boolean firebase = true;
   private String includeMdcKeys;
   private boolean enabled = true;
   private boolean async = true;
@@ -253,6 +265,22 @@ public class NtfyProperties {
 
   public void setExcludedExceptionTypes(String excludedExceptionTypes) {
     this.excludedExceptionTypes = excludedExceptionTypes;
+  }
+
+  public boolean isCache() {
+    return cache;
+  }
+
+  public void setCache(boolean cache) {
+    this.cache = cache;
+  }
+
+  public boolean isFirebase() {
+    return firebase;
+  }
+
+  public void setFirebase(boolean firebase) {
+    this.firebase = firebase;
   }
 
   /**
