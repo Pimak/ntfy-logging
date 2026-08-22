@@ -19,6 +19,13 @@ import java.util.Base64;
  * Logback {@code StatusManager}; the caller owns all diagnostics and only consumes the returned
  * {@link PublishResult}.
  *
+ * <p><strong>Internal transport.</strong> This class is public only because {@code AlertEngine},
+ * {@code NtfyClient} and {@code StartupSelfTest} needed it before there was anywhere better to put
+ * it — not because it was designed as an entry point. It is NOT covered by this library's
+ * binary-compatibility guarantee, its shape is free to change within 2.x, and it is scheduled to
+ * stop being public in 3.0. Publish through {@link NtfyClient} instead, which is the supported
+ * surface for sending a notification of your own.
+ *
  * <p>No SSRF guard is included here — that concern is out of scope for a plain HTTP publisher and
  * is the consumer's responsibility if the target URL is derived from untrusted input. The topic,
  * however, IS validated (ntfy's own {@code [-_A-Za-z0-9]{1,64}} rule): it is concatenated into the
@@ -59,6 +66,7 @@ public class NtfyPublisher {
    *
    * @return a {@link PublishResult} describing the outcome; never throws
    */
+  @Deprecated(since = "2.1.0")
   public PublishResult publish(
       String url, String topic, String title, AuthMode auth, String body) {
     return publish(url, topic, title, auth, body, null, null, null);
@@ -70,6 +78,7 @@ public class NtfyPublisher {
    *
    * @return a {@link PublishResult} describing the outcome; never throws
    */
+  @Deprecated(since = "2.1.0")
   public PublishResult publish(
       String url,
       String topic,
@@ -88,6 +97,7 @@ public class NtfyPublisher {
    *
    * @return a {@link PublishResult} describing the outcome; never throws
    */
+  @Deprecated(since = "2.1.0")
   public PublishResult publish(
       String url,
       String topic,
@@ -119,6 +129,7 @@ public class NtfyPublisher {
    *
    * @return a {@link PublishResult} describing the outcome; never throws
    */
+  @Deprecated(since = "2.1.0")
   public PublishResult publish(
       String url,
       String topic,

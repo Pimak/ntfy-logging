@@ -32,6 +32,10 @@ class NtfyPublisherTopicValidationTest {
   }
 
   @Test
+  // Deliberately still on the deprecated positional overload rather than the seam: that surface is
+  // still shipped for the whole 2.x line, so it still needs a test proving it rejects a topic that
+  // would rewrite the request target.
+  @SuppressWarnings("deprecation")
   void publishWithInvalidTopic_failsWithoutSendingAnyRequest() {
     // Port 9 (discard) is never contacted: the publisher must reject the topic before building a
     // URI, so this returns a failure result immediately rather than a connection error after a dial.
