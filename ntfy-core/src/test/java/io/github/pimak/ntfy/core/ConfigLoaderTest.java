@@ -345,6 +345,32 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void cacheYes_meansCachingOn_notOff() {
+    // Boolean.parseBoolean would read "yes" as false and send Cache: no — the exact opposite of
+    // what the operator asked for, and it costs every offline subscriber their alerts silently.
+    NtfyConfig config = ConfigLoader.load(env(Map.of("NTFY_CACHE", "yes")), null, null);
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isDeliveryPolicyValueRejected()).isFalse();
+  }
+
+  @Test
+  void commonFalsySpellingsAreUnderstood() {
+    assertThat(ConfigLoader.load(env(Map.of("NTFY_CACHE", "no")), null, null).isCache()).isFalse();
+    assertThat(ConfigLoader.load(env(Map.of("NTFY_FIREBASE", "0")), null, null).isFirebase())
+        .isFalse();
+  }
+
+  @Test
+  void anUnreadableFlagKeepsTheDefaultAndIsReported() {
+    // Guessing here is what turns a typo into lost alerts; the engine warns about this at start().
+    NtfyConfig config = ConfigLoader.load(env(Map.of("NTFY_CACHE", "maybe")), null, null);
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isDeliveryPolicyValueRejected()).isTrue();
+  }
+
+  @Test
   void cacheAndFirebase_areIndependentlySettable() {
     // The combination that must stay reachable: no Firebase forwarding, but server-side caching
     // kept so offline subscribers still get their alerts.

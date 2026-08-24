@@ -179,6 +179,14 @@ final class AlertMessages {
    * non-printable-ASCII characters — the publisher omits such a header instead of letting it abort
    * every publish at the header-build boundary.
    */
+  /**
+   * Fixed warning for a {@code cache}/{@code firebase} value that could not be read as a
+   * boolean. Names no value — the point is that the default was kept, not what was typed.
+   */
+  String statusInvalidDeliveryPolicyValue() {
+    return get("status.invalidDeliveryPolicyValue");
+  }
+
   String statusInvalidPriorityOrTags() {
     return get("status.invalidPriorityOrTags");
   }
@@ -298,16 +306,6 @@ final class AlertMessages {
    */
   String statusStartupPingFailFastWithoutMode() {
     return get("status.startupPing.failFastWithoutMode");
-  }
-
-  /**
-   * Fixed warning explaining why a self-test the operator configured as {@code publish} ran as a
-   * probe instead. Emitted once per start, and only when {@code cache=false} actually forced the
-   * downgrade — a silent switch would leave an operator reading "PASSED (probe)" with nothing to
-   * account for the discrepancy. Credential-safe.
-   */
-  String statusStartupPingDowngradedToProbe() {
-    return get("status.startupPing.downgradedToProbe");
   }
 
   /**
