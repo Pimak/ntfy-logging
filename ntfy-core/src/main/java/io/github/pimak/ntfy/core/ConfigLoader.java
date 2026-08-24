@@ -97,18 +97,20 @@ public final class ConfigLoader {
     // get Cache: no and lose every offline subscriber, silently. These two keys are the ones
     // where the misparse direction costs delivered alerts, so they read the common spellings and
     // report anything they cannot recognise instead of guessing.
-    Boolean cache = parseFlag(resolve("cache", envLookup, fileProps, sysProps));
-    Boolean firebase = parseFlag(resolve("firebase", envLookup, fileProps, sysProps));
+    String rawCache = resolve("cache", envLookup, fileProps, sysProps);
+    String rawFirebase = resolve("firebase", envLookup, fileProps, sysProps);
+    Boolean cache = parseFlag(rawCache);
+    Boolean firebase = parseFlag(rawFirebase);
     if (cache != null) {
       builder.cache(cache);
     }
     if (firebase != null) {
       builder.firebase(firebase);
     }
+    // Supplied but unreadable, as opposed to simply absent — the two are told apart here rather
+    // than in parseFlag, which returns null for both.
     builder.deliveryPolicyValueRejected(
-        (cache == null && resolve("cache", envLookup, fileProps, sysProps) != null)
-            || (firebase == null
-                && resolve("firebase", envLookup, fileProps, sysProps) != null));
+        (rawCache != null && cache == null) || (rawFirebase != null && firebase == null));
 
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
