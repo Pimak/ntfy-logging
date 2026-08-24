@@ -23,7 +23,7 @@ Each module pulls `ntfy-core` transitively — you only ever declare the one tha
 Everything beyond the base config — the [full key reference](configuration.md),
 [authentication](authentication.md), [alert behavior](alert-behavior.md),
 [level routing](level-routing.md), [filtering](filtering.md), [MDC context](mdc-context.md),
-[observability](observability.md), [troubleshooting](troubleshooting.md) and
+[observability](observability.md), [troubleshooting](troubleshooting.md),
 [compatibility](compatibility.md) and the [BOM](bom.md) — is shared across all seven
 and listed in the sidebar.
 

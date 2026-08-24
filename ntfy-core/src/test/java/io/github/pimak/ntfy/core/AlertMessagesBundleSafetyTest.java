@@ -48,6 +48,7 @@ class AlertMessagesBundleSafetyTest {
     m.put("publish.failed.noStatus", 1);
     m.put("status.exclusions.list", 1);
     m.put("status.includeMdcKeys.list", 1);
+    m.put("status.excludedExceptionTypes.list", 1);
     m.put("status.warnRoute", 1);
     m.put("digest.title", 2);
     // The WARN route's digest keys take exactly the same arguments as their ERROR counterparts —
