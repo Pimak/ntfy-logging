@@ -139,6 +139,12 @@ An alert from `com.acme.billing.Ledger` carries the billing icon; one from anywh
 `acme.png`. Matching is on logger-hierarchy boundaries, so `com.acme.billingsystem` is *not* a match
 for `com.acme.billing`, and when several prefixes match the longest one wins.
 
+Two limits of the comma-separated form, since it is the only one most frameworks expose. Pairs are
+split on `,` before the first `=` is found, so **an icon URL containing a comma cannot be expressed**
+— a query string like `?v=1,2` would be torn in half, and the fragment reported as a discarded
+entry. And a prefix repeated in the same list keeps only its last value, silently. Neither limit
+applies to the programmatic `Map` form on `NtfyConfig.Builder`.
+
 Two things it deliberately does not do:
 
 - **A notification never uses the table.** A notification you publish yourself through `NtfyClient`
