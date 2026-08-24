@@ -14,8 +14,8 @@ import java.util.Locale;
  * on a framework.
  *
  * <p>Defaults are applied by the builder (not here) so a builder that is never touched still yields
- * a fully-populated config. {@code excludedLoggerPrefixes} and {@code includeMdcKeys} are always
- * stored unmodifiable.
+ * a fully-populated config. Every collection-valued field is stored unmodifiable — stated as a
+ * rule rather than a list of field names, which is what let this sentence go stale once already.
  */
 public final class NtfyConfig {
 

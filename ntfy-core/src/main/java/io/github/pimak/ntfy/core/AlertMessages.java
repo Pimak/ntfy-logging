@@ -461,6 +461,26 @@ final class AlertMessages {
   }
 
   /**
+   * Composes the "excluded exception types" status line emitted once from {@code start()}, and
+   * only when the deny-list is non-empty — the feature is opt-in, so there is deliberately no
+   * {@code .none} counterpart, matching {@link #statusIncludeMdcKeys}. Credential-safe: it
+   * interpolates operator-configured class names only.
+   */
+  String statusExcludedExceptionTypes(List<String> types) {
+    return fmt("status.excludedExceptionTypes.list", String.join(", ", types));
+  }
+
+  /**
+   * Fixed warning for a configured exception type carrying no package. Matching is on the fully
+   * qualified name, so such an entry can never match anything — and would otherwise do so in
+   * complete silence, which is the class of misconfiguration this library exists to surface.
+   * Names no value: the list is echoed by {@link #statusExcludedExceptionTypes} anyway.
+   */
+  String statusUnqualifiedExceptionType() {
+    return get("status.excludedExceptionTypes.unqualified");
+  }
+
+  /**
    * Composes the storm-digest title. {@code titleOrAppName} may be {@code null} (treated as empty
    * string, no NPE). Credential-safe — only interpolates a caller-supplied label and an integer
    * count (pre-stringified so no digit-grouping is applied).

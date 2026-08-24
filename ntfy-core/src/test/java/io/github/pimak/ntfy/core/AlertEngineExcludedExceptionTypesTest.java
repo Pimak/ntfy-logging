@@ -48,6 +48,75 @@ class AlertEngineExcludedExceptionTypesTest {
         java.util.Map.of(), AlertLevel.ERROR);
   }
 
+  /** Captures the startup diagnostic stream so the status lines can be asserted on. */
+  private static final class RecordingDiagnostics implements Diagnostics {
+    final java.util.List<String> infos = new java.util.ArrayList<>();
+    final java.util.List<String> warns = new java.util.ArrayList<>();
+
+    @Override
+    public void info(String msg) {
+      infos.add(msg);
+    }
+
+    @Override
+    public void warn(String msg) {
+      warns.add(msg);
+    }
+
+    @Override
+    public void error(String msg, Throwable t) {}
+  }
+
+  private static RecordingDiagnostics startWith(List<String> types) {
+    RecordingDiagnostics diagnostics = new RecordingDiagnostics();
+    AlertEngine engine =
+        new AlertEngine(
+            NtfyConfig.builder()
+                .url("https://ntfy.example.com")
+                .topic("t")
+                .excludedExceptionTypes(types)
+                .build(),
+            diagnostics);
+    engine.start();
+    engine.stop();
+    return diagnostics;
+  }
+
+  @Test
+  void configuredTypesAreEchoedAtStartup() {
+    // An entry that matches nothing suppresses nothing, and an inert deny-list is otherwise
+    // indistinguishable from a working one: no error, no non-2xx, just alerts that keep arriving.
+    // Echoing the list is what lets an operator confirm what the engine actually loaded.
+    RecordingDiagnostics diagnostics = startWith(List.of(ABORT));
+
+    assertThat(diagnostics.infos).anySatisfy(line -> assertThat(line).contains(ABORT));
+  }
+
+  @Test
+  void anUnsetDenyListAddsNothingToTheDiagnosticStream() {
+    // The feature is opt-in, so the default boot must look exactly as it did before it existed —
+    // the same rule the include-mdc-keys line follows.
+    RecordingDiagnostics diagnostics = startWith(List.of());
+
+    assertThat(diagnostics.infos)
+        .noneSatisfy(line -> assertThat(line).containsIgnoringCase("excluded exception"));
+    assertThat(diagnostics.warns).isEmpty();
+  }
+
+  @Test
+  void anEntryWithoutAPackageIsCalledOut() {
+    // The mistake this key invites. Matching is on the fully qualified name, so a bare simple name
+    // can never match — and would sit there looking configured while suppressing nothing.
+    RecordingDiagnostics diagnostics = startWith(List.of("ClientAbortException"));
+
+    assertThat(diagnostics.warns).isNotEmpty();
+  }
+
+  @Test
+  void aFullyQualifiedEntryIsNotCalledOut() {
+    assertThat(startWith(List.of(ABORT)).warns).isEmpty();
+  }
+
   @Test
   void noConfiguredTypesExcludesNothing() {
     AlertEngine engine = engineExcluding(List.of());

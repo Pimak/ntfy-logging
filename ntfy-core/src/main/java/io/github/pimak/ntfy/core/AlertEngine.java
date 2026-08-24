@@ -436,6 +436,19 @@ public final class AlertEngine {
     if (!config.getIncludeMdcKeys().isEmpty()) {
       diagnostics.info(messages.statusIncludeMdcKeys(config.getIncludeMdcKeys()));
     }
+    // Conditional for the same reason, and reporting the deny-list matters more than most:
+    // an entry that matches nothing suppresses nothing, and the difference between a working
+    // deny-list and an inert one is otherwise invisible — no error, no non-2xx, just alerts
+    // that keep arriving. An entry with no package is called out separately because it is the
+    // mistake this key invites: matching is on the fully qualified name, so a bare
+    // "ClientAbortException" can never match.
+    if (!config.getExcludedExceptionTypes().isEmpty()) {
+      diagnostics.info(
+          messages.statusExcludedExceptionTypes(config.getExcludedExceptionTypes()));
+      if (config.getExcludedExceptionTypes().stream().anyMatch(t -> t.indexOf('.') < 0)) {
+        diagnostics.warn(messages.statusUnqualifiedExceptionType());
+      }
+    }
     // Conditional for the same reason as the include-mdc-keys line: WARN routing is opt-in, and the
     // default path's diagnostic stream must stay byte-identical to before this feature existed.
     // Naming the destination is the point — an unexpected warn topic should be caught on sight.
