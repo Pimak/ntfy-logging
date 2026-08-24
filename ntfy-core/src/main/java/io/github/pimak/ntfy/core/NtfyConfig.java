@@ -90,8 +90,7 @@ public final class NtfyConfig {
         Collections.unmodifiableList(new ArrayList<>(b.excludedExceptionTypes));
     this.cache = b.cache;
     this.firebase = b.firebase;
-    this.deliveryPolicyValueRejected =
-        b.deliveryPolicyValueRejected || b.cacheValueRejected || b.firebaseValueRejected;
+    this.deliveryPolicyValueRejected = b.cacheValueRejected || b.firebaseValueRejected;
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -519,7 +518,6 @@ public final class NtfyConfig {
     private List<String> excludedExceptionTypes = new ArrayList<>();
     private boolean cache = true;
     private boolean firebase = true;
-    private boolean deliveryPolicyValueRejected = false;
     private boolean cacheValueRejected = false;
     private boolean firebaseValueRejected = false;
     private List<String> includeMdcKeys = new ArrayList<>();
@@ -739,12 +737,6 @@ public final class NtfyConfig {
       this.cache = cache;
       // A typed value is unambiguous, so it also settles any earlier rejection of this key.
       this.cacheValueRejected = false;
-      return this;
-    }
-
-    /** Records that a supplied {@code cache}/{@code firebase} value could not be read. */
-    public Builder deliveryPolicyValueRejected(boolean rejected) {
-      this.deliveryPolicyValueRejected = rejected;
       return this;
     }
 
