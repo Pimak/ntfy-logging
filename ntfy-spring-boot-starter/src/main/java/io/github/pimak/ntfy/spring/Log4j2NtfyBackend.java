@@ -87,6 +87,7 @@ final class Log4j2NtfyBackend implements NtfyBackend {
             .setWarnTags(p.getWarnTags())
             .setClickUrl(p.getClickUrl())
             .setActions(p.getActions())
+            .setExcludedExceptionTypes(p.getExcludedExceptionTypes())
             .setLocale(p.getLocale())
             .setExcludedLoggers(p.getExcludedLoggers())
             .setIncludeMdcKeys(p.getIncludeMdcKeys())
