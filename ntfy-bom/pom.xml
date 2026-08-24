@@ -72,4 +72,39 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!--
+        The BOM is FLATTENED before it is installed or deployed, and that is not optional.
+        dependencyManagement with scope=import consumes the imported POM's EFFECTIVE model, parent
+        included — so without this, importing ntfy-bom would hand a consumer every pin this project
+        inherits from its own parent, the whole Quarkus platform BOM among them. Measured: 2352
+        managed entries instead of 7, silently overriding a consumer's Jackson, Netty and JUnit
+        versions. flattenMode=bom resolves the seven entries below and writes a parentless POM
+        carrying nothing else.
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.8.0</version>
+                <configuration>
+                    <flattenMode>bom</flattenMode>
+                    <updatePomFile>true</updatePomFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>flatten</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>flatten-clean</id>
+                        <phase>clean</phase>
+                        <goals><goal>clean</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
