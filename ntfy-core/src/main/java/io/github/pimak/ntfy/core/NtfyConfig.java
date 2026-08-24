@@ -737,6 +737,8 @@ public final class NtfyConfig {
      */
     public Builder cache(boolean cache) {
       this.cache = cache;
+      // A typed value is unambiguous, so it also settles any earlier rejection of this key.
+      this.cacheValueRejected = false;
       return this;
     }
 
@@ -807,6 +809,8 @@ public final class NtfyConfig {
      */
     public Builder firebase(boolean firebase) {
       this.firebase = firebase;
+      // A typed value is unambiguous, so it also settles any earlier rejection of this key.
+      this.firebaseValueRejected = false;
       return this;
     }
 
