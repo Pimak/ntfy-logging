@@ -98,10 +98,9 @@ momentary network problem never receives it at all, and `since=`/`poll=1` stop r
 alerting tool that is a real trade — you are choosing privacy over delivery to anyone who was not
 listening at the time.
 
-It also changes what the [startup self-test](#startup-self-test) can prove: under `Cache: no` a 2xx
-means the server accepted the message, not that anyone will ever see it. The engine handles this for
-you rather than letting the promise quietly become false — see
-[Startup self-test](#startup-self-test).
+It does not change what the [startup self-test](#startup-self-test) proves. That test reads the
+server's response, not a subscriber's; a publish under `Cache: no` still demonstrates the
+endpoint, the credentials, the topic and — unlike a probe — write permission.
 
 ### `firebase`
 
@@ -184,21 +183,6 @@ echoes a token, password or username.
 default), a *different* route failing can still cause exactly one publish — the failure report, sent
 through this healthy route. Set `startup-ping-notify-failures=false` to keep `probe` absolutely
 publish-free.
-
-### Under `cache: false`, a publish is downgraded to a probe
-
-`startup-ping: publish` proves an alert is deliverable by actually sending one. With
-[`cache: false`](#cache) that proof evaporates: the server stores nothing, so a 2xx means it
-accepted the message and says nothing about whether a subscriber — who may have been offline for a
-moment — ever received it. The engine would be reporting "verified" on a boot where nobody saw
-anything.
-
-So it runs the probe instead, and says so in a diagnostic. The probe stays conclusive because it
-asks the server a question rather than depending on a stored message.
-
-This is a downgrade, not a refusal. Both settings are legitimate on their own, and rejecting a
-combination you explicitly asked for would turn a guard into an obstacle. If you want the stronger
-proof, leave `cache` at its default.
 
 ### Testing the WARN route
 

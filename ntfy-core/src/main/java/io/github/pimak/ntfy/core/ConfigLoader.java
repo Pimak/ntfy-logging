@@ -92,19 +92,23 @@ public final class ConfigLoader {
       builder.excludedExceptionTypesCsv(excludedExceptionTypes);
     }
 
-    // Both default to true and are only ever expressed on the wire as an opt-OUT, so the
-    // Boolean.parseBoolean convention used by every other flag here reads correctly: anything that
-    // is not "true" turns the feature off, which is the direction an operator setting these keys
-    // at all is asking for.
-    String cache = resolve("cache", envLookup, fileProps, sysProps);
+    // NOT Boolean.parseBoolean, which every other flag here uses. That method maps anything
+    // that is not "true" to false, so an operator writing cache=yes — asking for caching — would
+    // get Cache: no and lose every offline subscriber, silently. These two keys are the ones
+    // where the misparse direction costs delivered alerts, so they read the common spellings and
+    // report anything they cannot recognise instead of guessing.
+    Boolean cache = parseFlag(resolve("cache", envLookup, fileProps, sysProps));
+    Boolean firebase = parseFlag(resolve("firebase", envLookup, fileProps, sysProps));
     if (cache != null) {
-      builder.cache(Boolean.parseBoolean(cache.trim()));
+      builder.cache(cache);
     }
-
-    String firebase = resolve("firebase", envLookup, fileProps, sysProps);
     if (firebase != null) {
-      builder.firebase(Boolean.parseBoolean(firebase.trim()));
+      builder.firebase(firebase);
     }
+    builder.deliveryPolicyValueRejected(
+        (cache == null && resolve("cache", envLookup, fileProps, sysProps) != null)
+            || (firebase == null
+                && resolve("firebase", envLookup, fileProps, sysProps) != null));
 
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
@@ -226,6 +230,25 @@ public final class ConfigLoader {
     if (value != null) {
       setter.accept(value.trim());
     }
+  }
+
+  /**
+   * {@code TRUE}/{@code FALSE} for a value this project is willing to call a boolean, {@code
+   * null} for anything else — including {@code null} itself, so an unset key and an unreadable
+   * one are told apart by the caller rather than here.
+   */
+  private static Boolean parseFlag(String raw) {
+    if (raw == null) {
+      return null;
+    }
+    String v = raw.trim().toLowerCase(java.util.Locale.ROOT);
+    if (v.equals("true") || v.equals("yes") || v.equals("on") || v.equals("1")) {
+      return Boolean.TRUE;
+    }
+    if (v.equals("false") || v.equals("no") || v.equals("off") || v.equals("0")) {
+      return Boolean.FALSE;
+    }
+    return null;
   }
 
   private static void applyInt(java.util.function.IntConsumer setter, String value) {

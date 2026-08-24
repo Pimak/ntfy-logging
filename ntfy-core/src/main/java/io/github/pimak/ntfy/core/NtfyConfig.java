@@ -45,6 +45,7 @@ public final class NtfyConfig {
   private final List<String> excludedExceptionTypes;
   private final boolean cache;
   private final boolean firebase;
+  private final boolean deliveryPolicyValueRejected;
   private final List<String> includeMdcKeys;
   private final boolean enabled;
   private final boolean asyncEnabled;
@@ -89,6 +90,7 @@ public final class NtfyConfig {
         Collections.unmodifiableList(new ArrayList<>(b.excludedExceptionTypes));
     this.cache = b.cache;
     this.firebase = b.firebase;
+    this.deliveryPolicyValueRejected = b.deliveryPolicyValueRejected;
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -301,6 +303,16 @@ public final class NtfyConfig {
   }
 
   /**
+   * True when a {@code cache} or {@code firebase} value was supplied but could not be read as a
+   * boolean, so the default was kept. Exists for the same reason as {@link
+   * #isStartupPingValueRejected()}: on these two keys a silent misparse costs delivered alerts,
+   * so an unreadable value has to be reported rather than guessed at.
+   */
+  public boolean isDeliveryPolicyValueRejected() {
+    return deliveryPolicyValueRejected;
+  }
+
+  /**
    * The unmodifiable, EXPLICIT allow-list of MDC keys whose values are rendered into alert bodies
    * (one {@code key: value} line each), in configured order — that order is the rendering order.
    * Empty by default, i.e. no MDC content is published at all unless an operator opts in.
@@ -506,6 +518,7 @@ public final class NtfyConfig {
     private List<String> excludedExceptionTypes = new ArrayList<>();
     private boolean cache = true;
     private boolean firebase = true;
+    private boolean deliveryPolicyValueRejected = false;
     private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
@@ -721,6 +734,12 @@ public final class NtfyConfig {
      */
     public Builder cache(boolean cache) {
       this.cache = cache;
+      return this;
+    }
+
+    /** Records that a supplied {@code cache}/{@code firebase} value could not be read. */
+    public Builder deliveryPolicyValueRejected(boolean rejected) {
+      this.deliveryPolicyValueRejected = rejected;
       return this;
     }
 
