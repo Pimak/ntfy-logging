@@ -118,6 +118,11 @@
       "description": "Comma-separated list of logger names or prefixes whose events are never published."
     },
     {
+      "name": "ntfy.excluded-exception-types",
+      "type": "java.lang.String",
+      "description": "Comma-separated list of fully qualified exception class names. An event whose cause chain contains any of them is never published; the whole chain is matched, not just the surface throwable."
+    },
+    {
       "name": "ntfy.include-mdc-keys",
       "type": "java.lang.String",
       "description": "Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one 'key: value' line each. Empty by default; there is no wildcard form, so only keys named here are ever published."
