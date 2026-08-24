@@ -27,9 +27,27 @@ import org.junit.jupiter.api.Test;
  */
 class JavadocPlacementGuardTest {
 
-  /** Every Java source file in this repository's published modules. */
+  /**
+   * The repository root, found by walking up from wherever the test was launched until a directory
+   * holding both {@code pom.xml} and {@code mvnw} appears.
+   *
+   * <p>Not {@code Path.of("").getParent()}: surefire runs with the module directory as the working
+   * directory, but an IDE may run from the repository root instead, and one blind {@code
+   * getParent()} would then walk the directory ABOVE the repository — scanning unrelated projects
+   * and reporting their files as offenders.
+   */
+  private static Path repoRoot() {
+    for (Path p = Path.of("").toAbsolutePath(); p != null; p = p.getParent()) {
+      if (Files.isRegularFile(p.resolve("pom.xml")) && Files.exists(p.resolve("mvnw"))) {
+        return p;
+      }
+    }
+    throw new IllegalStateException("no repository root above " + Path.of("").toAbsolutePath());
+  }
+
+  /** Every Java source file in this repository's modules. */
   private static List<Path> sources() throws IOException {
-    Path repoRoot = Path.of("").toAbsolutePath().getParent();
+    Path repoRoot = repoRoot();
     try (Stream<Path> tree = Files.walk(repoRoot)) {
       return tree.filter(p -> p.toString().endsWith(".java"))
           .filter(p -> p.toString().replace('\\', '/').contains("/src/"))
@@ -41,12 +59,18 @@ class JavadocPlacementGuardTest {
   @Test
   void noJavadocBlockIsOrphanedByAnotherOpeningRightBelowIt() throws IOException {
     List<String> offenders = new ArrayList<>();
+    Path root = repoRoot();
 
     for (Path source : sources()) {
       List<String> lines = Files.readAllLines(source, StandardCharsets.UTF_8);
       for (int i = 0; i < lines.size() - 1; i++) {
         if (lines.get(i).strip().equals("*/") && lines.get(i + 1).strip().equals("/**")) {
-          offenders.add(source.getFileName() + ":" + (i + 1));
+          // Path relative to the repository, not just the file name: several modules carry
+          // same-named files, and a bare name would leave the reader hunting for which one.
+          offenders.add(
+              root.relativize(source).toString().replace(java.io.File.separatorChar, '/')
+                  + ":"
+                  + (i + 1));
         }
       }
     }
