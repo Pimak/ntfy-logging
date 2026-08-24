@@ -385,6 +385,26 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void aLaterReadableValueClearsTheEarlierRejection() {
+    // The flag is per key, not a latch. Setting cache twice — the second time readably — must not
+    // leave the engine warning at every start about a value that no longer exists anywhere.
+    NtfyConfig config =
+        NtfyConfig.builder().url("https://x").topic("t").cache("maybe").cache("no").build();
+
+    assertThat(config.isCache()).isFalse();
+    assertThat(config.isDeliveryPolicyValueRejected()).isFalse();
+  }
+
+  @Test
+  void anUnreadableFirebaseStillReportsWhenCacheIsFine() {
+    NtfyConfig config =
+        NtfyConfig.builder().url("https://x").topic("t").cache("yes").firebase("perhaps").build();
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isDeliveryPolicyValueRejected()).isTrue();
+  }
+
+  @Test
   void theStringOverloadTreatsNullAndBlankAsUnset() {
     // An adapter passes null for an attribute the operator never wrote. That is not a mistake and
     // must not be reported as one.

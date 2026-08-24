@@ -90,7 +90,8 @@ public final class NtfyConfig {
         Collections.unmodifiableList(new ArrayList<>(b.excludedExceptionTypes));
     this.cache = b.cache;
     this.firebase = b.firebase;
-    this.deliveryPolicyValueRejected = b.deliveryPolicyValueRejected;
+    this.deliveryPolicyValueRejected =
+        b.deliveryPolicyValueRejected || b.cacheValueRejected || b.firebaseValueRejected;
     this.includeMdcKeys = Collections.unmodifiableList(new ArrayList<>(b.includeMdcKeys));
     this.enabled = b.enabled;
     this.asyncEnabled = b.asyncEnabled;
@@ -519,6 +520,8 @@ public final class NtfyConfig {
     private boolean cache = true;
     private boolean firebase = true;
     private boolean deliveryPolicyValueRejected = false;
+    private boolean cacheValueRejected = false;
+    private boolean firebaseValueRejected = false;
     private List<String> includeMdcKeys = new ArrayList<>();
     private boolean enabled = true;
     private boolean asyncEnabled = true;
@@ -758,9 +761,10 @@ public final class NtfyConfig {
       Boolean parsed = parseFlag(cache);
       if (parsed != null) {
         this.cache = parsed;
-      } else if (cache != null && !cache.isBlank()) {
-        this.deliveryPolicyValueRejected = true;
       }
+      // Per key, not a single latch: setting cache twice — the second time readably — must not
+      // leave the engine warning about a value that no longer exists.
+      this.cacheValueRejected = parsed == null && cache != null && !cache.isBlank();
       return this;
     }
 
@@ -769,9 +773,8 @@ public final class NtfyConfig {
       Boolean parsed = parseFlag(firebase);
       if (parsed != null) {
         this.firebase = parsed;
-      } else if (firebase != null && !firebase.isBlank()) {
-        this.deliveryPolicyValueRejected = true;
       }
+      this.firebaseValueRejected = parsed == null && firebase != null && !firebase.isBlank();
       return this;
     }
 
