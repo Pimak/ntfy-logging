@@ -77,6 +77,8 @@ final class LogbackNtfyBackend implements NtfyBackend {
     appender.setWarnTags(p.getWarnTags());
     appender.setClickUrl(p.getClickUrl());
     appender.setActions(p.getActions());
+    appender.setIcon(p.getIcon());
+    appender.setIconsByLogger(p.getIconsByLogger());
     // String.valueOf on a boolean the framework already parsed: these two surfaces bind the key
     // themselves with converters that understand yes/on/1, and the appender setter takes the raw
     // spelling so the XML surfaces get one shared reading. "true"/"false" round-trips through it.

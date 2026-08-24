@@ -137,7 +137,7 @@
     {
       "name": "ntfy.icon",
       "type": "java.lang.String",
-      "description": "URL of the icon shown beside the notification (Android subscribers only). http/https; an unfetchable value is dropped with a diagnostic at startup."
+      "description": "URL of the icon shown beside the notification (Android subscribers only). http/https; an unfetchable value is dropped — reported at startup on the alerting path, silently on the injectable NtfyClient, which has no diagnostics channel."
     },
     {
       "name": "ntfy.icons-by-logger",

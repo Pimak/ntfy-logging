@@ -9,8 +9,8 @@ package io.github.pimak.ntfy.core;
  * as one of these, and naming it {@code NtfyMessage} keeps it from accreting the semantics of
  * either.
  *
- * <p>Every field is optional. A blank or {@code null} header value sends no corresponding header,
- * and a {@code null} body publishes an empty one. Beyond that, a value carrying a character outside printable ASCII is dropped rather than
+ * <p>Every field is optional. A blank or {@code null} header value sends no corresponding
+ * header, and a {@code null} body publishes an empty one. Beyond that, a value carrying a character outside printable ASCII is dropped rather than
  * failing the request — one bad configured value must not abort every publish at the header-build
  * boundary. {@code title} is the exception: the publisher RFC 2047 encodes it instead, since a
  * non-ASCII application name is ordinary rather than a mistake.

@@ -57,7 +57,9 @@ public class NtfyProperties {
 
   /**
    * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an {@code
-   * http}/{@code https} URL; a value that is not one is dropped with a diagnostic. ntfy renders
+   * http}/{@code https} URL; a value that is not one is dropped — reported at startup on the
+   * alerting path, silently on the injectable {@code NtfyClient}, which has no diagnostics
+   * channel. ntfy renders
    * JPEG and PNG only, but that is a property of the bytes served, not of the path, so a URL whose
    * extension names another format is warned about and still sent.
    */
