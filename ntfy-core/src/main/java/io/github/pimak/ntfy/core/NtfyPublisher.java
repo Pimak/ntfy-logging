@@ -393,10 +393,29 @@ public class NtfyPublisher {
       String scheme = uri.getScheme();
       return scheme != null
           && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
-          && !isBlank(uri.getAuthority());
+          && hasHost(uri.getAuthority());
     } catch (URISyntaxException e) {
       return false;
     }
+  }
+
+  /**
+   * True when {@code authority} names a host, rather than merely being non-blank.
+   *
+   * <p>The host PART of the authority is what is checked, not {@link URI#getHost()}. That method
+   * returns {@code null} for the documented {@code https://user:pass@host} form and for
+   * underscore hostnames, both of which are perfectly fetchable — so testing it would reject
+   * working URLs. Testing the authority alone, on the other hand, accepts {@code http://:80/x},
+   * whose authority is present and whose host is not.
+   */
+  private static boolean hasHost(String authority) {
+    if (isBlank(authority)) {
+      return false;
+    }
+    String hostAndPort = authority.substring(authority.lastIndexOf('@') + 1);
+    int colon = hostAndPort.lastIndexOf(':');
+    String host = colon < 0 ? hostAndPort : hostAndPort.substring(0, colon);
+    return !host.isBlank();
   }
 
   /**
@@ -417,6 +436,7 @@ public class NtfyPublisher {
     }
     String lower = path.toLowerCase(java.util.Locale.ROOT);
     return lower.endsWith(".svg")
+        || lower.endsWith(".tif")
         || lower.endsWith(".gif")
         || lower.endsWith(".webp")
         || lower.endsWith(".bmp")
