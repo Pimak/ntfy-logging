@@ -34,7 +34,10 @@ class AlertEngineIconByLoggerIT {
   private static final String INVOICES_ICON = "https://cdn.example.com/invoices.png";
 
   private static final class RecordingDiagnostics implements Diagnostics {
-    final List<String> warns = new ArrayList<>();
+    // Copy-on-write like the startup-ping harnesses in this package. These tests publish
+    // inline, so nothing crosses a thread yet — but the day one of them switches on a
+    // self-test or async delivery, a plain list would start racing in silence.
+    final List<String> warns = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @Override
     public void info(String msg) {}
@@ -119,12 +122,14 @@ class AlertEngineIconByLoggerIT {
   @Test
   void anUnusableEntryIsDroppedAtStartupWithoutTakingTheRestWithIt(WireMockRuntimeInfo wm) {
     Map<String, String> icons = new LinkedHashMap<>();
-    icons.put("com.acme.billing", "https://cdn.example.com/billing.svg"); // ntfy renders neither
+    icons.put("com.acme.billing", "file:///etc/passwd.png"); // no client could fetch it
     icons.put("com.acme.shipping", BILLING_ICON);
 
     Published billing = alertFrom(wm, "com.acme.billing.Ledger", icons);
     assertThat(billing.request().getHeader("Icon")).isEqualTo(DEFAULT_ICON);
-    assertThat(billing.warns()).anySatisfy(w -> assertThat(w).contains("icon"));
+    // Must name the TABLE, not the default icon setting: an operator sent to check `icon` would
+    // find it perfectly valid and have nowhere to go next.
+    assertThat(billing.warns()).anySatisfy(w -> assertThat(w).contains("icons-by-logger"));
 
     assertThat(alertFrom(wm, "com.acme.shipping.Dispatch", icons).request().getHeader("Icon"))
         .isEqualTo(BILLING_ICON);

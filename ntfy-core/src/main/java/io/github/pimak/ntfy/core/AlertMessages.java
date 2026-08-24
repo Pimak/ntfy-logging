@@ -309,11 +309,33 @@ final class AlertMessages {
   }
 
   /**
-   * Fixed warning for a configured {@code icon} that ntfy could never render. Names no value —
-   * the URL is operator-supplied and could carry a query string with anything in it.
+   * Fixed warning for an {@code icon} value a client could not fetch at all. Covers the single
+   * default-icon setting ONLY; a discarded entry in the per-logger table gets {@link
+   * #statusInvalidIconEntry()}, because a warning naming the wrong setting sends an operator to
+   * inspect a value that is perfectly fine. Names no value — the URL is operator-supplied and
+   * could carry a query string with anything in it.
    */
   String statusInvalidIcon() {
     return get("status.invalidIcon");
+  }
+
+  /**
+   * Fixed warning for one or more discarded {@code icons-by-logger} entries — either malformed
+   * (not {@code prefix=url}) or carrying a URL a client could not fetch. Emitted once however
+   * many were dropped, and names none of them.
+   */
+  String statusInvalidIconEntry() {
+    return get("status.invalidIconEntry");
+  }
+
+  /**
+   * Fixed warning for an icon URL whose extension names a format ntfy does not render. Unlike
+   * the two above this does NOT accompany a drop: the value is still sent, because a URL is
+   * weak evidence about the bytes behind it and refusing on that basis costs an operator an icon
+   * they could have had.
+   */
+  String statusIconLikelyUnrenderable() {
+    return get("status.iconLikelyUnrenderable");
   }
 
   /**

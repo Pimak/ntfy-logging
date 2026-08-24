@@ -135,6 +135,16 @@
       "defaultValue": true
     },
     {
+      "name": "ntfy.icon",
+      "type": "java.lang.String",
+      "description": "URL of the icon shown beside the notification (Android subscribers only). http/https; an unfetchable value is dropped with a diagnostic at startup."
+    },
+    {
+      "name": "ntfy.icons-by-logger",
+      "type": "java.lang.String",
+      "description": "Per-logger icon overrides as comma-separated prefix=url pairs. The longest prefix matching an alert's logger wins; unmatched loggers keep the default icon. Alerts only."
+    },
+    {
       "name": "ntfy.include-mdc-keys",
       "type": "java.lang.String",
       "description": "Comma-separated allow-list of MDC keys whose values are rendered into alert bodies, one 'key: value' line each. Empty by default; there is no wildcard form, so only keys named here are ever published."

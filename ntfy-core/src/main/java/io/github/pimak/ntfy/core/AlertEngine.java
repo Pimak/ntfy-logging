@@ -344,9 +344,22 @@ public final class AlertEngine {
       }
     }
     if (droppedAnIcon || config.isIconsByLoggerValueRejected()) {
-      diagnostics.warn(messages.statusInvalidIcon());
+      diagnostics.warn(messages.statusInvalidIconEntry());
     }
-    this.iconsByLoggerPrefix = java.util.Map.copyOf(validIcons);
+    // Insertion order is preserved rather than handed to Map.copyOf, which does not promise it.
+    // Nothing today depends on it — two DISTINCT prefixes of equal length cannot both match one
+    // logger, so iconFor() never faces a tie iteration order could break — but that argument is
+    // one edit away from false, and determinism is free.
+    this.iconsByLoggerPrefix =
+        java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(validIcons));
+    // Warned about, never dropped: a URL is weak evidence about the bytes behind it, and being
+    // wrong here would cost an operator an icon they could have had.
+    if (java.util.stream.Stream.concat(
+            java.util.stream.Stream.ofNullable(this.icon),
+            this.iconsByLoggerPrefix.values().stream())
+        .anyMatch(NtfyPublisher::isLikelyUnrenderableIcon)) {
+      diagnostics.warn(messages.statusIconLikelyUnrenderable());
+    }
 
     this.authMode =
         AuthMode.fromCredentials(config.getToken(), config.getUsername(), config.getPassword());

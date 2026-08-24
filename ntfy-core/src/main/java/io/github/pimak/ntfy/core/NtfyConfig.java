@@ -323,8 +323,10 @@ public final class NtfyConfig {
 
   /**
    * URL of the icon shown beside the notification (ntfy {@code Icon} header), or {@code null} when
-   * unset. Only JPEG and PNG are supported by ntfy, and the value is checked at startup because a
-   * bad one is otherwise undetectable — the subscriber's client fetches it, not the server.
+   * unset. Checked at startup for being a fetchable http(s) URL, because a bad one is
+   * otherwise undetectable — the subscriber's client fetches the icon, not the server, so
+   * nothing on the publish path ever reports it. The FORMAT is not checked: ntfy renders
+   * JPEG and PNG only, but a URL says little about the bytes behind it.
    */
   public String getIcon() {
     return icon;
@@ -858,8 +860,10 @@ public final class NtfyConfig {
 
     /**
      * Sets the notification icon URL (ntfy {@code Icon} header). Must be an {@code http}/{@code
-     * https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy supports no other
-     * format. An unusable value is dropped with a diagnostic at {@code start()} rather than sent.
+     * https} URL; a value that is not one is dropped with a diagnostic at {@code start()} rather
+     * than sent. ntfy renders JPEG and PNG only, but the format is a property of the bytes
+     * served rather than of the path, so an extension naming another format only earns a
+     * warning.
      */
     public Builder icon(String icon) {
       this.icon = icon;
