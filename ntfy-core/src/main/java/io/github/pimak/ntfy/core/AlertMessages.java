@@ -175,11 +175,6 @@ final class AlertMessages {
   }
 
   /**
-   * Fixed warning emitted from {@code start()} when a configured priority/tags value contains
-   * non-printable-ASCII characters — the publisher omits such a header instead of letting it abort
-   * every publish at the header-build boundary.
-   */
-  /**
    * Fixed warning for a {@code cache}/{@code firebase} value that could not be read as a
    * boolean. Names no value — the point is that the default was kept, not what was typed.
    */
@@ -187,6 +182,11 @@ final class AlertMessages {
     return get("status.invalidDeliveryPolicyValue");
   }
 
+  /**
+   * Fixed warning emitted from {@code start()} when a configured priority/tags value contains
+   * non-printable-ASCII characters — the publisher omits such a header instead of letting it abort
+   * every publish at the header-build boundary.
+   */
   String statusInvalidPriorityOrTags() {
     return get("status.invalidPriorityOrTags");
   }
