@@ -1053,6 +1053,11 @@ public final class AlertEngine {
    *
    * <p>Names are compared whole. See {@link NtfyConfig#getExcludedExceptionTypes()} for why this
    * differs from the prefix matching {@link #isExcluded} does on logger names.
+   *
+   * <p>"The whole chain" is the chain the adapter handed over, which the mappers cap at 64 links
+   * (and stop at the first repeat, so a cyclic chain cannot run away). A deny-listed type buried
+   * below 64 wrappers therefore would not match — a depth no real stack reaches, but the limit
+   * is the mappers', not this gate's.
    */
   boolean hasExcludedExceptionType(AlertEvent event) {
     List<String> excluded = config.getExcludedExceptionTypes();

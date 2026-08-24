@@ -89,6 +89,8 @@ runtime.
 | `startup-ping-warn is not a recognized mode (expected off, probe, or publish) — the unrecognized value is ignored` | warn | As above, for `startup-ping-warn`. | Fix the spelling: `off`, `probe` or `publish`. |
 | `ntfy startup self-test could not publish its failure notification either — the diagnostics above are the only report` | warn | A route failed, another had passed, so the failure report was published to it — and that publish failed too. | Treat the preceding FAILED line(s) as the whole story; the healthy route may have become unhealthy between the two requests. |
 | `startup-ping is not a recognized mode (expected off, probe, or publish) — the unrecognized value is ignored` | warn | A `startup-ping` value was supplied but matched no mode (e.g. `prob`). The value is discarded and whatever mode was already in effect stands — the default `off` on every framework surface, since each binds the key exactly once. The offending value is deliberately not echoed. | Fix the spelling: `off`, `probe` or `publish`. |
+| `ntfy excluded exception types: <list>` | info | Emitted once at startup when `excluded-exception-types` is set, echoing what the engine actually loaded. Absent entirely when the key is unset. | Nothing — this is the confirmation that the deny-list is live. |
+| `an ntfy excluded-exception-types entry carries no package — matching is on the fully qualified class name, so an entry like "ClientAbortException" never matches anything; write the package too` | warn | An entry has no dot in it. Matching is on the FQCN, so such an entry suppresses nothing while looking configured. | Write the package: `org.apache.catalina.connector.ClientAbortException`. See [filtering.md](filtering.md). |
 
 ## Common scenarios
 
