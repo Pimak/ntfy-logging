@@ -334,8 +334,8 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     @PluginBuilderAttribute private String actions;
     @PluginBuilderAttribute private String excludedLoggers;
     @PluginBuilderAttribute private String excludedExceptionTypes;
-    @PluginBuilderAttribute private boolean cache = true;
-    @PluginBuilderAttribute private boolean firebase = true;
+    @PluginBuilderAttribute private String cache;
+    @PluginBuilderAttribute private String firebase;
     @PluginBuilderAttribute private String includeMdcKeys;
     @PluginBuilderAttribute private String locale;
     @PluginBuilderAttribute private String enabled;
@@ -614,10 +614,14 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
      * {@code false} asks the server not to store the message ({@code Cache: no}). Subscribers who
      * are offline at that moment never receive it. Default {@code true}.
      *
+     * <p>A String rather than a boolean, for the reason {@link #applyBoolean} exists: log4j2's
+     * converter maps everything that is not {@code "true"} to false, so {@code cache="yes"}
+     * would turn caching OFF and cost every offline subscriber their alerts without a word.
+     *
      * @param cache whether the server may cache the message
      * @return this builder
      */
-    public Builder setCache(boolean cache) {
+    public Builder setCache(String cache) {
       this.cache = cache;
       return asBuilder();
     }
@@ -629,7 +633,7 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
      * @param firebase whether the server may forward the message to FCM
      * @return this builder
      */
-    public Builder setFirebase(boolean firebase) {
+    public Builder setFirebase(String firebase) {
       this.firebase = firebase;
       return asBuilder();
     }

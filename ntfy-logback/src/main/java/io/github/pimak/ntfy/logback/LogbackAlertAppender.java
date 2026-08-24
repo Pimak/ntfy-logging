@@ -45,8 +45,8 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   private String appName;
   private String excludedLoggers;
   private String excludedExceptionTypes;
-  private boolean cache = true;
-  private boolean firebase = true;
+  private String cache;
+  private String firebase;
   private String includeMdcKeys;
   private String connectTimeout;
   private String requestTimeout;
@@ -219,16 +219,22 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   /**
    * {@code false} asks the server not to store the message ({@code Cache: no}). Subscribers who are
    * offline at that moment never receive it. Default {@code true}.
+   *
+   * <p>Declared as a String rather than a boolean on purpose. Joran converts an XML value with
+   * {@code Boolean.valueOf}, which maps everything that is not {@code "true"} to false — so {@code
+   * <cache>yes</cache>} would turn caching OFF and cost every offline subscriber their alerts,
+   * silently, on the one surface where the value is typed by hand. {@code NtfyConfig.Builder} reads
+   * the common spellings and reports anything else at {@code start()}.
    */
-  public void setCache(boolean cache) {
+  public void setCache(String cache) {
     this.cache = cache;
   }
 
   /**
    * {@code false} asks the server not to forward the message to Firebase ({@code Firebase: no}).
-   * Default {@code true}.
+   * Default {@code true}. A String for the same reason as {@link #setCache(String)}.
    */
-  public void setFirebase(boolean firebase) {
+  public void setFirebase(String firebase) {
     this.firebase = firebase;
   }
 
