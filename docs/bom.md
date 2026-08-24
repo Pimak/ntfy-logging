@@ -1,8 +1,8 @@
 # BOM
 
-`ntfy-bom` pins every published `ntfy-logging` artifact to one version. Import it once and the
-version disappears from each individual dependency — including the ones a transitive path pulls
-in, which is where a mixed-version tree usually starts.
+`ntfy-bom` pins the seven `ntfy-logging` artifacts you would ever declare to one version. Import
+it once and the version disappears from each individual dependency — including the ones a
+transitive path pulls in, which is where a mixed-version tree usually starts.
 
 ## Import it
 
