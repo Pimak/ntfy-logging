@@ -381,6 +381,9 @@ public class NtfyPublisher {
    * and ntfy does not have. See {@link #isLikelyUnrenderableIcon} for the part that can honestly
    * be judged from a URL.
    *
+   * <p>"With an authority" is not quite the requirement: the authority has to NAME A HOST.
+   * {@code http://:80/logo.png} has an authority and no host, and nothing could fetch it.
+   *
    * <p>Package-visible so {@code AlertEngine} can refuse an unusable value at {@code start()} and
    * {@code NtfyClient} can drop it, rather than sending a header nothing could ever load.
    */
@@ -407,13 +410,22 @@ public class NtfyPublisher {
    * underscore hostnames, both of which are perfectly fetchable — so testing it would reject
    * working URLs. Testing the authority alone, on the other hand, accepts {@code http://:80/x},
    * whose authority is present and whose host is not.
+   *
+   * <p>An IPv6 literal is bracketed and full of colons, so the port cannot be found by looking
+   * for the last one: in {@code [2001:db8::1]} that lands inside the address and leaves {@code
+   * [2001:db8:} behind as the supposed host. The bracket is what delimits it.
    */
   private static boolean hasHost(String authority) {
     if (isBlank(authority)) {
       return false;
     }
     String hostAndPort = authority.substring(authority.lastIndexOf('@') + 1);
-    int colon = hostAndPort.lastIndexOf(':');
+    if (hostAndPort.startsWith("[")) {
+      int close = hostAndPort.indexOf(']');
+      // Unclosed bracket: not a host anyone can resolve.
+      return close > 1;
+    }
+    int colon = hostAndPort.indexOf(':');
     String host = colon < 0 ? hostAndPort : hostAndPort.substring(0, colon);
     return !host.isBlank();
   }
