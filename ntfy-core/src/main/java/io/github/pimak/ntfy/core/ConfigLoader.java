@@ -97,20 +97,8 @@ public final class ConfigLoader {
     // get Cache: no and lose every offline subscriber, silently. These two keys are the ones
     // where the misparse direction costs delivered alerts, so they read the common spellings and
     // report anything they cannot recognise instead of guessing.
-    String rawCache = resolve("cache", envLookup, fileProps, sysProps);
-    String rawFirebase = resolve("firebase", envLookup, fileProps, sysProps);
-    Boolean cache = parseFlag(rawCache);
-    Boolean firebase = parseFlag(rawFirebase);
-    if (cache != null) {
-      builder.cache(cache);
-    }
-    if (firebase != null) {
-      builder.firebase(firebase);
-    }
-    // Supplied but unreadable, as opposed to simply absent — the two are told apart here rather
-    // than in parseFlag, which returns null for both.
-    builder.deliveryPolicyValueRejected(
-        (rawCache != null && cache == null) || (rawFirebase != null && firebase == null));
+    builder.cache(resolve("cache", envLookup, fileProps, sysProps));
+    builder.firebase(resolve("firebase", envLookup, fileProps, sysProps));
 
     // Resolved from ALL THREE layers, classpath ntfy.properties included — unlike
     // allow-classpath-endpoint above. The distinction is what the key can do: this one cannot
@@ -232,25 +220,6 @@ public final class ConfigLoader {
     if (value != null) {
       setter.accept(value.trim());
     }
-  }
-
-  /**
-   * {@code TRUE}/{@code FALSE} for a value this project is willing to call a boolean, {@code
-   * null} for anything else — including {@code null} itself, so an unset key and an unreadable
-   * one are told apart by the caller rather than here.
-   */
-  private static Boolean parseFlag(String raw) {
-    if (raw == null) {
-      return null;
-    }
-    String v = raw.trim().toLowerCase(java.util.Locale.ROOT);
-    if (v.equals("true") || v.equals("yes") || v.equals("on") || v.equals("1")) {
-      return Boolean.TRUE;
-    }
-    if (v.equals("false") || v.equals("no") || v.equals("off") || v.equals("0")) {
-      return Boolean.FALSE;
-    }
-    return null;
   }
 
   private static void applyInt(java.util.function.IntConsumer setter, String value) {

@@ -744,6 +744,57 @@ public final class NtfyConfig {
     }
 
     /**
+     * Sets {@code cache} from a raw configuration string, the spelling every flat surface hands
+     * over — an XML attribute, an environment variable, a properties entry.
+     *
+     * <p>Exists so the answer to "what does {@code cache=yes} mean" cannot differ between
+     * surfaces. Each adapter converting on its own gets {@code Boolean.valueOf}, which maps
+     * everything that is not {@code "true"} to false — so {@code yes} would turn caching OFF and
+     * cost every offline subscriber their alerts, silently, on exactly the surfaces where the
+     * value is typed by hand. A {@code null} leaves the default; an unreadable value leaves the
+     * default and is recorded for the engine to warn about at {@code start()}.
+     */
+    public Builder cache(String cache) {
+      Boolean parsed = parseFlag(cache);
+      if (parsed != null) {
+        this.cache = parsed;
+      } else if (cache != null && !cache.isBlank()) {
+        this.deliveryPolicyValueRejected = true;
+      }
+      return this;
+    }
+
+    /** {@code firebase} from a raw configuration string. See {@link #cache(String)}. */
+    public Builder firebase(String firebase) {
+      Boolean parsed = parseFlag(firebase);
+      if (parsed != null) {
+        this.firebase = parsed;
+      } else if (firebase != null && !firebase.isBlank()) {
+        this.deliveryPolicyValueRejected = true;
+      }
+      return this;
+    }
+
+    /**
+     * {@code TRUE}/{@code FALSE} for a value this project is willing to call a boolean, {@code
+     * null} for anything else — including {@code null} itself, so "absent" and "unreadable" are
+     * told apart by the caller rather than here.
+     */
+    private static Boolean parseFlag(String raw) {
+      if (raw == null) {
+        return null;
+      }
+      String v = raw.trim().toLowerCase(Locale.ROOT);
+      if (v.equals("true") || v.equals("yes") || v.equals("on") || v.equals("1")) {
+        return Boolean.TRUE;
+      }
+      if (v.equals("false") || v.equals("no") || v.equals("off") || v.equals("0")) {
+        return Boolean.FALSE;
+      }
+      return null;
+    }
+
+    /**
      * {@code false} asks the server not to forward the message to Firebase ({@code Firebase: no}),
      * at the cost of push latency on the Google Play Android client. Default {@code true}.
      *

@@ -362,6 +362,41 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void theStringOverloadReadsTheSameSpellingsAsTheLoader() {
+    // Every flat surface — XML attribute, env var, properties entry — goes through this overload,
+    // so "what does cache=yes mean" has exactly one answer across all of them.
+    assertThat(NtfyConfig.builder().url("https://x").topic("t").cache("yes").build().isCache())
+        .isTrue();
+    assertThat(NtfyConfig.builder().url("https://x").topic("t").cache("ON").build().isCache())
+        .isTrue();
+    assertThat(NtfyConfig.builder().url("https://x").topic("t").cache("no").build().isCache())
+        .isFalse();
+    assertThat(NtfyConfig.builder().url("https://x").topic("t").firebase("0").build().isFirebase())
+        .isFalse();
+  }
+
+  @Test
+  void theStringOverloadKeepsTheDefaultForAnUnreadableValueAndReportsIt() {
+    NtfyConfig config =
+        NtfyConfig.builder().url("https://x").topic("t").cache("maybe").build();
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isDeliveryPolicyValueRejected()).isTrue();
+  }
+
+  @Test
+  void theStringOverloadTreatsNullAndBlankAsUnset() {
+    // An adapter passes null for an attribute the operator never wrote. That is not a mistake and
+    // must not be reported as one.
+    NtfyConfig config =
+        NtfyConfig.builder().url("https://x").topic("t").cache(null).firebase("  ").build();
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isFirebase()).isTrue();
+    assertThat(config.isDeliveryPolicyValueRejected()).isFalse();
+  }
+
+  @Test
   void anUnreadableFlagKeepsTheDefaultAndIsReported() {
     // Guessing here is what turns a typo into lost alerts; the engine warns about this at start().
     NtfyConfig config = ConfigLoader.load(env(Map.of("NTFY_CACHE", "maybe")), null, null);
