@@ -31,8 +31,12 @@ class PropertyForwardingGuardTest {
 
   private static Path moduleRoot() {
     for (Path p = Path.of("").toAbsolutePath(); p != null; p = p.getParent()) {
-      if (Files.isRegularFile(p.resolve("pom.xml"))
-          && p.getFileName().toString().equals("ntfy-micronaut")) {
+      // getFileName() is null at a filesystem root, and a root carrying a pom.xml would
+      // otherwise turn a "not found" into an NPE from inside the search itself.
+      Path name = p.getFileName();
+      if (name != null
+          && name.toString().equals("ntfy-micronaut")
+          && Files.isRegularFile(p.resolve("pom.xml"))) {
         return p;
       }
     }
