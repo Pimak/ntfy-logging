@@ -72,6 +72,8 @@ Two properties are worth being explicit about, because they are what make the ke
   never reaches a logger bare — it arrives wrapped in whatever the container, the framework or your
   own code threw around it. Matching only the outermost type would leave the key configured and
   inert, which is worse than not having it: the noise continues and the config says it should not.
+  (The chain is capped at 64 links when the event is built, and stops at the first repeat, so a
+  type buried below 64 wrappers is out of reach. No real stack goes there.)
 - **Names are matched whole, and must be fully qualified.** Unlike `excluded-loggers`, this is not
   prefix matching. A logger name is hierarchical, so a prefix names a subtree you can reason about;
   a class name is not, so `java.io.IOException` here means that class and not everything whose name
