@@ -164,8 +164,8 @@ public class NtfyPublisher {
    * header-build boundary.
    *
    * <p>The {@code Authorization} header (if any) comes entirely from the target's {@link AuthMode}:
-   * {@code auth.buildHeader()} returns the header value to send, or {@code Optional.empty()} to send
-   * no {@code Authorization} header at all (a valid anonymous publish).
+   * {@code target.auth().buildHeader()} returns the header value to send, or {@code
+   * Optional.empty()} to send no {@code Authorization} header at all (a valid anonymous publish).
    *
    * @return a {@link PublishResult} describing the outcome; never throws
    */
