@@ -323,10 +323,16 @@ public final class NtfyConfig {
 
   /**
    * URL of the icon shown beside the notification (ntfy {@code Icon} header), or {@code null} when
-   * unset. Checked at startup for being a fetchable http(s) URL, because a bad one is
-   * otherwise undetectable — the subscriber's client fetches the icon, not the server, so
-   * nothing on the publish path ever reports it. The FORMAT is not checked: ntfy renders
-   * JPEG and PNG only, but a URL says little about the bytes behind it.
+   * unset. Must be a fetchable http(s) URL; a value that is not one is dropped, because a bad
+   * one is otherwise undetectable — the subscriber's client fetches the icon, not the server, so
+   * nothing on the publish path ever reports it.
+   *
+   * <p>Where that drop is REPORTED depends on who is publishing. {@link AlertEngine} checks the
+   * value at {@code start()} and warns; {@link NtfyClient} has no diagnostics channel and drops
+   * it in silence. Same rule, one of the two paths simply has nowhere to say so.
+   *
+   * <p>The FORMAT is not checked either way: ntfy renders JPEG and PNG only, but a URL says
+   * little about the bytes behind it.
    */
   public String getIcon() {
     return icon;
