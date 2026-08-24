@@ -370,17 +370,19 @@ public class NtfyPublisher {
   }
 
   /**
-   * True when {@code icon} is a URL ntfy can actually render: an {@code http}/{@code https} URL
-   * whose path ends in {@code .png}, {@code .jpg} or {@code .jpeg}.
+   * True when {@code icon} is a URL a subscriber's client could fetch: an {@code http}/{@code
+   * https} URL with an authority.
    *
-   * <p>Both halves matter, and both fail invisibly without this check. ntfy documents JPEG and PNG
-   * as the only supported formats, and — unlike every other header this library sends — the SERVER
-   * never fetches the icon: the subscriber's client downloads it when it displays the notification.
-   * So a wrong URL produces no non-2xx, no diagnostic, no signal of any kind. It produces a
-   * notification without an icon, indefinitely. Startup is the only place it can be caught.
+   * <p>Nothing about the FORMAT is checked here, deliberately. ntfy renders JPEG and PNG only,
+   * but that is a property of the bytes served, not of how the path is spelt: content-negotiated
+   * and extension-less URLs — {@code https://avatars.example.com/u/9919?v=4} and its kind — serve
+   * PNGs perfectly well. An earlier version of this method required a {@code .png}/{@code
+   * .jpg}/{@code .jpeg} suffix and rejected exactly those, which is a rule this library invented
+   * and ntfy does not have. See {@link #isLikelyUnrenderableIcon} for the part that can honestly
+   * be judged from a URL.
    *
-   * <p>Package-visible so {@code AlertEngine} can refuse the value at {@code start()} and {@code
-   * NtfyClient} can drop it, rather than either sending a header that will never render.
+   * <p>Package-visible so {@code AlertEngine} can refuse an unusable value at {@code start()} and
+   * {@code NtfyClient} can drop it, rather than sending a header nothing could ever load.
    */
   static boolean isValidIconUrl(String icon) {
     if (isBlank(icon)) {
@@ -389,20 +391,38 @@ public class NtfyPublisher {
     try {
       URI uri = new URI(icon);
       String scheme = uri.getScheme();
-      if (scheme == null
-          || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
-          || isBlank(uri.getAuthority())) {
-        return false;
-      }
-      String path = uri.getPath();
-      if (path == null) {
-        return false;
-      }
-      String lower = path.toLowerCase(java.util.Locale.ROOT);
-      return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg");
+      return scheme != null
+          && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
+          && !isBlank(uri.getAuthority());
     } catch (URISyntaxException e) {
       return false;
     }
+  }
+
+  /**
+   * True when {@code icon}'s path ends in an image extension ntfy is documented not to render.
+   *
+   * <p>A closed list of formats that certainly will not work, rather than a guess at which ones
+   * will: an {@code .svg} is a mistake worth naming, while a URL with no extension at all says
+   * nothing either way. This only ever produces a warning — the value is still sent, because
+   * being wrong about it costs the operator an icon they could have had.
+   */
+  static boolean isLikelyUnrenderableIcon(String icon) {
+    if (!isValidIconUrl(icon)) {
+      return false;
+    }
+    String path = URI.create(icon).getPath();
+    if (path == null) {
+      return false;
+    }
+    String lower = path.toLowerCase(java.util.Locale.ROOT);
+    return lower.endsWith(".svg")
+        || lower.endsWith(".gif")
+        || lower.endsWith(".webp")
+        || lower.endsWith(".bmp")
+        || lower.endsWith(".ico")
+        || lower.endsWith(".avif")
+        || lower.endsWith(".tiff");
   }
 
   private static boolean isBlank(String s) {

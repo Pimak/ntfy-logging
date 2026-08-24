@@ -62,7 +62,7 @@ is **one set of settings** with the same names, types, and defaults everywhere. 
 | `excluded-exception-types` | String (csv) | *(none)* | Comma-separated fully qualified exception class names. An event whose cause chain contains any of them never alerts — matched anywhere in the chain, and matched whole rather than by prefix. See [filtering.md](filtering.md). |
 | `cache` | boolean | `true` | `false` sends `Cache: no` — the server stores nothing, so only subscribers connected at that moment ever receive the message. See [Delivery privacy](#delivery-privacy). |
 | `firebase` | boolean | `true` | `false` sends `Firebase: no` — the server does not forward the message to Firebase Cloud Messaging. See [Delivery privacy](#delivery-privacy). |
-| `icon` | String | *(none)* | URL of the icon shown beside the notification. `http`/`https` only, and the path must end in `.png`, `.jpg` or `.jpeg` — ntfy supports no other format. Checked at startup; an unusable value is dropped with a diagnostic and alerting continues. |
+| `icon` | String | *(none)* | URL of the icon shown beside the notification (Android subscribers only). `http`/`https`; checked at startup, and a value that is not a fetchable URL is dropped with a diagnostic while alerting continues. See [Icons](#icons). |
 | `icons-by-logger` | String (csv) | *(none)* | Per-logger icon overrides as `prefix=url` pairs. The longest prefix matching an alert's logger wins; unmatched loggers keep `icon`. Alerts only. See [Icons](#icons). |
 | `include-mdc-keys` | String (csv) | *(none)* | Comma-separated **allow-list** of MDC keys whose values are rendered into the alert body, one `key: value` line each, in the order listed. Opt-in and explicit: there is no wildcard, so no MDC value is ever published unless you name its key. Unset ⇒ bodies are byte-identical to before. Bounded by hard guards (16 keys, 256 chars per value, 1024 chars total). Sourced per adapter: the Logback event's MDC snapshot, log4j2's `ThreadContext`, and `ExtLogRecord` under JBoss LogManager/Quarkus. No effect on plain `java.util.logging`, which has no MDC. See [mdc-context.md](mdc-context.md). |
 | `locale` | String (BCP 47 tag) | `en` | Language of notification bodies and self-diagnostic messages (e.g. `fr`, `de-DE`). Defaults to English and **never** follows the host JVM's default locale, so alert language is deterministic. An unknown/unshipped locale silently falls back to English. See [Notification language](#notification-language-translations). |
@@ -153,13 +153,29 @@ Two things it deliberately does not do:
 
 ### Validation
 
-Both keys are checked at startup, because an icon is the one setting here that fails invisibly: the
-ntfy server never fetches the URL, the subscriber's client does, so a wrong one produces no error
-and no diagnostic — just a notification with no icon, forever.
+Both keys are checked at startup by the engine, because an icon is the one setting here
+that fails invisibly: the ntfy server never fetches the URL, the subscriber's client does,
+so a wrong one produces no error and no diagnostic — just a notification with no icon,
+forever.
 
-A URL must be `http`/`https` and end in `.png`, `.jpg` or `.jpeg`; ntfy renders no other format. An
-unusable value is dropped with a diagnostic and alerting continues — decoration never stops the
-paging. In the table, a bad entry drops itself and leaves the rest of the table working.
+What is checked is that the value is a URL a client could fetch: `http` or `https`, with a
+host. A value that is not is dropped with a diagnostic and alerting continues — decoration
+never stops the paging. In the table, a bad entry drops itself and leaves the rest working,
+and a pair mistyped with a space instead of an `=` is reported too, since swallowing it
+would leave it looking exactly like an unset key.
+
+The image **format** is deliberately not checked. ntfy renders JPEG and PNG only, but that
+is a property of the bytes served, not of how the path is spelt: plenty of perfectly good
+icon URLs carry no extension at all. What you do get is a warning — not a rejection — when
+an extension names a format ntfy is documented not to render, `.svg` and `.gif` among them.
+
+!!! note "Two limits worth knowing"
+
+    ntfy documents icons as **supported on Android only**. iOS and web subscribers see no
+    icon whatever you configure.
+
+    Notifications published through `NtfyClient` outside an engine get no startup at all,
+    and so no diagnostic: an unfetchable `icon` is dropped there silently.
 
 ## Duration syntax
 

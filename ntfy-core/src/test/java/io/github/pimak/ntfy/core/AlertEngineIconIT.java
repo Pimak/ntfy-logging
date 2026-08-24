@@ -28,7 +28,10 @@ class AlertEngineIconIT {
   private static final String VALID = "https://cdn.example.com/logo.png";
 
   private static final class RecordingDiagnostics implements Diagnostics {
-    final List<String> warns = new ArrayList<>();
+    // Copy-on-write like the startup-ping harnesses in this package. These tests publish
+    // inline, so nothing crosses a thread yet — but the day one of them switches on a
+    // self-test or async delivery, a plain list would start racing in silence.
+    final List<String> warns = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @Override
     public void info(String msg) {}
@@ -81,20 +84,39 @@ class AlertEngineIconIT {
   }
 
   @Test
-  void nonImageExtensionIsRefusedAtStartupAndDropped(WireMockRuntimeInfo wm) {
-    // ntfy supports JPEG and PNG only. An .svg would download and silently never render.
-    Published published = publishOnce(wm, "https://cdn.example.com/logo.svg");
+  void anUnrenderableExtensionIsWarnedAboutButStillSent(WireMockRuntimeInfo wm) {
+    // ntfy renders JPEG and PNG only, so an .svg almost certainly shows nothing — worth saying.
+    // Dropping it would not be: the format lives in the bytes, and the URL is only a hint.
+    String url = "https://cdn.example.com/logo.svg";
+    Published published = publishOnce(wm, url);
 
-    assertThat(published.request().containsHeader("Icon")).isFalse();
-    assertThat(published.warns()).anySatisfy(w -> assertThat(w).contains("icon"));
+    assertThat(published.request().getHeader("Icon")).isEqualTo(url);
+    assertThat(published.warns()).isNotEmpty();
   }
 
   @Test
-  void nonHttpSchemeIsRefusedAtStartupAndDropped(WireMockRuntimeInfo wm) {
+  void anExtensionlessUrlIsAccepted(WireMockRuntimeInfo wm) {
+    // Content-negotiated and avatar URLs routinely serve a PNG from a path with no extension.
+    // An earlier version of this guard rejected them on the strength of the spelling alone.
+    String url = "https://avatars.example.com/u/9919?v=4";
+    Published published = publishOnce(wm, url);
+
+    assertThat(published.request().getHeader("Icon")).isEqualTo(url);
+    assertThat(published.warns()).isEmpty();
+  }
+
+  @Test
+  void aSchemeNoClientCouldFetchIsRefusedAtStartupAndDropped(WireMockRuntimeInfo wm) {
     Published published = publishOnce(wm, "file:///etc/passwd.png");
 
     assertThat(published.request().containsHeader("Icon")).isFalse();
-    assertThat(published.warns()).anySatisfy(w -> assertThat(w).contains("icon"));
+    assertThat(published.warns())
+        .anySatisfy(
+            w -> {
+              assertThat(w).contains("icon");
+              // and not the per-logger table message, which names a different setting
+              assertThat(w).doesNotContain("icons-by-logger");
+            });
   }
 
   @Test
@@ -107,7 +129,13 @@ class AlertEngineIconIT {
 
     assertThat(published.request().getBodyAsString()).contains("com.example.app.Service");
     assertThat(published.request().containsHeader("Icon")).isFalse();
-    assertThat(published.warns()).anySatisfy(w -> assertThat(w).contains("icon"));
+    assertThat(published.warns())
+        .anySatisfy(
+            w -> {
+              assertThat(w).contains("icon");
+              // and not the per-logger table message, which names a different setting
+              assertThat(w).doesNotContain("icons-by-logger");
+            });
   }
 
   @Test

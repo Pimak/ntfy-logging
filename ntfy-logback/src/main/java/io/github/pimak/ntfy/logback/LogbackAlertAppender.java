@@ -241,9 +241,7 @@ public class LogbackAlertAppender extends UnsynchronizedAppenderBase<ILoggingEve
   }
 
   /**
-   * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
-   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
-   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+   * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an {@code http}/{@code https} URL; a value that is not one is dropped with a diagnostic. ntfy renders JPEG and PNG only, but that is a property of the bytes served, not of the path, so a URL whose extension names another format is warned about and still sent.
    */
   public void setIcon(String icon) {
     this.icon = icon;
