@@ -143,9 +143,21 @@ class AlertEngineIconIT {
   }
 
   @Test
+  void aCredentialInFrontOfAnUnderscoreHostIsAccepted(WireMockRuntimeInfo wm) {
+    // The case that actually justifies reading the host out of the authority by hand. Userinfo
+    // alone does not defeat URI.getHost() — it resolves user:pass@host to "host" quite happily —
+    // and an underscore alone is handled. Together they were the untested combination.
+    String url = "https://user:pass@my_host/logo.png";
+    Published published = publishOnce(wm, url);
+
+    assertThat(published.request().getHeader("Icon")).isEqualTo(url);
+    assertThat(published.warns()).isEmpty();
+  }
+
+  @Test
   void aUserinfoUrlIsAccepted(WireMockRuntimeInfo wm) {
-    // Same trap from the other side: getHost() is fine here, but stripping the userinfo naively
-    // could leave nothing behind. It must not.
+    // getHost() resolves this one correctly, so it is not the case the authority approach exists
+    // for — but stripping the userinfo naively could leave nothing behind, and it must not.
     String url = "https://user:pass@cdn.example.com/logo.png";
     Published published = publishOnce(wm, url);
 

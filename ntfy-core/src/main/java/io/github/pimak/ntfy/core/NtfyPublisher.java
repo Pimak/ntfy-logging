@@ -347,11 +347,11 @@ public class NtfyPublisher {
    * future change to the publisher's normalization must be mirrored here.
    *
    * <p>The authority (not the host) is what is checked: {@code URI.getHost()} returns {@code null}
-   * for the documented {@code https://user:pass@host} basic-auth form and for underscore
-   * hostnames (registry-based host parsing fails on the unencoded {@code @} / {@code _}), so a
-   * {@code getHost() != null} rule would over-reject those already-supported forms.
-   * {@code getAuthority()} is present for all of them and absent for a scheme-less string like
-   * {@code ntfy.sh}.
+   * for an underscore hostname, registry-based host parsing having no place for {@code _}, so a
+   * {@code getHost() != null} rule would over-reject a form this library already supports.
+   * {@code getAuthority()} is present for it and absent for a scheme-less string like {@code
+   * ntfy.sh}. (Userinfo is NOT a reason: {@code getHost()} resolves those perfectly well — the
+   * two only interact when a credential precedes an underscore host.)
    */
   static boolean isValidEndpointUrl(String url) {
     if (isBlank(url)) {
@@ -406,10 +406,10 @@ public class NtfyPublisher {
    * True when {@code authority} names a host, rather than merely being non-blank.
    *
    * <p>The host PART of the authority is what is checked, not {@link URI#getHost()}. That method
-   * returns {@code null} for the documented {@code https://user:pass@host} form and for
-   * underscore hostnames, both of which are perfectly fetchable — so testing it would reject
-   * working URLs. Testing the authority alone, on the other hand, accepts {@code http://:80/x},
-   * whose authority is present and whose host is not.
+   * returns {@code null} for an underscore hostname, which is perfectly fetchable, so testing it
+   * would reject a working URL. Testing the authority alone, on the other hand, accepts {@code
+   * http://:80/x}, whose authority is present and whose host is not — hence the middle course of
+   * reading the host out of the authority by hand.
    *
    * <p>An IPv6 literal is bracketed and full of colons, so the port cannot be found by looking
    * for the last one: in {@code [2001:db8::1]} that lands inside the address and leaves {@code
