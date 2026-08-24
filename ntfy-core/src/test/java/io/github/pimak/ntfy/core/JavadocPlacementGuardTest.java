@@ -5,10 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -45,14 +47,57 @@ class JavadocPlacementGuardTest {
     throw new IllegalStateException("no repository root above " + Path.of("").toAbsolutePath());
   }
 
-  /** Every Java source file in this repository's modules. */
+  /**
+   * Every Java source file in this repository's own modules.
+   *
+   * <p>The walk PRUNES rather than filtering afterwards, and that is not only about speed. Build
+   * output aside, this repository keeps git worktrees under {@code .claude/} — entire second
+   * checkouts, with their own {@code src/} trees at other commits. A filter applied after the fact
+   * accepts those and reports offenders in files belonging to another branch, which whoever runs
+   * the test cannot fix from where they stand. Skipping every dot-directory and every {@code
+   * target/} leaves exactly this checkout's sources.
+   */
   private static List<Path> sources() throws IOException {
-    Path repoRoot = repoRoot();
-    try (Stream<Path> tree = Files.walk(repoRoot)) {
-      return tree.filter(p -> p.toString().endsWith(".java"))
-          .filter(p -> p.toString().replace('\\', '/').contains("/src/"))
-          .filter(p -> !p.toString().replace('\\', '/').contains("/target/"))
-          .toList();
+    List<Path> found = new ArrayList<>();
+    Files.walkFileTree(
+        repoRoot(),
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+            String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
+            return name.startsWith(".") || name.equals("target")
+                ? FileVisitResult.SKIP_SUBTREE
+                : FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            if (file.toString().endsWith(".java")) {
+              found.add(file);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    return found;
+  }
+
+  @Test
+  void theScanStaysInsideThisCheckout() throws IOException {
+    // The failure this pins is silent: worktrees under .claude/ are entire second checkouts, and
+    // scanning one would report offenders in files from another branch that nobody can fix from
+    // here. A count is not enough — the paths themselves must contain no pruned segment.
+    Path root = repoRoot();
+    List<Path> scanned = sources();
+
+    assertThat(scanned).isNotEmpty();
+    for (Path source : scanned) {
+      assertThat(source).startsWith(root);
+      for (Path segment : root.relativize(source)) {
+        assertThat(segment.toString())
+            .as("scan escaped into %s", source)
+            .doesNotStartWith(".")
+            .isNotEqualTo("target");
+      }
     }
   }
 
