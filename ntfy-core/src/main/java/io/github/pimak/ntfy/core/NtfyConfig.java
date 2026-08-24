@@ -871,13 +871,14 @@ public final class NtfyConfig {
     }
 
     /**
-     * Sets the logger-prefix &rarr; icon-URL table (defensively copied, null-safe). Entries with a
-     * blank prefix or URL are dropped; an entry whose URL ntfy could not render is dropped with a
-     * diagnostic at {@code start()}, leaving the rest of the table working.
+     * Sets the logger-prefix &rarr; icon-URL table (defensively copied, null-safe). An entry with
+     * a blank half, or one whose URL no client could fetch, is dropped with a diagnostic at
+     * {@code start()}, leaving the rest of the table working. A URL naming a format ntfy does
+     * not render is warned about but kept — the format lives in the bytes, not in the path.
      */
     public Builder iconsByLoggerPrefix(Map<String, String> icons) {
-      this.iconsByLoggerPrefix = normalizeIconTable(icons);
       this.iconsByLoggerValueRejected = false;
+      this.iconsByLoggerPrefix = normalizeIconTable(icons);
       return this;
     }
 
@@ -902,13 +903,17 @@ public final class NtfyConfig {
           }
         }
       }
-      this.iconsByLoggerPrefix = normalizeIconTable(icons);
       this.iconsByLoggerValueRejected = rejected;
+      this.iconsByLoggerPrefix = normalizeIconTable(icons);
       return this;
     }
 
-    /** Trims both sides and drops any pair with a blank half, so the table never holds a no-op. */
-    private static Map<String, String> normalizeIconTable(Map<String, String> raw) {
+    /**
+     * Trims both sides and drops any pair with a blank half, so the table never holds a no-op.
+     * A drop here counts as a rejection: {@code com.acme.billing=} parses as a pair and then
+     * vanishes, which without this would look exactly like an unset key — no icon, no signal.
+     */
+    private Map<String, String> normalizeIconTable(Map<String, String> raw) {
       Map<String, String> normalized = new LinkedHashMap<>();
       if (raw != null) {
         for (Map.Entry<String, String> entry : raw.entrySet()) {
@@ -916,6 +921,8 @@ public final class NtfyConfig {
           String url = entry.getValue();
           if (prefix != null && !prefix.isBlank() && url != null && !url.isBlank()) {
             normalized.put(prefix.trim(), url.trim());
+          } else {
+            this.iconsByLoggerValueRejected = true;
           }
         }
       }
