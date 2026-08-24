@@ -115,10 +115,15 @@ class AlertEngineStartupPingCacheOffIT {
   void cacheOff_selfTestCarriesTheCacheHeaderLikeEveryOtherPublish(WireMockRuntimeInfo wm) {
     runSelfTest(wm, StartupPingMode.PUBLISH, false);
 
-    LoggedRequest request = findAll(postRequestedFor(urlEqualTo("/alerts"))).get(0);
+    List<LoggedRequest> published = findAll(postRequestedFor(urlEqualTo("/alerts")));
+    // Asserted before indexing: a missing publish should read as "nothing was published", not as an
+    // IndexOutOfBoundsException the next reader has to decode. This also keeps the test standing on
+    // its own rather than leaning on the one above it having already checked.
+    assertThat(published).hasSize(1);
+
     // The self-test publishes through the same target as an alert, so it honours the same delivery
     // policy. A self-test exempt from it would be exercising a path nothing else takes.
-    assertThat(request.getHeader("Cache")).isEqualTo("no");
+    assertThat(published.get(0).getHeader("Cache")).isEqualTo("no");
   }
 
   @Test
