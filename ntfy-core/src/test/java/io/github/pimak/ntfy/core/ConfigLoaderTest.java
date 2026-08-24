@@ -335,7 +335,9 @@ class ConfigLoaderTest {
   }
 
   @Test
-  void cacheAndFirebase_defaultToTrue_soNoHeaderIsEverSentUnasked() {
+  void cacheAndFirebase_defaultToTrue() {
+    // Only the defaults, which is all this class can see. That these defaults put no header on the
+    // wire is asserted where it can be observed: AlertEngineDeliveryPrivacyIT.
     NtfyConfig config = ConfigLoader.load(env(Map.of()), null, null);
 
     assertThat(config.isCache()).isTrue();
