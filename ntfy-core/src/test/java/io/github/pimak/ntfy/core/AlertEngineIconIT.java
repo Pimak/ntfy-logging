@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -103,6 +102,36 @@ class AlertEngineIconIT {
 
     assertThat(published.request().getHeader("Icon")).isEqualTo(url);
     assertThat(published.warns()).isEmpty();
+  }
+
+  @Test
+  void anAuthorityWithNoHostIsRefused(WireMockRuntimeInfo wm) {
+    // "http://:80/logo.png" has an authority and no host. Nothing could fetch it.
+    Published published = publishOnce(wm, "http://:80/logo.png");
+
+    assertThat(published.request().containsHeader("Icon")).isFalse();
+    assertThat(published.warns()).isNotEmpty();
+  }
+
+  @Test
+  void anUnderscoreHostnameIsAccepted(WireMockRuntimeInfo wm) {
+    // URI.getHost() returns null here, which is why the check reads the host PART of the authority
+    // instead. Testing getHost() would reject this working internal-network form.
+    String url = "http://my_host/logo.png";
+    Published published = publishOnce(wm, url);
+
+    assertThat(published.request().getHeader("Icon")).isEqualTo(url);
+    assertThat(published.warns()).isEmpty();
+  }
+
+  @Test
+  void aUserinfoUrlIsAccepted(WireMockRuntimeInfo wm) {
+    // Same trap from the other side: getHost() is fine here, but stripping the userinfo naively
+    // could leave nothing behind. It must not.
+    String url = "https://user:pass@cdn.example.com/logo.png";
+    Published published = publishOnce(wm, url);
+
+    assertThat(published.request().getHeader("Icon")).isEqualTo(url);
   }
 
   @Test
