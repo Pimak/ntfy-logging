@@ -155,10 +155,13 @@ public class NtfyPublisher {
    * moves that churn somewhere it costs nothing — nothing outside this package can see the shape,
    * so it is free to change.
    *
-   * <p>A blank/null value for any optional header sends no corresponding header. Values containing
-   * non-printable-ASCII characters are omitted rather than forwarded: the CRLF-injection guard must
-   * not depend solely on the JDK client's header validation, and a single invalid configured value
-   * must not abort every publish at the header-build boundary.
+   * <p>A blank/null value for any optional header sends no corresponding header. Beyond that the
+   * two kinds of header part company. {@code Title} is RFC 2047 encoded when it is not printable
+   * ASCII, because a non-ASCII application name is ordinary and dropping it would be a surprise.
+   * Every OTHER optional header carrying a character outside printable ASCII is omitted rather than
+   * forwarded: the CRLF-injection guard must not depend solely on the JDK client's header
+   * validation, and a single invalid configured value must not abort every publish at the
+   * header-build boundary.
    *
    * <p>The {@code Authorization} header (if any) comes entirely from the target's {@link AuthMode}:
    * {@code auth.buildHeader()} returns the header value to send, or {@code Optional.empty()} to send

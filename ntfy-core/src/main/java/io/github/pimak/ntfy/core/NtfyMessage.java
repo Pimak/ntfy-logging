@@ -10,9 +10,10 @@ package io.github.pimak.ntfy.core;
  * either.
  *
  * <p>Every field but {@code body} is optional: a blank or {@code null} value sends no corresponding
- * header. The publisher additionally drops any value that is not printable ASCII rather than
+ * header. Beyond that, a value carrying a character outside printable ASCII is dropped rather than
  * failing the request — one bad configured value must not abort every publish at the header-build
- * boundary.
+ * boundary. {@code title} is the exception: the publisher RFC 2047 encodes it instead, since a
+ * non-ASCII application name is ordinary rather than a mistake.
  *
  * @param title the ntfy {@code Title} header; non-ASCII titles are RFC 2047 encoded by the publisher
  * @param body the request body; {@code null} publishes an empty body
