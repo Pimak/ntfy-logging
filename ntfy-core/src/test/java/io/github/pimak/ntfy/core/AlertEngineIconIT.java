@@ -172,8 +172,9 @@ class AlertEngineIconIT {
     assertThat(published.warns())
         .anySatisfy(
             w -> {
-              assertThat(w).contains("icon");
-              // and not the per-logger table message, which names a different setting
+              // Distinctive to the default-icon message: not the table one, which names
+              // icons-by-logger, and not the unrenderable one, which is about format.
+              assertThat(w).contains("not a fetchable URL");
               assertThat(w).doesNotContain("icons-by-logger");
             });
   }
@@ -191,8 +192,9 @@ class AlertEngineIconIT {
     assertThat(published.warns())
         .anySatisfy(
             w -> {
-              assertThat(w).contains("icon");
-              // and not the per-logger table message, which names a different setting
+              // Distinctive to the default-icon message: not the table one, which names
+              // icons-by-logger, and not the unrenderable one, which is about format.
+              assertThat(w).contains("not a fetchable URL");
               assertThat(w).doesNotContain("icons-by-logger");
             });
   }
@@ -205,7 +207,32 @@ class AlertEngineIconIT {
 
   @Test
   void theExtensionCheckIsCaseInsensitive(WireMockRuntimeInfo wm) {
-    assertThat(publishOnce(wm, "http://cdn.example.com/a.JPG").request().getHeader("Icon"))
-        .isEqualTo("http://cdn.example.com/a.JPG");
+    // .SVG, not .JPG: an uppercase JPG sits outside the unrenderable list either way, so it
+    // would pass with the case-folding deleted and the test could not fail for what it claims.
+    Published published = publishOnce(wm, "https://cdn.example.com/logo.SVG");
+
+    assertThat(published.request().getHeader("Icon"))
+        .isEqualTo("https://cdn.example.com/logo.SVG");
+    assertThat(published.warns()).isNotEmpty();
+  }
+
+  @Test
+  void aNonAsciiUrlIsRefusedRatherThanDroppedAtTheHeaderBoundary(WireMockRuntimeInfo wm) {
+    // It parses, and its authority names a host, so the URL checks alone would call it usable.
+    // But the publisher drops any header value outside printable ASCII, so it would be declared
+    // good at startup and then never reach the wire — the invisible failure this validation
+    // exists to close, produced by the validation itself.
+    Published published = publishOnce(wm, "https://exämple.com/logo.png");
+
+    assertThat(published.request().containsHeader("Icon")).isFalse();
+    assertThat(published.warns()).isNotEmpty();
+  }
+
+  @Test
+  void aPercentEncodedUnicodePathIsAccepted(WireMockRuntimeInfo wm) {
+    // The encoding an operator is told to apply has to actually work.
+    String url = "https://cdn.example.com/p%C3%A4th.png";
+
+    assertThat(publishOnce(wm, url).request().getHeader("Icon")).isEqualTo(url);
   }
 }

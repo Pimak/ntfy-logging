@@ -384,6 +384,14 @@ public class NtfyPublisher {
    * <p>"With an authority" is not quite the requirement: the authority has to NAME A HOST.
    * {@code http://:80/logo.png} has an authority and no host, and nothing could fetch it.
    *
+   * <p>Printable ASCII is required too, and that one is about this library rather than about
+   * URLs. Header values outside printable ASCII are dropped at the header-build boundary — so
+   * without checking it here, an internationalised domain or a unicode path would pass startup
+   * validation, be declared usable, and then never reach the wire, with no diagnostic anywhere.
+   * That is exactly the invisible failure this check exists to close, and it would have been
+   * this check letting it through. Such a URL has to be punycode/percent-encoded by the
+   * operator.
+   *
    * <p>Package-visible so {@code AlertEngine} can refuse an unusable value at {@code start()} and
    * {@code NtfyClient} can drop it, rather than sending a header nothing could ever load.
    */
@@ -392,6 +400,9 @@ public class NtfyPublisher {
       return false;
     }
     try {
+      if (!isAsciiPrintable(icon)) {
+        return false;
+      }
       URI uri = new URI(icon);
       String scheme = uri.getScheme();
       return scheme != null
