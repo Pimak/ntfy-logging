@@ -157,7 +157,24 @@ class AlertEngineIconByLoggerIT {
     engine.start();
     engine.stop();
 
-    assertThat(diagnostics.warns).anySatisfy(w -> assertThat(w).contains("icon"));
+    // Names the table, not the default icon setting: a warning about the wrong one sends an
+    // operator to inspect a value that is perfectly valid.
+    assertThat(diagnostics.warns).anySatisfy(w -> assertThat(w).contains("icons-by-logger"));
+  }
+
+  @Test
+  void aPairWithABlankHalfIsReportedToo(WireMockRuntimeInfo wm) {
+    // "com.acme.billing=" parses as a pair and then vanishes in normalisation. Left unreported
+    // it would look exactly like an unset key: no icon, no error, nothing to notice.
+    NtfyConfig config =
+        NtfyConfig.builder()
+            .url("http://localhost:" + wm.getHttpPort())
+            .topic("alerts")
+            .iconsByLoggerPrefixCsv("com.acme.billing=")
+            .build();
+
+    assertThat(config.getIconsByLoggerPrefix()).isEmpty();
+    assertThat(config.isIconsByLoggerValueRejected()).isTrue();
   }
 
   @Test
