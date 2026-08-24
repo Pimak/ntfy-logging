@@ -642,8 +642,9 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
 
     /**
      * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an
-   * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} — ntfy
-   * supports no other format. An unusable value is dropped with a diagnostic rather than sent.
+     * {@code http}/{@code https} URL ending in {@code .png}, {@code .jpg} or {@code .jpeg} —
+     * ntfy supports no other format. An unusable value is dropped with a diagnostic rather
+     * than sent.
      *
      * @param icon the icon URL
      * @return this builder
@@ -654,9 +655,9 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
-     * Per-logger icon overrides as {@code prefix=url} pairs separated by commas. The
-   * longest prefix matching an alert's logger wins; anything unmatched keeps the default icon.
-   * Alerts only — a notification has no logger to match on.
+     * Per-logger icon overrides as {@code prefix=url} pairs separated by commas. The longest
+     * prefix matching an alert's logger wins; anything unmatched keeps the default icon.
+     * Alerts only — a notification has no logger to match on.
      *
      * @param iconsByLogger the comma-separated prefix=url pairs
      * @return this builder
