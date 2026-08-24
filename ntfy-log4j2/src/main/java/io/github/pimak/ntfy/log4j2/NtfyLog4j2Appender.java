@@ -641,7 +641,10 @@ public final class NtfyLog4j2Appender extends AbstractAppender {
     }
 
     /**
-     * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an {@code http}/{@code https} URL; a value that is not one is dropped with a diagnostic. ntfy renders JPEG and PNG only, but that is a property of the bytes served, not of the path, so a URL whose extension names another format is warned about and still sent.
+     * URL of the icon shown beside the notification (ntfy {@code Icon} header). Must be an {@code
+     * http}/{@code https} URL; a value that is not one is dropped with a diagnostic. ntfy renders
+     * JPEG and PNG only, but that is a property of the bytes served, not of the path, so a URL
+     * whose extension names another format is warned about and still sent.
      *
      * @param icon the icon URL
      * @return this builder

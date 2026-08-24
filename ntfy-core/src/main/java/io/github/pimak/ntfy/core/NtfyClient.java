@@ -100,12 +100,14 @@ public final class NtfyClient implements AutoCloseable {
   }
 
   /**
-   * The configured icon, or {@code null} when it is not one ntfy could render. Dropped rather than
-   * sent: this client has no diagnostics channel to warn through, and a header the subscriber's
-   * client will fail to fetch is worse than none.
+   * The configured icon, or {@code null} when no client could fetch it — an {@code http}/{@code
+   * https} URL naming a host. Whether ntfy can RENDER what that URL serves is a separate
+   * question and is never judged here. Dropped rather than sent, because this client has no
+   * diagnostics channel to warn through and a header nothing can load is worse than none.
    */
   private String icon() {
-    return NtfyPublisher.isValidIconUrl(config.getIcon()) ? config.getIcon() : null;
+    String configured = config.getIcon();
+    return NtfyPublisher.isValidIconUrl(configured) ? configured : null;
   }
 
   /** This client's fixed destination: the configured endpoint, topic and credential. */

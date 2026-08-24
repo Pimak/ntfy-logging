@@ -114,6 +114,24 @@ class AlertEngineIconIT {
   }
 
   @Test
+  void anIpv6LiteralIsAccepted(WireMockRuntimeInfo wm) {
+    // The port cannot be found by looking for the last colon: in [2001:db8::1] that lands inside
+    // the address and leaves "[2001:db8:" behind as the supposed host. The bracket delimits it.
+    String url = "http://[2001:db8::1]:8080/logo.png";
+    Published published = publishOnce(wm, url);
+
+    assertThat(published.request().getHeader("Icon")).isEqualTo(url);
+    assertThat(published.warns()).isEmpty();
+  }
+
+  @Test
+  void anUnclosedBracketIsRefused(WireMockRuntimeInfo wm) {
+    Published published = publishOnce(wm, "http://[2001:db8/logo.png");
+
+    assertThat(published.request().containsHeader("Icon")).isFalse();
+  }
+
+  @Test
   void anUnderscoreHostnameIsAccepted(WireMockRuntimeInfo wm) {
     // URI.getHost() returns null here, which is why the check reads the host PART of the authority
     // instead. Testing getHost() would reject this working internal-network form.
