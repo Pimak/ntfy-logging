@@ -396,6 +396,16 @@ class ConfigLoaderTest {
   }
 
   @Test
+  void aTypedValueAlsoSettlesAnEarlierRejection() {
+    // The boolean overload is as unambiguous as a readable string, so it must clear the same flag.
+    NtfyConfig config =
+        NtfyConfig.builder().url("https://x").topic("t").cache("maybe").cache(true).build();
+
+    assertThat(config.isCache()).isTrue();
+    assertThat(config.isDeliveryPolicyValueRejected()).isFalse();
+  }
+
+  @Test
   void anUnreadableFirebaseStillReportsWhenCacheIsFine() {
     NtfyConfig config =
         NtfyConfig.builder().url("https://x").topic("t").cache("yes").firebase("perhaps").build();
