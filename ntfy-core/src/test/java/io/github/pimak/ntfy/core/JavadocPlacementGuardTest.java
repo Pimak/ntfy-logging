@@ -40,7 +40,8 @@ class JavadocPlacementGuardTest {
    */
   private static Path repoRoot() {
     for (Path p = Path.of("").toAbsolutePath(); p != null; p = p.getParent()) {
-      if (Files.isRegularFile(p.resolve("pom.xml")) && Files.exists(p.resolve("mvnw"))) {
+      if (Files.isRegularFile(p.resolve("pom.xml"))
+          && Files.isRegularFile(p.resolve("mvnw"))) {
         return p;
       }
     }
