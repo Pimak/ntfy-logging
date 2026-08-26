@@ -95,10 +95,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   delegates onto that seam and still returns the same `PublishResult`, so nothing written against
   2.0.0 needs changing to move to 2.1.0, and no published signature changed anywhere in this
   release. What the deprecation announces is intent, and it comes with one gap worth stating
-  plainly. `NtfyClient` is the supported replacement, but it publishes to the destination its
-  configuration fixed at construction, so a caller publishing to a `url`/`topic` that varies from
-  call to call — one per tenant, one per environment — has no supported replacement, and 3.0 removes
-  the overloads. The javadoc now says so rather than leaving it to be found in 3.0; if you depend on
+  plainly. `NtfyClient` is the supported replacement, but it publishes to the destination fixed in
+  its configuration at construction, so a caller publishing to a `url`/`topic` that varies from call
+  to call — one per tenant, one per environment — has no supported replacement, and 3.0 removes the
+  overloads. The javadoc now says so rather than leaving it to be found in 3.0; if you depend on
   that shape, an issue saying so is what will decide what replaces it.
 
 ## [2.0.0] - 2026-08-20
