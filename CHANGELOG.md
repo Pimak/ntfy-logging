@@ -43,12 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   but the self-test now travels through the same target an alert does, so it carries the same
   headers rather than being exempt from them. Both keys are read by a lenient parser understanding
   `true`/`false`, `yes`/`no`, `on`/`off` and `1`/`0`, parsed in one place so the same value cannot
-  mean opposite things on two surfaces. That matters on the XML surfaces, where Joran and Log4j2
-  alike convert a primitive boolean attribute with `Boolean.valueOf`, and `<cache>yes</cache>` would
-  therefore have sent `Cache: no`. **That leniency covers these two keys only**: `enabled`, `async`,
+  mean opposite things on two surfaces. That matters on the XML surfaces, where Joran's
+  `Boolean.valueOf` and Log4j2's own converter alike map everything other than `true` to false, so
+  `<cache>yes</cache>` in Logback, and `cache="yes"` in Log4j2, would therefore have sent
+  `Cache: no`. **That leniency covers these two keys only**: `enabled`, `async`,
   `requireHttpsForCredentials`, `startupPingFailFast` and `startupPingNotifyFailures` still bind as
-  primitive booleans there, so `yes` still reads as `false` for them. An unrecognised value keeps the
-  setting's default and is reported at startup, tracked per key so a corrected value clears the
+  primitive booleans there, so `yes` still reads as `false` for them. An unrecognised value keeps
+  the setting's default and is reported at startup, tracked per key so a corrected value clears the
   warning rather than leaving the engine complaining about a value that no longer exists. See
   [docs/configuration.md](docs/configuration.md#delivery-privacy).
 - **Notifications can carry your application's icon, via the new `icon` and `icons-by-logger`
