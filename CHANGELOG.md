@@ -80,6 +80,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   because the risk being watched is a future 5.x dropping support for what the 4.x processor emits —
   against a pinned version that job would stay green long after the claim stopped being true.
 
+### Deprecated
+- **The four public `NtfyPublisher.publish` overloads now carry `@Deprecated(since = "2.1.0")`, and
+  `NtfyPublisher` is documented as internal transport that the binary-compatibility guarantee does
+  not cover.** The class is public because `AlertEngine`, `NtfyClient` and `StartupSelfTest` needed
+  it before there was anywhere better to put it, not because anyone designed it as an entry point,
+  and until now nothing said so — which left callers free to build on a surface that was never meant
+  to carry them. The pressure is structural: every ntfy header this library grows into meant another
+  positional parameter, and because `publish` is public that meant another overload frozen for the
+  rest of the major. Four already exist, and `icon` would have been the fifth. The request now
+  travels as two package-private records instead, split by lifetime rather than by header category —
+  a target decided once at `start()` and held for the run, a message assembled per event — so the
+  shape stays free to change. **The overloads themselves are untouched**: each still compiles, still
+  delegates onto that seam and still returns the same `PublishResult`, so nothing written against
+  2.0.0 needs changing to move to 2.1.0, and no published signature changed anywhere in this
+  release. What the deprecation announces is intent, and it comes with one gap worth stating
+  plainly. `NtfyClient` is the supported replacement, but it publishes to the destination its
+  configuration fixed at construction, so a caller publishing to a `url`/`topic` that varies from
+  call to call — one per tenant, one per environment — has no supported replacement, and 3.0 removes
+  the overloads. The javadoc now says so rather than leaving it to be found in 3.0; if you depend on
+  that shape, an issue saying so is what will decide what replaces it.
+
 ## [2.0.0] - 2026-08-20
 
 ### Added

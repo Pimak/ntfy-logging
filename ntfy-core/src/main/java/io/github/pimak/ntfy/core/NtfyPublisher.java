@@ -26,6 +26,14 @@ import java.util.Base64;
  * stop being public in 3.0. Publish through {@link NtfyClient} instead, which is the supported
  * surface for sending a notification of your own.
  *
+ * <p><strong>What {@link NtfyClient} does not replace.</strong> An {@code NtfyClient} publishes to
+ * the destination its {@link NtfyConfig} fixed at construction, which covers every caller that has
+ * one destination — the ordinary case. It does not cover publishing to a {@code url}/{@code topic}
+ * that varies from call to call, one per tenant or one per environment, for which the deprecated
+ * overloads below are currently the only route. That case has no supported replacement, and 3.0
+ * removes the overloads. If you depend on it, please open an issue saying so: what replaces it has
+ * not been designed yet, and a stated use case is what would decide its shape.
+ *
  * <p>No SSRF guard is included here — that concern is out of scope for a plain HTTP publisher and
  * is the consumer's responsibility if the target URL is derived from untrusted input. The topic,
  * however, IS validated (ntfy's own {@code [-_A-Za-z0-9]{1,64}} rule): it is concatenated into the
@@ -65,6 +73,10 @@ public class NtfyPublisher {
    * null}.
    *
    * @return a {@link PublishResult} describing the outcome; never throws
+   * @deprecated internal transport, not covered by this library's binary-compatibility guarantee
+   *     and not public in 3.0. Publish through {@link NtfyClient}, whose destination is fixed at
+   *     construction; publishing to a {@code url}/{@code topic} that varies per call has no
+   *     supported replacement — see the class documentation.
    */
   @Deprecated(since = "2.1.0")
   public PublishResult publish(
@@ -77,6 +89,10 @@ public class NtfyPublisher {
    * String, String, AuthMode, String, String, String, String)} with {@code click} {@code null}.
    *
    * @return a {@link PublishResult} describing the outcome; never throws
+   * @deprecated internal transport, not covered by this library's binary-compatibility guarantee
+   *     and not public in 3.0. Publish through {@link NtfyClient}, whose destination is fixed at
+   *     construction; publishing to a {@code url}/{@code topic} that varies per call has no
+   *     supported replacement — see the class documentation.
    */
   @Deprecated(since = "2.1.0")
   public PublishResult publish(
@@ -96,6 +112,10 @@ public class NtfyPublisher {
    * {@code actions} {@code null}.
    *
    * @return a {@link PublishResult} describing the outcome; never throws
+   * @deprecated internal transport, not covered by this library's binary-compatibility guarantee
+   *     and not public in 3.0. Publish through {@link NtfyClient}, whose destination is fixed at
+   *     construction; publishing to a {@code url}/{@code topic} that varies per call has no
+   *     supported replacement — see the class documentation.
    */
   @Deprecated(since = "2.1.0")
   public PublishResult publish(
@@ -128,6 +148,10 @@ public class NtfyPublisher {
    * Optional.empty()} to send no {@code Authorization} header at all (a valid anonymous publish).
    *
    * @return a {@link PublishResult} describing the outcome; never throws
+   * @deprecated internal transport, not covered by this library's binary-compatibility guarantee
+   *     and not public in 3.0. Publish through {@link NtfyClient}, whose destination is fixed at
+   *     construction; publishing to a {@code url}/{@code topic} that varies per call has no
+   *     supported replacement — see the class documentation.
    */
   @Deprecated(since = "2.1.0")
   public PublishResult publish(
