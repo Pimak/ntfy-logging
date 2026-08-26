@@ -27,12 +27,12 @@ import java.util.Base64;
  * surface for sending a notification of your own.
  *
  * <p><strong>What {@link NtfyClient} does not replace.</strong> An {@code NtfyClient} publishes to
- * the destination its {@link NtfyConfig} fixed at construction, which covers every caller that has
- * one destination — the ordinary case. It does not cover publishing to a {@code url}/{@code topic}
- * that varies from call to call, one per tenant or one per environment, for which the deprecated
- * overloads below are currently the only route. That case has no supported replacement, and 3.0
- * removes the overloads. If you depend on it, please open an issue saying so: what replaces it has
- * not been designed yet, and a stated use case is what would decide its shape.
+ * the destination fixed in its {@link NtfyConfig} at construction, which covers every caller that
+ * has one destination — the ordinary case. It does not cover publishing to a
+ * {@code url}/{@code topic} that varies from call to call, one per tenant or one per environment,
+ * for which the deprecated overloads below are currently the only route. That case has no supported
+ * replacement, and 3.0 removes the overloads. If you depend on it, please open an issue saying so:
+ * what replaces it has not been designed yet, and a stated use case is what would decide its shape.
  *
  * <p>No SSRF guard is included here — that concern is out of scope for a plain HTTP publisher and
  * is the consumer's responsibility if the target URL is derived from untrusted input. The topic,
