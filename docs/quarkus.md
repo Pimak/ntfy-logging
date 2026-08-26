@@ -24,7 +24,7 @@ async-delivery smoke test).
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-quarkus-runtime</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 

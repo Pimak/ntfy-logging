@@ -6,7 +6,7 @@
 
     <groupId>io.github.pimak</groupId>
     <artifactId>ntfy-logging</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
     <packaging>pom</packaging>
 
     <name>ntfy-logging</name>
@@ -92,7 +92,7 @@
             Maven silently IGNORES a value it cannot parse, which would drop reproducibility without
             failing anything; the same guard parses it here so that cannot pass unnoticed.
         -->
-        <project.build.outputTimestamp>2026-08-20T00:00:00Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-08-26T00:00:00Z</project.build.outputTimestamp>
         <logback.version>1.6.3</logback.version>
         <!--
             Latest stable of the maintained Log4j 2.x line (3.x is still 3.0.0-beta*). Consumed

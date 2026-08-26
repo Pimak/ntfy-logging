@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-26
+
 ### Added
 - **The build is reproducible.** `project.build.outputTimestamp` is set at the parent pom, so every
   archiver in the reactor writes that instant into its zip entries instead of the wall clock and a
@@ -715,7 +717,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `StatusManager`-only diagnostics so the appender itself never re-enters the logging
   pipeline it publishes from.
 
-[Unreleased]: https://github.com/Pimak/ntfy-logging/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Pimak/ntfy-logging/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Pimak/ntfy-logging/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Pimak/ntfy-logging/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/Pimak/ntfy-logging/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/Pimak/ntfy-logging/compare/v1.1.0...v1.1.1

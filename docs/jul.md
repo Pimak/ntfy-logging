@@ -25,7 +25,7 @@ sync-vs-async delivery, and the clean-shutdown digest flush.
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-jul</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 

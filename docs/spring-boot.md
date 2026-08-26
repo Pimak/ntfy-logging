@@ -23,7 +23,7 @@ clean-shutdown digest flush.
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-spring-boot-starter</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
@@ -39,7 +39,7 @@ starter; everything else is unchanged:
 <dependency>
   <groupId>io.github.pimak</groupId>
   <artifactId>ntfy-log4j2</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
