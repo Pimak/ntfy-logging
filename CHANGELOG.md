@@ -10,6 +10,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2026-08-26
 
 ### Added
+- **An exception deny-list, via the new opt-in `excluded-exception-types` setting.** A client that
+  hangs up mid-response is not an incident, but it reaches the logger as an ERROR and pages somebody
+  at three in the morning. The only lever this library offered was `excluded-loggers`, and excluding
+  the logger that reports the disconnect silences that logger's genuine failures too — one class of
+  noise traded for a blind spot. The new key names the types instead: a comma-separated list of
+  fully qualified exception class names, and an event whose exception chain contains any of them
+  never alerts. **The whole cause chain is matched, not the surface throwable**, which is what makes
+  the key usable rather than decorative — a client disconnect practically never reaches a logger
+  bare, it arrives wrapped in whatever the container or the framework threw around it, so a gate
+  reading only the outermost type would sit there configured and inert while the noise continued.
+  The chain is capped at 64 links, a depth no real stack reaches. Names match whole rather than by
+  prefix, deliberately unlike `excluded-loggers`: a logger name is hierarchical and a prefix there
+  names a subtree an operator can reason about, a class name is not. Because an inert deny-list is
+  indistinguishable from a working one at runtime — no error, no non-2xx, just alerts that keep
+  arriving — the engine echoes the list it actually loaded at start, and warns separately when an
+  entry carries no package at all, since a bare `ClientAbortException` can never match a fully
+  qualified name. Both lines are conditional on the key being set. Available on every configuration
+  surface; unset, the gate returns immediately. See [docs/filtering.md](docs/filtering.md).
+- **Two new opt-out settings, `cache` and `firebase`, decide what the ntfy server may do with an
+  alert once it has accepted it.** On the default endpoint every alert this library publishes —
+  stack traces, logger names, allow-listed MDC values — is stored server-side for twelve hours and
+  forwarded to Firebase Cloud Messaging, because that is what ntfy.sh does unless it is told
+  otherwise, and neither was expressible from here. `cache: false` sends `Cache: no`, and
+  `firebase: false` sends `Firebase: no`. **Only the opt-out ever reaches the wire**, so an existing
+  configuration's publishes are byte-identical to before this release. They are two keys rather than
+  one privacy switch because the costs differ and a combined one would make an ordinary deployment
+  unreachable: turning the cache off loses every subscriber who was not connected at that instant,
+  turning Firebase off costs push latency on Android alone, and a self-hosted server with no FCM
+  wants `firebase: false` with `cache: true`. Neither changes what the startup self-test does — what
+  a publishing self-test proves is write permission, which no read-only probe can, cached or not —
+  but the self-test now travels through the same target an alert does, so it carries the same
+  headers rather than being exempt from them. Both keys are read by a lenient parser understanding
+  `true`/`false`, `yes`/`no`, `on`/`off` and `1`/`0`, parsed in one place so the same value cannot
+  mean opposite things on two surfaces. That matters on the XML surfaces, where Joran and Log4j2
+  alike convert a primitive boolean attribute with `Boolean.valueOf`, and `<cache>yes</cache>` would
+  therefore have sent `Cache: no`. **That leniency covers these two keys only**: `enabled`, `async`,
+  `requireHttpsForCredentials`, `startupPingFailFast` and `startupPingNotifyFailures` still bind as
+  primitive booleans there, so `yes` still reads as `false` for them. An unrecognised value keeps the
+  setting's default and is reported at startup, tracked per key so a corrected value clears the
+  warning rather than leaving the engine complaining about a value that no longer exists. See
+  [docs/configuration.md](docs/configuration.md#delivery-privacy).
+- **Notifications can carry your application's icon, via the new `icon` and `icons-by-logger`
+  settings.** `icon` is the URL of an image shown beside the notification; `icons-by-logger` is a
+  table of `prefix=url` pairs, so an alert from `com.acme.billing.Ledger` arrives under the billing
+  logo and everything else under the application's own. The longest matching prefix wins, and
+  matching is on logger-hierarchy boundaries, so the sibling package `com.acme.billingsystem` is not
+  a match for `com.acme.billing`. **There is no interpolation, and that is a security boundary
+  rather than a missing feature**: the subscriber's client downloads the icon when it *displays* the
+  notification, with no tap required, so a URL built out of anything a running application holds
+  would ship what it interpolated — and the subscriber's IP — to a third-party host on every single
+  notification. A table only ever selects among URLs the operator wrote out in full. Both keys are
+  checked at `start()`, because an icon URL is the one value here that fails invisibly: the server
+  never fetches it, so a wrong one produces no non-2xx and no diagnostic of any kind, just a
+  notification with no icon, indefinitely. The check asks only what a URL can honestly answer — an
+  `http` or `https` scheme, a real host, and printable ASCII, the last because the publisher omits a
+  header value outside that range rather than forwarding it. **A file extension is deliberately not
+  required**: ntfy renders JPEG and PNG only, but that is a property of the bytes served, not of how
+  the path is spelt, and demanding one would reject every extension-less CDN URL as unrenderable
+  when it would have rendered perfectly. An unusable value is dropped loudly rather than refused —
+  decoration must never be able to stop the paging — and in the table one bad entry drops itself and
+  leaves the rest working. A storm digest spans many loggers and a notification published by hand has
+  none, so neither consults the table; both carry `icon`. See
+  [docs/configuration.md](docs/configuration.md#icons).
+- **A new `ntfy-bom` artifact pins every `ntfy-logging` artifact you would ever declare from one
+  place.** A consumer using more than one module had to repeat the version on each dependency, and a
+  starter that pulled a second artifact in transitively made those versions drift apart without
+  anyone choosing that they should. Import `io.github.pimak:ntfy-bom` once — `<type>pom</type>` with
+  `<scope>import</scope>` in `dependencyManagement`, or `platform(...)` in Gradle — and the
+  `<version>` disappears from each individual dependency, including the ones a transitive path drags
+  in. It manages the seven artifacts a build file ever names. Two published artifacts are
+  deliberately outside it: `ntfy-quarkus` is a `packaging=pom` aggregator that nothing depends on,
+  and `ntfy-quarkus-deployment` is resolved by the Quarkus build from the runtime artifact's own
+  metadata, so managing it here would invite people to declare it by hand. Their absence means "you
+  do not depend on this", not "this is not published". **The BOM is flattened before it is installed
+  or deployed, and that is not an optimisation.** `dependencyManagement` with `scope=import` consumes
+  the imported POM's *effective* model, parent included, so an unflattened `ntfy-bom` would not have
+  managed the seven artifacts it advertises — it would have handed the consumer every pin this
+  project inherits, the whole Quarkus platform BOM among them: 2352 managed entries instead of seven,
+  measured on a throwaway consumer, with `jackson-databind` declared without a version resolving to
+  2.22.0 and silently overriding whatever the consumer had chosen. Central artifacts are immutable,
+  so this could not have been corrected after a release. See [docs/bom.md](docs/bom.md).
 - **The build is reproducible.** `project.build.outputTimestamp` is set at the parent pom, so every
   archiver in the reactor writes that instant into its zip entries instead of the wall clock and a
   rebuild of a tag from clean sources is byte-identical to the jars published from it — which is
