@@ -246,7 +246,16 @@ grep -qF "<project.build.outputTimestamp>${TODAY}T00:00:00Z</project.build.outpu
 #    pom.xml — a partial stage here silently ships a reactor with mismatched module
 #    versions, which Central then rejects (or worse, half-publishes).
 echo "==> Committing release ${VERSION}"
-git add $(find . -name pom.xml -not -path '*/target/*') CHANGELOG.md README.md docs
+#    Scope is deliberately THIS working tree's reactor: `-path './.*'` prunes every dot-directory
+#    at the repo root, which matters because `.claude/worktrees/` holds scratch checkouts of this
+#    same reactor — poms identical in name, ignored by git. Hand one to git add and it refuses the
+#    whole invocation, and under `set -e` the release dies here: tree fully stamped, no commit, no
+#    tag, and a re-run would stamp a second CHANGELOG section on top. Quoting via an array keeps a
+#    path with spaces one argument, which the unquoted command substitution used to split.
+mapfile -d '' -t RELEASE_POMS < <(find . -name pom.xml -not -path '*/target/*' -not -path './.*' -print0)
+[[ ${#RELEASE_POMS[@]} -gt 0 ]] \
+  || { echo "ERROR: no pom.xml found to stage — the reactor cannot be committed." >&2; exit 1; }
+git add "${RELEASE_POMS[@]}" CHANGELOG.md README.md docs
 git commit -m "chore(release): ${VERSION}"
 
 # 4) Annotated tag.
