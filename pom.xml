@@ -44,6 +44,7 @@
         <module>examples/core</module>
         <module>examples/jul</module>
         <module>examples/logback</module>
+        <module>examples/logback-zero-code</module>
         <module>examples/log4j2</module>
         <module>examples/micronaut</module>
         <module>examples/spring-boot</module>
@@ -468,6 +469,7 @@
                                 <excludeArtifact>ntfy-example-core</excludeArtifact>
                                 <excludeArtifact>ntfy-example-jul</excludeArtifact>
                                 <excludeArtifact>ntfy-example-logback</excludeArtifact>
+                                <excludeArtifact>ntfy-example-logback-zero-code</excludeArtifact>
                                 <excludeArtifact>ntfy-example-log4j2</excludeArtifact>
                                 <excludeArtifact>ntfy-example-micronaut</excludeArtifact>
                                 <excludeArtifact>ntfy-example-spring-boot</excludeArtifact>

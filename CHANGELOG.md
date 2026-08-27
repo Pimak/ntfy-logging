@@ -22,8 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fallback image is a JVM launcher wearing a binary's name: it would pass while testing nothing) and
   with the shared reachability-metadata repository disabled, so only the metadata these jars actually
   ship can satisfy it. The whole leg is a step in the existing `native-smoke` job, never a job of its
-  own. The Logback zero-code auto-install remains unmeasured in native and is now written down as an
-  open question rather than left to inference.
+  own.
+- **The Logback zero-code auto-install is measured in native too.** `ntfy-logback` registers its
+  `Configurator` through `META-INF/services` and ships no reachability metadata alongside it — and a
+  service native-image cannot prove reachable is dropped in silence, which would leave an
+  application starting, logging, and simply never alerting. A new `examples/logback-zero-code` module
+  carries that path on its own: `ntfy-logback` on the classpath, **no `logback.xml` anywhere**, so
+  the appender can only be there if the service lookup found the configurator. The XML is absent on
+  purpose rather than by omission — Logback carries no native-image metadata of any kind, so an image
+  running Joran would fail over reflection registrations that say nothing about the SPI, and an
+  XML-configured appender publishing alongside would make it impossible to tell which of the two
+  reached the wire. The probe reports from inside the image which appenders the root logger ended up
+  with, the loopback server reports whether the one it names then published, and the same probe runs
+  on an ordinary JVM in the same invocation as a control, so a red native leg beside a green JVM one
+  points at the image rather than at the probe. The control was verified to fail: with the
+  `META-INF/services` entry removed, the probe reports `appenders=[console]` and exits non-zero. The
+  module is never published — it is in the release profile's `excludeArtifacts` like every other
+  example.
 
 ## [2.1.0] - 2026-08-26
 
