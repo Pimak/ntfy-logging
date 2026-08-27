@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **The hand-rolled GraalVM path is measured, not assumed.** `docs/compatibility.md` listed the
+  native-image metadata `ntfy-core` ships and then admitted, in the same breath, that no non-Quarkus
+  native build was ever run — so the table was a claim about files, not about behaviour. `examples/core`
+  now carries a `native` profile that compiles a probe binary from plain `ntfy-core` (no framework, no
+  extension), and `CoreNativeBinaryIT` drives that binary from outside against a loopback ntfy server:
+  the configuration has to be read from the environment at image *run* time, the `NtfyClient` publish
+  has to reach the wire, and the alert engine's shutdown digest has to arrive. It runs the binary
+  twice, differing in nothing but `NTFY_LOCALE`, because the digest text comes from the
+  `AlertMessages` resource bundle and a bundle GraalVM pruned falls back to English silently — two
+  languages out of one binary is the only assertion that catches that, and it was verified to fail
+  when the bundle is absent before being declared green. The image is built with `--no-fallback` (a
+  fallback image is a JVM launcher wearing a binary's name: it would pass while testing nothing) and
+  with the shared reachability-metadata repository disabled, so only the metadata these jars actually
+  ship can satisfy it. The whole leg is a step in the existing `native-smoke` job, never a job of its
+  own. The Logback zero-code auto-install remains unmeasured in native and is now written down as an
+  open question rather than left to inference.
+
 ## [2.1.0] - 2026-08-26
 
 ### Added

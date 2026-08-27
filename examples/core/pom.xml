@@ -69,7 +69,81 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- CoreNativeBinaryIT drives a binary that only the `native` profile below
+                         builds, so the default (JVM) build must not run it. Excluding it by TAG
+                         rather than letting it skip itself on a missing binary is deliberate: under
+                         the profile, an absent binary has to fail the build, and a test that decides
+                         for itself whether it applies is exactly the silent green this module's
+                         native leg exists to rule out. -->
+                    <excludedGroups>native-binary</excludedGroups>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            Native leg. Activated by `-Dnative`, the same property the Quarkus integration-tests
+            module uses, so one flag drives every native leg in the reactor. It compiles
+            CoreNativeProbe into a binary and lets CoreNativeBinaryIT drive it against a loopback
+            ntfy stand-in — the hand-rolled (non-Quarkus) native path that docs/compatibility.md
+            ships metadata for. Runs in the existing CI `native-smoke` job; never a job of its own.
+        -->
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>1.1.10</version>
+                        <executions>
+                            <execution>
+                                <id>build-native-probe</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>ntfy-core-native-probe</imageName>
+                            <mainClass>com.example.ntfycore.CoreNativeProbe</mainClass>
+                            <!-- A fallback image is a JVM launcher wearing a binary's name: it runs,
+                                 the IT passes, and nothing about native reachability was tested.
+                                 Refusing it is what makes a missing registration a build failure. -->
+                            <fallback>false</fallback>
+                            <!-- Only the metadata our own jars carry may satisfy this build. The
+                                 shared reachability-metadata repository could supply a registration
+                                 we failed to ship and hide the very gap this leg looks for. -->
+                            <metadataRepository>
+                                <enabled>false</enabled>
+                            </metadataRepository>
+                            <!-- -Ob: cuts image build time roughly in half. It lowers the optimizer,
+                                 not the reachability analysis, so what this leg measures is
+                                 unaffected. -->
+                            <quickBuild>true</quickBuild>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <!-- Nothing excluded here: the JVM ITs and the native one both run. -->
+                            <excludedGroups combine.self="override"/>
+                            <systemPropertyVariables>
+                                <ntfy.native.probe>${project.build.directory}/ntfy-core-native-probe</ntfy.native.probe>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
