@@ -88,6 +88,15 @@ jobs:
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: maven
+      - name: Native smoke (plain-JVM core probe)
+        # The hand-rolled (non-Quarkus) native path. examples/core's `native` profile compiles
+        # CoreNativeProbe into a binary and CoreNativeBinaryIT drives it against a loopback ntfy
+        # server twice, in two languages — which is what proves the AlertMessages bundle survived
+        # image build rather than assuming it. It runs BEFORE the Quarkus leg because it is the
+        # cheaper image and the one that can actually fail: the Quarkus extension builds its
+        # HttpClient at RUNTIME_INIT, so none of the metadata checked here is on its path.
+        # -am adds ntfy-core and the example testkit to the reactor.
+        run: ./mvnw -q --batch-mode verify -Dnative -pl examples/core -am
       - name: Native smoke (Quarkus integration-tests)
         # The deployment module MUST be in the -pl set: the runtime's quarkus-extension-maven-plugin
         # extension-descriptor goal verifies the deployment artifact's dependencies, and that
