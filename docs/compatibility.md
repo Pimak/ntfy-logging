@@ -269,7 +269,12 @@ URL protocols and nothing is reachable at image build time to declare.
 One caveat on that list, because it is the kind of gap a per-module argument hides: for
 `ntfy-logback` the sentence above covers only the *network* path. Its `META-INF/services` entry for
 the `Configurator` SPI is a separate reachability question, one the `ntfy-core` rows say nothing
-about — and it is the zero-code leg described earlier, not this table, that answers it.
+about — and it is the zero-code leg described earlier, not this table, that answers it. It does
+survive: on GraalVM CE 25, with the shared metadata repository off and nothing but these jars'
+contents available, the service lookup finds the configurator and the appender publishes. Which is
+why `ntfy-logback` still ships no metadata of its own and should not be given any speculatively —
+the guard that keeps this table honest would then require documenting a registration nothing
+obliges the project to keep.
 
 ### What is not covered
 
