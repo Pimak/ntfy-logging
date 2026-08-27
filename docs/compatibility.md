@@ -220,6 +220,17 @@ Note that the native leg exercises the alert path, not the Micrometer binding: `
 deliberately kept out of the integration-tests app so the native build stays fast. The binder adds no
 reflection and no build-time initialization of its own, so nothing about it is native-specific.
 
+The **hand-rolled** (non-Quarkus) path is measured in the same job. `examples/core`'s `native`
+profile compiles a probe binary from plain `ntfy-core` — no framework, no extension — and
+`CoreNativeBinaryIT` drives that binary against a loopback ntfy server: the configuration read from
+the ambient environment at image *run* time, the manual `NtfyClient` publish, and the alert engine's
+shutdown digest all have to cross the wire before the test passes. It runs the binary twice,
+differing in nothing but `NTFY_LOCALE`, because the digest text comes from the `AlertMessages`
+bundle and a bundle GraalVM pruned falls back to English without a word — two languages out of one
+binary is the only assertion that catches that. The image is built with `--no-fallback`, and with
+the shared reachability-metadata repository switched off, so nothing but the metadata in the table
+below may satisfy it.
+
 ### Metadata shipped for a hand-rolled build
 
 For a **hand-rolled** (non-Quarkus) native build of `ntfy-core` / `ntfy-logback`, the jars carry
@@ -246,21 +257,27 @@ URL protocols and nothing is reachable at image build time to declare.
 
 ### What is not covered
 
-The only native surface this project measures is the Quarkus one, in the `native-smoke` job. Two
-other native paths exist, and this page claims **neither**:
+The `native-smoke` job measures two native surfaces: the Quarkus extension, and the hand-rolled
+build of plain `ntfy-core` described above. Three other native paths exist, and this page claims
+**none** of them:
 
 - **Spring AOT** — `spring-boot:process-aot` followed by a native image of an application using
   `ntfy-spring-boot-starter`.
 - **Micronaut native** — `micronaut-maven-plugin:native-image` on an application using
   `ntfy-micronaut`.
+- **Logback zero-code auto-install in a native image** — the `Configurator` SPI that installs the
+  appender with no XML at all. `ntfy-logback` ships no native-image metadata of its own, so whether
+  the service lookup behind it survives image build is measured nowhere. Note the asymmetry with the
+  row above: a hand-rolled image of `ntfy-core` is now run, one of `ntfy-logback` is not.
 
-Neither is known to be broken, and no obstacle has been identified in either: both starters use the
-ordinary bean and auto-configuration mechanisms their AOT engines already handle generically, and
-both reach the wire through `ntfy-core`, whose metadata travels with its jar. But *no obstacle
-identified* is reasoning, and the rest of this page is measurement — so these two are recorded here
-as the gap they are, not folded into the Quarkus row's green tick. A hand-rolled native build of
-plain `ntfy-core` / `ntfy-logback` is unrun for the same reason, which is what makes the metadata
-table above worth reading rather than trusting.
+None of the three is known to be broken, and for the first two no obstacle has been identified:
+both starters use the ordinary bean and auto-configuration mechanisms their AOT engines already
+handle generically, and both reach the wire through `ntfy-core`, whose metadata travels with its
+jar. But *no obstacle identified* is reasoning, and the rest of this page is measurement — so they
+are recorded here as the gap they are, not folded into the Quarkus row's green tick. The third is
+weaker still: a `META-INF/services` lookup with no accompanying registration is a known way for a
+native image to lose a service in silence, so that one is an open question rather than an untested
+assumption.
 
 ## ntfy server
 
