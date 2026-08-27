@@ -3,9 +3,8 @@ package com.example.ntfycore;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.ntfytestkit.LoopbackNtfyServer;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
@@ -39,6 +38,9 @@ class CoreNativeBinaryIT {
   /** Generous: a native binary starts in milliseconds, but a loaded CI runner is not the metric. */
   private static final Duration RUN_TIMEOUT = Duration.ofSeconds(60);
 
+  /** How long a forcibly killed probe gets to actually die before its output is read. */
+  private static final Duration KILL_TIMEOUT = Duration.ofSeconds(5);
+
   /** Long enough that the digest below can only come from the stop() flush, never from the timer. */
   private static final String SUPPRESSION_WINDOW_MILLIS = "600000";
 
@@ -66,6 +68,9 @@ class CoreNativeBinaryIT {
     try (LoopbackNtfyServer server = new LoopbackNtfyServer()) {
       String output = run(server, "fr");
 
+      assertThat(server.received())
+          .as("manual notification, alert, digest — output was:%n%s", output)
+          .hasSize(3);
       LoopbackNtfyServer.ReceivedRequest digest = server.received().get(2);
       assertThat(digest.body())
           .as("a pruned fr bundle falls back to the English base, silently — output was:%n%s", output)
@@ -78,39 +83,52 @@ class CoreNativeBinaryIT {
    * Runs the binary to completion against {@code server} and returns its merged stdout/stderr, which
    * every assertion above quotes on failure: when a native image breaks, the reason is usually in
    * the engine's own diagnostics rather than in what did or did not reach the wire.
+   *
+   * <p>Output goes to a file rather than through a pipe this method reads. Reading the pipe first
+   * would block until the child closes it — normally at exit, but not if it hangs — and {@link
+   * RUN_TIMEOUT} below would then never be reached, leaving nothing to stop the run but the CI job's
+   * own hour. A file also survives {@link Process#destroyForcibly()}, so a killed probe is still
+   * quoted in the failure rather than reported as silence.
    */
   private static String run(LoopbackNtfyServer server, String localeTag) throws Exception {
     assertThat(BINARY)
         .as("the native profile must build the probe and hand its path to failsafe")
         .exists();
 
-    ProcessBuilder builder = new ProcessBuilder(BINARY.toString()).redirectErrorStream(true);
-    Map<String, String> env = builder.environment();
-    env.put("NTFY_URL", server.url());
-    env.put("NTFY_TOPIC", "alerts");
-    env.put("NTFY_APP_NAME", "core-example");
-    env.put("NTFY_LOCALE", localeTag);
-    env.put("NTFY_MAX_ALERTS_PER_WINDOW", "1");
-    env.put("NTFY_SUPPRESSION_WINDOW", SUPPRESSION_WINDOW_MILLIS);
-    // Synchronous delivery: the probe's publishes are then done when its process exits, so the
-    // assertions need no polling and a missing request is a real failure rather than a race.
-    env.put("NTFY_ASYNC", "false");
+    Path outputFile = Files.createTempFile("ntfy-core-native-probe-", ".out");
+    try {
+      ProcessBuilder builder =
+          new ProcessBuilder(BINARY.toString())
+              .redirectErrorStream(true)
+              .redirectOutput(outputFile.toFile());
+      Map<String, String> env = builder.environment();
+      env.put("NTFY_URL", server.url());
+      env.put("NTFY_TOPIC", "alerts");
+      env.put("NTFY_APP_NAME", "core-example");
+      env.put("NTFY_LOCALE", localeTag);
+      env.put("NTFY_MAX_ALERTS_PER_WINDOW", "1");
+      env.put("NTFY_SUPPRESSION_WINDOW", SUPPRESSION_WINDOW_MILLIS);
+      // Synchronous delivery: the probe's publishes are then done when its process exits, so the
+      // assertions need no polling and a missing request is a real failure rather than a race.
+      env.put("NTFY_ASYNC", "false");
 
-    Process process = builder.start();
-    String output = readFully(process.getInputStream());
-    boolean exited = process.waitFor(RUN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-    if (!exited) {
-      process.destroyForcibly();
-    }
-    assertThat(exited).as("the probe did not exit within %s — output was:%n%s", RUN_TIMEOUT, output)
-        .isTrue();
-    assertThat(process.exitValue()).as("probe output was:%n%s", output).isZero();
-    return output;
-  }
+      Process process = builder.start();
+      boolean exited = process.waitFor(RUN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+      if (!exited) {
+        process.destroyForcibly().waitFor(KILL_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+      }
+      // readAllBytes + new String, never Files.readString: the latter THROWS on a malformed
+      // byte, and the one job this capture has is to be quotable when something went wrong. A
+      // probe that died mid-write, or wrote in another encoding, must still be readable here.
+      String output = new String(Files.readAllBytes(outputFile), StandardCharsets.UTF_8);
 
-  private static String readFully(InputStream stream) throws IOException {
-    try (InputStream in = stream) {
-      return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+      assertThat(exited)
+          .as("the probe did not exit within %s — output so far was:%n%s", RUN_TIMEOUT, output)
+          .isTrue();
+      assertThat(process.exitValue()).as("probe output was:%n%s", output).isZero();
+      return output;
+    } finally {
+      Files.deleteIfExists(outputFile);
     }
   }
 }

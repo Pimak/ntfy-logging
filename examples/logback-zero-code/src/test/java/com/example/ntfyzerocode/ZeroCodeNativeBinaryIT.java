@@ -3,9 +3,8 @@ package com.example.ntfyzerocode;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.ntfytestkit.LoopbackNtfyServer;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
@@ -35,6 +34,9 @@ class ZeroCodeNativeBinaryIT {
 
   private static final Duration RUN_TIMEOUT = Duration.ofSeconds(60);
 
+  /** How long a forcibly killed probe gets to actually die before its output is read. */
+  private static final Duration KILL_TIMEOUT = Duration.ofSeconds(5);
+
   @Test
   void theZeroCodeAutoInstallSurvivesImageBuild() throws Exception {
     try (LoopbackNtfyServer server = new LoopbackNtfyServer()) {
@@ -53,35 +55,48 @@ class ZeroCodeNativeBinaryIT {
     }
   }
 
+  /**
+   * Output goes to a file rather than through a pipe this method reads. Reading the pipe first would
+   * block until the child closes it — normally at exit, but not if it hangs — and {@link
+   * RUN_TIMEOUT} below would then never be reached, leaving nothing to stop the run but the CI job's
+   * own hour. A file also survives {@link Process#destroyForcibly()}, so a killed probe is still
+   * quoted in the failure rather than reported as silence.
+   */
   private static String run(LoopbackNtfyServer server) throws Exception {
     assertThat(BINARY)
         .as("the native profile must build the probe and hand its path to failsafe")
         .exists();
 
-    ProcessBuilder builder = new ProcessBuilder(BINARY.toString()).redirectErrorStream(true);
-    Map<String, String> env = builder.environment();
-    env.put("NTFY_URL", server.url());
-    env.put("NTFY_TOPIC", "alerts");
-    env.put("NTFY_ASYNC", "false");
+    Path outputFile = Files.createTempFile("ntfy-logback-zero-code-probe-", ".out");
+    try {
+      ProcessBuilder builder =
+          new ProcessBuilder(BINARY.toString())
+              .redirectErrorStream(true)
+              .redirectOutput(outputFile.toFile());
+      Map<String, String> env = builder.environment();
+      env.put("NTFY_URL", server.url());
+      env.put("NTFY_TOPIC", "alerts");
+      env.put("NTFY_ASYNC", "false");
 
-    Process process = builder.start();
-    String output = readFully(process.getInputStream());
-    boolean exited = process.waitFor(RUN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
-    if (!exited) {
-      process.destroyForcibly();
-    }
-    assertThat(exited)
-        .as("the probe did not exit within %s — output was:%n%s", RUN_TIMEOUT, output)
-        .isTrue();
-    assertThat(process.exitValue())
-        .as("exit 4 means the SPI installed no appender — output was:%n%s", output)
-        .isZero();
-    return output;
-  }
+      Process process = builder.start();
+      boolean exited = process.waitFor(RUN_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+      if (!exited) {
+        process.destroyForcibly().waitFor(KILL_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+      }
+      // readAllBytes + new String, never Files.readString: the latter THROWS on a malformed
+      // byte, and the one job this capture has is to be quotable when something went wrong. A
+      // probe that died mid-write, or wrote in another encoding, must still be readable here.
+      String output = new String(Files.readAllBytes(outputFile), StandardCharsets.UTF_8);
 
-  private static String readFully(InputStream stream) throws IOException {
-    try (InputStream in = stream) {
-      return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+      assertThat(exited)
+          .as("the probe did not exit within %s — output so far was:%n%s", RUN_TIMEOUT, output)
+          .isTrue();
+      assertThat(process.exitValue())
+          .as("exit 4 means the SPI installed no appender — output was:%n%s", output)
+          .isZero();
+      return output;
+    } finally {
+      Files.deleteIfExists(outputFile);
     }
   }
 }
