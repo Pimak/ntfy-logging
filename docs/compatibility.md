@@ -220,8 +220,8 @@ Note that the native leg exercises the alert path, not the Micrometer binding: `
 deliberately kept out of the integration-tests app so the native build stays fast. The binder adds no
 reflection and no build-time initialization of its own, so nothing about it is native-specific.
 
-The **hand-rolled** (non-Quarkus) path is measured in the same job. `examples/core`'s `native`
-profile compiles a probe binary from plain `ntfy-core` — no framework, no extension — and
+The **hand-rolled** (non-Quarkus) path is measured in the same job, in two legs. `examples/core`'s
+`native` profile compiles a probe binary from plain `ntfy-core` — no framework, no extension — and
 `CoreNativeBinaryIT` drives that binary against a loopback ntfy server: the configuration read from
 the ambient environment at image *run* time, the manual `NtfyClient` publish, and the alert engine's
 shutdown digest all have to cross the wire before the test passes. It runs the binary twice,
@@ -230,6 +230,17 @@ bundle and a bundle GraalVM pruned falls back to English without a word — two 
 binary is the only assertion that catches that. The image is built with `--no-fallback`, and with
 the shared reachability-metadata repository switched off, so nothing but the metadata in the table
 below may satisfy it.
+
+The second leg is `examples/logback-zero-code`, and it exists for the **zero-code** auto-install:
+`ntfy-logback` on the classpath, no `logback.xml` anywhere, and the appender installed by Logback's
+`Configurator` service lookup alone. That module ships no XML on purpose — Logback itself carries no
+native-image metadata of any kind, so an image running Joran would need reflection registrations for
+every appender and encoder in the file and would fail for reasons that say nothing about the SPI.
+The probe reports, from inside the image, which appenders the root logger ended up with, and the
+loopback server reports whether the one it names then published; a service native-image dropped
+fails the first, an appender that cannot reach the network fails the second. The same probe runs on
+an ordinary JVM in the same invocation, so a red native leg beside a green control points at the
+image rather than at the probe.
 
 ### Metadata shipped for a hand-rolled build
 
@@ -255,29 +266,32 @@ generated into the jar at build time by log4j-core's own annotation processor (s
 `HttpClient`, threads and scheduler at `RUNTIME_INIT`, so Quarkus' own substitutions register the
 URL protocols and nothing is reachable at image build time to declare.
 
+One caveat on that list, because it is the kind of gap a per-module argument hides: for
+`ntfy-logback` the sentence above covers only the *network* path. Its `META-INF/services` entry for
+the `Configurator` SPI is a separate reachability question, one the `ntfy-core` rows say nothing
+about — and it is the zero-code leg described earlier, not this table, that answers it.
+
 ### What is not covered
 
-The `native-smoke` job measures two native surfaces: the Quarkus extension, and the hand-rolled
-build of plain `ntfy-core` described above. Three other native paths exist, and this page claims
-**none** of them:
+The `native-smoke` job measures three native surfaces: the Quarkus extension, the hand-rolled build
+of plain `ntfy-core`, and the zero-code Logback auto-install — the three described above. Two other
+native paths exist, and this page claims **neither**:
 
 - **Spring AOT** — `spring-boot:process-aot` followed by a native image of an application using
   `ntfy-spring-boot-starter`.
 - **Micronaut native** — `micronaut-maven-plugin:native-image` on an application using
   `ntfy-micronaut`.
-- **Logback zero-code auto-install in a native image** — the `Configurator` SPI that installs the
-  appender with no XML at all. `ntfy-logback` ships no native-image metadata of its own, so whether
-  the service lookup behind it survives image build is measured nowhere. Note the asymmetry with the
-  row above: a hand-rolled image of `ntfy-core` is now run, one of `ntfy-logback` is not.
 
-None of the three is known to be broken, and for the first two no obstacle has been identified:
-both starters use the ordinary bean and auto-configuration mechanisms their AOT engines already
-handle generically, and both reach the wire through `ntfy-core`, whose metadata travels with its
-jar. But *no obstacle identified* is reasoning, and the rest of this page is measurement — so they
-are recorded here as the gap they are, not folded into the Quarkus row's green tick. The third is
-weaker still: a `META-INF/services` lookup with no accompanying registration is a known way for a
-native image to lose a service in silence, so that one is an open question rather than an untested
-assumption.
+Neither is known to be broken, and no obstacle has been identified in either: both starters use the
+ordinary bean and auto-configuration mechanisms their AOT engines already handle generically, and
+both reach the wire through `ntfy-core`, whose metadata travels with its jar. But *no obstacle
+identified* is reasoning, and the rest of this page is measurement — so these two are recorded here
+as the gap they are, not folded into the Quarkus row's green tick.
+
+What remains unmeasured about Logback specifically is the **XML** path in a native image. Joran
+configuration needs reflection metadata that neither Logback nor this project ships, and nothing
+here suggests otherwise: `examples/logback` is a JVM example, and the native leg above deliberately
+avoids XML so that what it measures stays legible.
 
 ## ntfy server
 
