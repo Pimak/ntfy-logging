@@ -252,7 +252,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-artifact-plugin</artifactId>
-                    <version>3.6.0</version>
+                    <version>3.6.1</version>
                     <!--
                         Version only — no execution, here or anywhere. The plugin's check-buildplan
                         goal is invoked by its prefix from the `reproducible` CI job, which picks
