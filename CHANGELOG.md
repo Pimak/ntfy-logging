@@ -81,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against a pinned version that job would stay green long after the claim stopped being true.
 
 ### Deprecated
-- **The four public `NtfyPublisher.publish` overloads now carry `@Deprecated(since = "2.1.0")`, and
+- **The four public `NtfyPublisher.publish` overloads are deprecated as of 2.1.0, and
   `NtfyPublisher` is documented as internal transport that the binary-compatibility guarantee does
   not cover.** The class is public because `AlertEngine`, `NtfyClient` and `StartupSelfTest` needed
   it before there was anywhere better to put it, not because anyone designed it as an entry point,
