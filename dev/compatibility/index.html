@@ -1,0 +1,1828 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="ntfy notifications for the JVM: a framework-neutral engine with zero-code adapters for java.util.logging, Logback, Log4j2, Spring Boot and Micronaut, a native-ready Quarkus extension, and a plain programmatic client.">
+      
+      
+        <meta name="author" content="pimak">
+      
+      
+        <link rel="canonical" href="https://pimak.github.io/ntfy-logging/latest/compatibility/">
+      
+      
+        <link rel="prev" href="../bom/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Compatibility - ntfy-logging</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#compatibility" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ntfy-logging" class="md-header__button md-logo" aria-label="ntfy-logging" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ntfy-logging
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Compatibility
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Pimak/ntfy-logging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Pimak/ntfy-logging
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ntfy-logging" class="md-nav__button md-logo" aria-label="ntfy-logging" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ntfy-logging
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Pimak/ntfy-logging" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Pimak/ntfy-logging
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spring-boot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spring Boot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quarkus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarkus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../micronaut/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Micronaut
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plain Logback
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../log4j2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plain Log4j2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../jul/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    java.util.logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (any JVM app)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alert-behavior/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alert behavior
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../filtering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mdc-context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MDC context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bom/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BOM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#java" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jul" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        java.util.logging (ntfy-jul, and Quarkus via it)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logback (ntfy-logback, and Spring Boot / Micronaut via it)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log4j2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log4j2 (ntfy-log4j2, and Spring Boot on spring-boot-starter-log4j2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spring-boot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spring Boot (ntfy-spring-boot-starter)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#micronaut" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Micronaut (ntfy-micronaut)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quarkus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quarkus (ntfy-quarkus-runtime / -deployment)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#micrometer-optional-spring-boot-and-quarkus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Micrometer (optional — Spring Boot and Quarkus)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graalvm-native-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GraalVM native image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GraalVM native image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metadata-shipped-for-a-hand-rolled-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata shipped for a hand-rolled build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-is-not-covered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is not covered
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ntfy-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ntfy server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#java" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jul" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        java.util.logging (ntfy-jul, and Quarkus via it)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logback (ntfy-logback, and Spring Boot / Micronaut via it)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log4j2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log4j2 (ntfy-log4j2, and Spring Boot on spring-boot-starter-log4j2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spring-boot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spring Boot (ntfy-spring-boot-starter)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#micronaut" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Micronaut (ntfy-micronaut)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quarkus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quarkus (ntfy-quarkus-runtime / -deployment)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#micrometer-optional-spring-boot-and-quarkus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Micrometer (optional — Spring Boot and Quarkus)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graalvm-native-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GraalVM native image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GraalVM native image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metadata-shipped-for-a-hand-rolled-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata shipped for a hand-rolled build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-is-not-covered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is not covered
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ntfy-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ntfy server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Pimak/ntfy-logging/edit/main/docs/compatibility.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="compatibility">Compatibility<a class="headerlink" href="#compatibility" title="Permanent link">&para;</a></h1>
+<p>The versions the <code>ntfy-logging</code> family is tested against. Most rows below are <strong>measured</strong>, not
+reasoned: the affected module's full test suite was run against that exact version, by overriding
+the version property the root <code>pom.xml</code> pins (<code>./mvnw -pl &lt;module&gt; -am clean test
+-Dlogback.version=1.4.14</code>, and so on). These three status words carry most of the page, and they
+mean different things:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tested (CI)</strong></td>
+<td>The pinned version. Exercised on every push and PR.</td>
+</tr>
+<tr>
+<td><strong>Verified</strong></td>
+<td>The module's suite was run against this version and passed, on the JDK that version's row in <code>.github/compat-versions.tsv</code> names. Re-run weekly by the sweep, not on every push.</td>
+</tr>
+<tr>
+<td><strong>Expected to work</strong></td>
+<td>Reasoned from the API surface used. Not run.</td>
+</tr>
+</tbody>
+</table>
+<p>A few rows carry a more specific status (<strong>API-checked only</strong>, <strong>Does not work</strong>); each is explained
+where it appears.</p>
+<p>A verified row is evidence, not a guarantee: a green run on one JDK, repeated weekly. Where a range
+is given, the listed versions are the ones actually run — the range between them is interpolation.</p>
+<p><strong>What keeps this page from going stale.</strong> A measurement taken once decays silently, so the page is
+held in place from four sides:</p>
+<ul>
+<li>The <strong>Tested (CI)</strong> rows carry no number of their own. They name the <code>pom.xml</code> property, and
+  <code>hooks/compat_pins.py</code> substitutes the pinned value when the site is built — so a Dependabot bump
+  moves the page with it, and there is nothing left to forget.</li>
+<li><code>CompatibilityMatrixGuardTest</code> (in <code>ntfy-core</code>, so it runs in every build) holds that arrangement
+  up: every <strong>Tested (CI)</strong> row must use its placeholder rather than a literal, every placeholder
+  must resolve against <code>pom.xml</code>, and the <strong>Verified</strong> rows and the sweep's version list must be the
+  same set, in both directions. Neither side can drift ahead of the other.</li>
+<li>The weekly <code>Compatibility sweep</code> workflow re-runs each module's suite against every <strong>Verified</strong>
+  version, on the JDK that version's row names, and files an issue when one stops passing. It is
+  scheduled rather than blocking, because it can fail for reasons unrelated to the change in front
+  of you.</li>
+<li>One claim on this page is about the <em>published jar</em> rather than the sources, and so cannot be
+  checked by recompiling: that <code>ntfy-micronaut</code>, built by the Micronaut 4 annotation processor,
+  still runs on Micronaut 5. The sweep's <code>forward-compat</code> job guards it against whatever 5.x is
+  current — see <a href="#micronaut">Micronaut</a>.</li>
+</ul>
+<p>Both read <code>.github/compat-versions.tsv</code>, which is the single source of truth for the swept versions.
+To add or drop one, edit that file and the matching row here; the guard fails until they agree.</p>
+<h2 id="java">Java<a class="headerlink" href="#java" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>JDK</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>21</td>
+<td><strong>Tested (CI)</strong> — matrix leg, every push/PR</td>
+</tr>
+<tr>
+<td>25</td>
+<td><strong>Tested (CI)</strong> — matrix leg, every push/PR</td>
+</tr>
+<tr>
+<td>22–24</td>
+<td><strong>Expected to work</strong> — the compiler <code>&lt;release&gt;</code> floor is 21 and nothing here uses a later API</td>
+</tr>
+</tbody>
+</table>
+<p>The 22–24 row is the one claim on this page nobody has run. It is also the least interesting: those
+are non-LTS releases, and the two LTS versions on either side of them are both CI legs.</p>
+<p>Minimum supported JDK: <strong>21</strong> (<code>&lt;maven.compiler.release&gt;21&lt;/maven.compiler.release&gt;</code>; required for
+<code>HttpClient.shutdownNow()</code>, used to release the client deterministically on stop/close).</p>
+<h2 id="jul">java.util.logging (<code>ntfy-jul</code>, and Quarkus via it)<a class="headerlink" href="#jul" title="Permanent link">&para;</a></h2>
+<p>JUL ships in <code>java.base</code>, so <code>ntfy-jul</code> has no framework dependency to version at all: it is
+supported on every JDK the family supports (21+, table above). The declarative
+<code>logging.properties</code> entry point (<code>NtfyJulAutoHandler</code>) relies only on the stable
+<code>LogManager</code>/<code>Handler</code> contract that Tomcat's <code>conf/logging.properties</code> also uses. The Quarkus
+extension installs this module's <code>NtfyJulHandler</code> and is exercised by the Quarkus CI legs below.</p>
+<h2 id="logback">Logback (<code>ntfy-logback</code>, and Spring Boot / Micronaut via it)<a class="headerlink" href="#logback" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.6.3</td>
+<td><strong>Tested (CI)</strong> — the exact version pinned in this repo's <code>pom.xml</code></td>
+</tr>
+<tr>
+<td>1.5.0, 1.5.18, 1.5.38</td>
+<td><strong>Verified</strong> — full suite green, including the <code>Configurator</code> SPI tests</td>
+</tr>
+<tr>
+<td>1.4.14</td>
+<td><strong>Verified</strong> — full suite green</td>
+</tr>
+<tr>
+<td>1.3.14</td>
+<td><strong>Verified</strong> — full suite green (37 tests), <em>but see below</em></td>
+</tr>
+<tr>
+<td>1.2.13</td>
+<td><strong>Does not work</strong> — hard compile failure, see below</td>
+</tr>
+</tbody>
+</table>
+<p><strong>1.2.x is genuinely out.</strong> It is not a policy choice: <code>ntfy-logback</code> does not compile against it.
+<code>ch.qos.logback.classic.spi.Configurator.ExecutionStatus</code> (which <code>NtfyLogbackConfigurator</code> returns)
+and <code>ILoggingEvent.getMarkerList()</code> (which <code>LogbackEventMapper</code> calls) do not exist in that line.</p>
+<p><strong>1.3.x is a different case, and this page used to get it wrong.</strong> It was listed alongside 1.2.x as
+unsupported "because the adapter targets the modern JavaBean/Joran and <code>Configurator</code> SPIs" — but
+1.3.14 compiles and passes all 37 tests, <code>NtfyLogbackConfiguratorResetSurvivalTest</code> and
+<code>NtfyLogbackConfiguratorClasspathEndpointTest</code> included, so the very SPI cited as the reason is
+present and working there.</p>
+<p>That makes 1.3.x <em>known to work</em> rather than <em>supported</em>: no CI leg covers it, the project pins
+1.6.x, and 1.3.x is an older line receiving no attention here. Run it if you must and it will work
+today; nothing will tell you if that stops being true.</p>
+<h2 id="log4j2">Log4j2 (<code>ntfy-log4j2</code>, and Spring Boot on <code>spring-boot-starter-log4j2</code>)<a class="headerlink" href="#log4j2" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.26.1</td>
+<td><strong>Tested (CI)</strong> — the exact version pinned in this repo's <code>pom.xml</code>, and the version the module compiles against</td>
+</tr>
+<tr>
+<td>2.17.2, 2.20.0, 2.24.3, 2.25.2</td>
+<td><strong>Verified</strong> — full suite green on each</td>
+</tr>
+<tr>
+<td>2.x (other, ≥ 2.17)</td>
+<td><strong>Expected to work</strong> — the only API surface used is the stable <code>@Plugin</code>/<code>@PluginFactory</code> appender contract, <code>AbstractAppender</code>, <code>LogEvent</code>, <code>Marker</code>, and <code>LoggerContext</code>/<code>Configuration</code> reattachment</td>
+</tr>
+</tbody>
+</table>
+<p>The verified span is deliberately wide: 2.17.2 is the first post-Log4Shell release, so anything an
+application can responsibly still be running is covered. Nothing below 2.17 was tried, and nothing
+below it should be used.</p>
+<p>Log4j2 is a <strong><code>provided</code>-scope</strong> dependency of <code>ntfy-log4j2</code>: the module never drags a Log4j2 of its
+own onto your classpath, so the version your application declares is the one that runs. Native-image
+reachability metadata for the <code>Ntfy</code> plugin is generated at build time by log4j-core's own annotation
+processor and ships inside the jar.</p>
+<h2 id="spring-boot">Spring Boot (<code>ntfy-spring-boot-starter</code>)<a class="headerlink" href="#spring-boot" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.1.1</td>
+<td><strong>Tested (CI)</strong> — the version pinned in this repo (<code>spring-boot.version</code> in <code>pom.xml</code>)</td>
+</tr>
+<tr>
+<td>3.3.13, 3.4.10, 3.5.6</td>
+<td><strong>Verified</strong> — full suite green on each</td>
+</tr>
+<tr>
+<td>3.x / 4.x (other)</td>
+<td><strong>Expected to work</strong> — the starter uses stable <code>@AutoConfiguration</code> + <code>@ConfigurationProperties</code> binding and installs onto whichever logging backend is bound</td>
+</tr>
+</tbody>
+</table>
+<p>Spring Boot 3 and 4 are both covered by measurement, which matters because the starter is the module
+most exposed to a framework major: the whole 3.3 → 4.1 span was run, and the auto-configuration,
+conditional wiring and Micrometer binding pass unchanged across it.</p>
+<p>The starter is <strong>backend-agnostic</strong>: it installs onto whichever backend Spring Boot is actually
+running on — Logback (the default) or Log4j2 (<code>spring-boot-starter-log4j2</code>). <code>ntfy-logback</code> arrives
+transitively with the starter; Log4j2 applications additionally declare <code>io.github.pimak:ntfy-log4j2</code>
+alongside it. The <code>NtfyClient</code> bean and the Micrometer meters are available either way. See
+<a href="../spring-boot/">spring-boot.md</a>.</p>
+<h2 id="micronaut">Micronaut (<code>ntfy-micronaut</code>)<a class="headerlink" href="#micronaut" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.10.17</td>
+<td><strong>Tested (CI)</strong> — the <code>micronaut-platform</code> version pinned in this repo (<code>micronaut.version</code> in <code>pom.xml</code>), resolving Micronaut core 4.10.26</td>
+</tr>
+<tr>
+<td>4.6.3, 4.9.4</td>
+<td><strong>Verified</strong> — full suite green on each, on JDK 21</td>
+</tr>
+<tr>
+<td>4.x (other, ≥ 4.6)</td>
+<td><strong>Expected to work</strong> — the only API surface used is the stable <code>@ConfigurationProperties</code>, <code>@Factory</code>/<code>@Singleton</code>, <code>@Requires(classes = …)</code> and <code>ApplicationEventListener&lt;StartupEvent&gt;</code> contract</td>
+</tr>
+<tr>
+<td>5.1.1</td>
+<td><strong>Verified</strong> — full suite green, on JDK 25; requires a Java 25 runtime, see below</td>
+</tr>
+<tr>
+<td>5.x (other)</td>
+<td><strong>Expected to work</strong> — same API surface as above, which 5.x keeps</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Micronaut 5 works, and needs no separate artifact — but it moves the JDK floor for this module
+only.</strong> Micronaut 5 ships Java 25 bytecode (class file version 69) in <code>micronaut-inject</code> and
+<code>micronaut-core</code>, and in the <code>micronaut-inject-java</code> annotation processor. Two consequences, and
+they are different from each other:</p>
+<ul>
+<li><strong>At build time</strong>, the module can only be compiled on JDK 25. On JDK 21 the build fails before it
+  reaches your code, when javac tries to load the processor (<code>… has been compiled by a more recent
+  version of the Java Runtime</code>).</li>
+<li><strong>At run time</strong>, an application using Micronaut 5 needs a Java 25 JVM — which it does anyway,
+  since Micronaut 5 requires one. <code>ntfy-micronaut</code>'s own classes stay at the project's Java 21
+  baseline; it is the Micronaut jars on the classpath that raise the floor, not this module.</li>
+</ul>
+<p><code>micronaut.version</code> stays pinned on the 4.10.x line in <code>pom.xml</code>, so the JDK 21 leg of CI keeps
+proving the project's own baseline. <strong>That pin is a default, not a compatibility ceiling</strong> — an
+application on Micronaut 5 overrides it and gets a supported combination.</p>
+<p><strong>The published jar is forward-compatible.</strong> <code>ntfy-micronaut</code> is released compiled by the Micronaut
+4 annotation processor, and the bean definitions it generates are read unchanged by Micronaut 5's
+<code>micronaut-inject</code> — so an application on Micronaut 5 can use the artifact as published, without
+waiting for a rebuild. Micronaut publishes no promise to that effect, so it is not taken on trust:
+the sweep's <code>forward-compat</code> job rebuilds the module against Micronaut 4, then runs its suite with
+only the classpath moved to the latest Micronaut 5 release, and fails if the generated definitions
+were rebuilt, if the override missed, or if no test ran.</p>
+<p>The module is <strong>Logback-only</strong>: it installs the <code>ntfy-auto</code> appender on the root Logback logger —
+Logback being what <code>micronaut-logging</code> binds by default — and skips the install with a warning if
+Logback is not the bound SLF4J backend. The injectable <code>NtfyClient</code> bean is contributed regardless of
+backend. Logback is a <code>provided</code>-scope dependency of the module, so the version your Micronaut
+application brings is the one that runs. There is no Log4j2 path in this module; a Micronaut
+application on Log4j2 wires <code>ntfy-log4j2</code>'s <code>&lt;Ntfy&gt;</code> element itself. See
+<a href="../micronaut/">micronaut.md</a>.</p>
+<h2 id="quarkus">Quarkus (<code>ntfy-quarkus-runtime</code> / <code>-deployment</code>)<a class="headerlink" href="#quarkus" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.38.3</td>
+<td><strong>Tested (CI)</strong> — the version pinned in this repo (<code>quarkus.version</code>), exercised JVM + native by the <code>ntfy-quarkus/integration-tests</code> module</td>
+</tr>
+<tr>
+<td>3.15.7, 3.20.6, 3.24.5, 3.34.7</td>
+<td><strong>Verified</strong> — full suite green on each, including the QuarkusUnitTests that boot a real application</td>
+</tr>
+<tr>
+<td>3.x (other, ≥ 3.15)</td>
+<td><strong>Expected to work</strong> within the stable extension-API surface used (<code>LogHandlerBuildItem</code>, <code>@ConfigMapping @ConfigRoot(RUN_TIME)</code>, <code>@Recorder</code>, <code>Capability.METRICS</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>The verified rows cover both 3.15 and 3.20 — the two LTS lines — down to five minor releases below
+the pin. They are stronger than a compile check: <code>NtfyMetricsBindingTest</code> boots a real in-JVM
+application on each version and asserts the meter reads the installed handler's counters, so the
+Micrometer binding is confirmed <em>working</em>, not merely linking, across the whole span.</p>
+<p>The extension's Micrometer binding is <strong>optional and conditional</strong> — the meters appear only if the
+application brings <code>quarkus-micrometer</code> itself. See the Micrometer section below.</p>
+<h2 id="micrometer-optional-spring-boot-and-quarkus">Micrometer (optional — Spring Boot and Quarkus)<a class="headerlink" href="#micrometer-optional-spring-boot-and-quarkus" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Whatever your application's BOM resolves</td>
+<td>Supported — this project pins nothing</td>
+</tr>
+<tr>
+<td>1.17.0</td>
+<td><strong>Tested (CI)</strong> — what CI exercises on both surfaces; <code>spring-boot-dependencies</code> 4.1.1 and <code>quarkus-bom</code> 3.38.3 resolve the same version</td>
+</tr>
+<tr>
+<td>1.9.17 → 1.17.0</td>
+<td><strong>API-checked only</strong> — every signature the bindings call is present across that span, confirmed by inspecting the jars. The suites were <em>not</em> run against those versions.</td>
+</tr>
+</tbody>
+</table>
+<p>The Micrometer row is weaker evidence than the others on this page, and deliberately marked as such.
+Both BOMs pin the version literally rather than through an overridable property, so there is no clean
+way to run the suites against an older Micrometer without editing a POM. What was checked instead is
+that <code>FunctionCounter.builder(String, T, ToDoubleFunction)</code>, <code>Builder.description(String)</code>,
+<code>Builder.register(MeterRegistry)</code> and <code>MeterBinder.bindTo(MeterRegistry)</code> — the entire surface both
+bindings touch — exist unchanged from 1.9.17 through 1.17.0. That is a strong signal for a binding
+this small, but it is not a test run.</p>
+<p>Micrometer is an <strong><code>optional</code></strong> dependency of both the Spring Boot starter and <code>ntfy-quarkus-runtime</code>,
+so neither ever drags it onto a consumer's classpath and there is no version for this project to pin
+— the one your application's BOM resolves is the one that runs. Each binding activates only when
+Micrometer is genuinely there: the starter guards on <code>@ConditionalOnClass(MeterRegistry)</code> plus a
+<code>MeterRegistry</code> bean, and the Quarkus extension on the <code>io.quarkus.metrics</code> capability (provided by
+<code>quarkus-micrometer</code>) plus <code>MeterRegistry</code> on the runtime classpath. Applications without Micrometer
+resolve and run exactly as they did before either binding existed. See
+<a href="../observability/">observability.md</a>.</p>
+<h2 id="graalvm-native-image">GraalVM native image<a class="headerlink" href="#graalvm-native-image" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GraalVM CE <strong>25</strong> (<code>graalvm-community</code>, JDK 25)</td>
+<td><strong>Tested (CI)</strong> — the <code>native-smoke</code> job, every push/PR</td>
+</tr>
+<tr>
+<td>GraalVM CE 21</td>
+<td><strong>Not usable for the Quarkus path</strong> — the CE 21 line is frozen at 21.0.2, which is older than Quarkus 3.38+ requires. This is why <code>native-smoke</code> runs on 25 only rather than the full JDK matrix.</td>
+</tr>
+</tbody>
+</table>
+<p>Supported through the <strong>Quarkus extension</strong>: the alert engine's <code>HttpClient</code>, threads, and digest
+scheduler are all created at <code>RUNTIME_INIT</code> (never build-time / static-init), which is what keeps the
+extension native-safe. The <code>ntfy-quarkus/integration-tests</code> module native-compiles a real app and
+runs its <code>@QuarkusIntegrationTest</code> against the native binary in the CI <code>native-smoke</code> job.</p>
+<p>Note that the native leg exercises the alert path, not the Micrometer binding: <code>quarkus-micrometer</code> is
+deliberately kept out of the integration-tests app so the native build stays fast. The binder adds no
+reflection and no build-time initialization of its own, so nothing about it is native-specific.</p>
+<p>The <strong>hand-rolled</strong> (non-Quarkus) path is measured in the same job, in two legs. <code>examples/core</code>'s
+<code>native</code> profile compiles a probe binary from plain <code>ntfy-core</code> — no framework, no extension — and
+<code>CoreNativeBinaryIT</code> drives that binary against a loopback ntfy server: the configuration read from
+the ambient environment at image <em>run</em> time, the manual <code>NtfyClient</code> publish, and the alert engine's
+shutdown digest all have to cross the wire before the test passes. It runs the binary twice,
+differing in nothing but <code>NTFY_LOCALE</code>, because the digest text comes from the <code>AlertMessages</code>
+bundle and a bundle GraalVM pruned falls back to English without a word — two languages out of one
+binary is the only assertion that catches that. The image is built with <code>--no-fallback</code>, and with
+the shared reachability-metadata repository switched off, so nothing but the metadata in the table
+below may satisfy it.</p>
+<p>The second leg is <code>examples/logback-zero-code</code>, and it exists for the <strong>zero-code</strong> auto-install:
+<code>ntfy-logback</code> on the classpath, no <code>logback.xml</code> anywhere, and the appender installed by Logback's
+<code>Configurator</code> service lookup alone. That module ships no XML on purpose — Logback itself carries no
+native-image metadata of any kind, so an image running Joran would need reflection registrations for
+every appender and encoder in the file and would fail for reasons that say nothing about the SPI.
+The probe reports, from inside the image, which appenders the root logger ended up with, and the
+loopback server reports whether the one it names then published; a service native-image dropped
+fails the first, an appender that cannot reach the network fails the second. The same probe runs on
+an ordinary JVM in the same invocation, so a red native leg beside a green control points at the
+image rather than at the probe.</p>
+<h3 id="metadata-shipped-for-a-hand-rolled-build">Metadata shipped for a hand-rolled build<a class="headerlink" href="#metadata-shipped-for-a-hand-rolled-build" title="Permanent link">&para;</a></h3>
+<p>For a <strong>hand-rolled</strong> (non-Quarkus) native build of <code>ntfy-core</code> / <code>ntfy-logback</code>, the jars carry
+their own reachability metadata at the canonical
+<code>META-INF/native-image/&lt;groupId&gt;/&lt;artifactId&gt;/</code> location, so any GraalVM 21+ picks it up with no
+flag and no hand-written config on your side. That floor is about the metadata format, and applies
+to this non-Quarkus path only; it does not walk back the table above, where the Quarkus path needs
+25. In full, and this is the whole of it:</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>File</th>
+<th>What it registers, and why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ntfy-core</code></td>
+<td><code>native-image.properties</code></td>
+<td><code>--enable-url-protocols=https</code>. native-image strips protocol handlers it cannot prove reachable, and the JDK <code>HttpClient</code>'s TLS handler is one of them; without this a native binary throws <code>unknown protocol: https</code> on its first publish.</td>
+</tr>
+<tr>
+<td><code>ntfy-core</code></td>
+<td><code>resource-config.json</code>, <code>resources</code></td>
+<td><code>ntfy.properties</code>, so <code>ConfigLoader</code> can still find it at image run time, and <code>io/github/pimak/ntfy/core/AlertMessages(_…)?.properties</code> — the alert-message bundle files themselves.</td>
+</tr>
+<tr>
+<td><code>ntfy-core</code></td>
+<td><code>resource-config.json</code>, <code>bundles</code></td>
+<td>The <code>io.github.pimak.ntfy.core.AlertMessages</code> bundle, for locales <code>""</code> (the base), <code>en</code> and <code>fr</code>. Registering the <code>.properties</code> files as resources on the row above is <strong>not</strong> enough on its own: <code>ResourceBundle</code> lookup is a separate mechanism in a native image, and without this block a localized alert body comes out as its key.</td>
+</tr>
+<tr>
+<td><code>ntfy-jul</code></td>
+<td><code>reflect-config.json</code></td>
+<td><code>NtfyJulAutoHandler</code>'s no-arg constructor, which <code>LogManager</code> instantiates reflectively when <code>logging.properties</code> names it, plus — conditionally on <code>org.jboss.logmanager.ExtLogRecord</code> being reachable — the <code>getMdc</code> accessor the MDC block reads under JBoss LogManager.</td>
+</tr>
+</tbody>
+</table>
+<p>Every other published module ships no native-image metadata of its own, and each for a reason:
+<code>ntfy-logback</code>, <code>ntfy-micronaut</code> and <code>ntfy-spring-boot-starter</code> reach the network through
+<code>ntfy-core</code>, whose rows above travel with it and cover them; <code>ntfy-log4j2</code>'s plugin metadata is
+generated into the jar at build time by log4j-core's own annotation processor (see
+<a href="#log4j2">Log4j2</a>); and <code>ntfy-quarkus-runtime</code> needs none, because the extension builds its
+<code>HttpClient</code>, threads and scheduler at <code>RUNTIME_INIT</code>, so Quarkus' own substitutions register the
+URL protocols and nothing is reachable at image build time to declare.</p>
+<p>One caveat on that list, because it is the kind of gap a per-module argument hides: for
+<code>ntfy-logback</code> the sentence above covers only the <em>network</em> path. Its <code>META-INF/services</code> entry for
+the <code>Configurator</code> SPI is a separate reachability question, one the <code>ntfy-core</code> rows say nothing
+about — and it is the zero-code leg described earlier, not this table, that answers it. It does
+survive: on GraalVM CE 25, with the shared metadata repository off and nothing but these jars'
+contents available, the service lookup finds the configurator and the appender publishes. Which is
+why <code>ntfy-logback</code> still ships no metadata of its own and should not be given any speculatively —
+the guard that keeps this table honest would then require documenting a registration nothing
+obliges the project to keep.</p>
+<h3 id="what-is-not-covered">What is not covered<a class="headerlink" href="#what-is-not-covered" title="Permanent link">&para;</a></h3>
+<p>The <code>native-smoke</code> job measures three native surfaces: the Quarkus extension, the hand-rolled build
+of plain <code>ntfy-core</code>, and the zero-code Logback auto-install — the three described above. Two other
+native paths exist, and this page claims <strong>neither</strong>:</p>
+<ul>
+<li><strong>Spring AOT</strong> — <code>spring-boot:process-aot</code> followed by a native image of an application using
+  <code>ntfy-spring-boot-starter</code>.</li>
+<li><strong>Micronaut native</strong> — <code>micronaut-maven-plugin:native-image</code> on an application using
+  <code>ntfy-micronaut</code>.</li>
+</ul>
+<p>Neither is known to be broken, and no obstacle has been identified in either: both starters use the
+ordinary bean and auto-configuration mechanisms their AOT engines already handle generically, and
+both reach the wire through <code>ntfy-core</code>, whose metadata travels with its jar. But <em>no obstacle
+identified</em> is reasoning, and the rest of this page is measurement — so these two are recorded here
+as the gap they are, not folded into the Quarkus row's green tick.</p>
+<p>What remains unmeasured about Logback specifically is the <strong>XML</strong> path in a native image. Joran
+configuration needs reflection metadata that neither Logback nor this project ships, and nothing
+here suggests otherwise: <code>examples/logback</code> is a JVM example, and the native leg above deliberately
+avoids XML so that what it measures stays legible.</p>
+<h2 id="ntfy-server">ntfy server<a class="headerlink" href="#ntfy-server" title="Permanent link">&para;</a></h2>
+<p>Verified against <a href="https://ntfy.sh">ntfy.sh</a> (the public hosted instance) and a self-hosted ntfy
+instance. The engine targets ntfy's plain publish-with-headers HTTP API (<code>POST</code> to the topic URL,
+<code>Title</code>/<code>Priority</code>/<code>Tags</code> as headers, body as the message text) — any ntfy server implementing that
+stable API surface should work.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../configuration/">configuration.md</a> — the unified key reference and per-framework mapping.</li>
+<li><a href="../troubleshooting/">troubleshooting.md</a> — diagnostics and where each framework surfaces them.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../bom/" class="md-footer__link md-footer__link--prev" aria-label="Previous: BOM">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                BOM
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Apache-2.0
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
