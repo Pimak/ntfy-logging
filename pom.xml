@@ -292,7 +292,7 @@
                 <plugin>
                     <groupId>com.github.siom79.japicmp</groupId>
                     <artifactId>japicmp-maven-plugin</artifactId>
-                    <version>0.26.1</version>
+                    <version>0.26.2</version>
                     <!--
                         The API guard. Until now the ONLY thing standing between a refactor and a
                         broken downstream build was prose in three tests (AlertEventLevelTest,
