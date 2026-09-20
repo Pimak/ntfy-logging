@@ -127,7 +127,7 @@
             5.x sweep row and the forward-compat job — and written up in docs/compatibility.md.
             An application on Micronaut 5 simply overrides this property.
         -->
-        <micronaut.version>4.10.17</micronaut.version>
+        <micronaut.version>4.10.18</micronaut.version>
     </properties>
 
     <dependencyManagement>
