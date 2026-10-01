@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.github.pimak.ntfy.core"},{"l":"io.github.pimak.ntfy.jul"},{"l":"io.github.pimak.ntfy.log4j2"},{"l":"io.github.pimak.ntfy.logback"},{"l":"io.github.pimak.ntfy.micronaut"},{"l":"io.github.pimak.ntfy.quarkus.runtime"},{"l":"io.github.pimak.ntfy.spring"}];updateSearchResults();
