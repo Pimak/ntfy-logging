@@ -1,5 +1,5 @@
 # Documentation site toolchain, used by .github/workflows/docs.yml and local `mkdocs serve`.
 # Only these two are pinned; their transitive dependencies float, so this is not a hash-locked
 # install. Tracked by Dependabot's pip ecosystem.
-mkdocs-material==9.7.7
+mkdocs-material==9.8.0
 mike==2.2.0
