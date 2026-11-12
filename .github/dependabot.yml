@@ -7,6 +7,11 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    ignore:
+      # Micronaut 5 requires Java 25 bytecode; keep the Java 21 compatibility leg
+      # until the baseline is deliberately raised in a separate change.
+      - dependency-name: "io.micronaut.platform:micronaut-platform"
+        versions: [">= 5.0.0"]
     open-pull-requests-limit: 10
   - package-ecosystem: github-actions
     directory: "/"
