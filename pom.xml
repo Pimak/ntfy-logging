@@ -240,7 +240,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.6.3</version>
+                    <version>3.7.0</version>
                     <!--
                         Version is managed here so every module inherits it, but the concrete
                         bannedDependencies ALLOWLIST execution lives in each module's own pom:
