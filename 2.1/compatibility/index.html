@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1487,7 +1487,7 @@ alongside it. The <code>NtfyClient</code> bean and the Micrometer meters are ava
 </thead>
 <tbody>
 <tr>
-<td>4.10.17</td>
+<td>4.10.18</td>
 <td><strong>Tested (CI)</strong> — the <code>micronaut-platform</code> version pinned in this repo (<code>micronaut.version</code> in <code>pom.xml</code>), resolving Micronaut core 4.10.26</td>
 </tr>
 <tr>
@@ -1547,7 +1547,7 @@ application on Log4j2 wires <code>ntfy-log4j2</code>'s <code>&lt;Ntfy&gt;</code>
 </thead>
 <tbody>
 <tr>
-<td>3.38.3</td>
+<td>3.40.1.2</td>
 <td><strong>Tested (CI)</strong> — the version pinned in this repo (<code>quarkus.version</code>), exercised JVM + native by the <code>ntfy-quarkus/integration-tests</code> module</td>
 </tr>
 <tr>
@@ -1581,7 +1581,7 @@ application brings <code>quarkus-micrometer</code> itself. See the Micrometer se
 </tr>
 <tr>
 <td>1.17.0</td>
-<td><strong>Tested (CI)</strong> — what CI exercises on both surfaces; <code>spring-boot-dependencies</code> 4.1.1 and <code>quarkus-bom</code> 3.38.3 resolve the same version</td>
+<td><strong>Tested (CI)</strong> — what CI exercises on both surfaces; <code>spring-boot-dependencies</code> 4.1.1 and <code>quarkus-bom</code> 3.40.1.2 resolve the same version</td>
 </tr>
 <tr>
 <td>1.9.17 → 1.17.0</td>
@@ -1630,6 +1630,26 @@ runs its <code>@QuarkusIntegrationTest</code> against the native binary in the C
 <p>Note that the native leg exercises the alert path, not the Micrometer binding: <code>quarkus-micrometer</code> is
 deliberately kept out of the integration-tests app so the native build stays fast. The binder adds no
 reflection and no build-time initialization of its own, so nothing about it is native-specific.</p>
+<p>The <strong>hand-rolled</strong> (non-Quarkus) path is measured in the same job, in two legs. <code>examples/core</code>'s
+<code>native</code> profile compiles a probe binary from plain <code>ntfy-core</code> — no framework, no extension — and
+<code>CoreNativeBinaryIT</code> drives that binary against a loopback ntfy server: the configuration read from
+the ambient environment at image <em>run</em> time, the manual <code>NtfyClient</code> publish, and the alert engine's
+shutdown digest all have to cross the wire before the test passes. It runs the binary twice,
+differing in nothing but <code>NTFY_LOCALE</code>, because the digest text comes from the <code>AlertMessages</code>
+bundle and a bundle GraalVM pruned falls back to English without a word — two languages out of one
+binary is the only assertion that catches that. The image is built with <code>--no-fallback</code>, and with
+the shared reachability-metadata repository switched off, so nothing but the metadata in the table
+below may satisfy it.</p>
+<p>The second leg is <code>examples/logback-zero-code</code>, and it exists for the <strong>zero-code</strong> auto-install:
+<code>ntfy-logback</code> on the classpath, no <code>logback.xml</code> anywhere, and the appender installed by Logback's
+<code>Configurator</code> service lookup alone. That module ships no XML on purpose — Logback itself carries no
+native-image metadata of any kind, so an image running Joran would need reflection registrations for
+every appender and encoder in the file and would fail for reasons that say nothing about the SPI.
+The probe reports, from inside the image, which appenders the root logger ended up with, and the
+loopback server reports whether the one it names then published; a service native-image dropped
+fails the first, an appender that cannot reach the network fails the second. The same probe runs on
+an ordinary JVM in the same invocation, so a red native leg beside a green control points at the
+image rather than at the probe.</p>
 <h3 id="metadata-shipped-for-a-hand-rolled-build">Metadata shipped for a hand-rolled build<a class="headerlink" href="#metadata-shipped-for-a-hand-rolled-build" title="Permanent link">&para;</a></h3>
 <p>For a <strong>hand-rolled</strong> (non-Quarkus) native build of <code>ntfy-core</code> / <code>ntfy-logback</code>, the jars carry
 their own reachability metadata at the canonical
@@ -1675,9 +1695,19 @@ generated into the jar at build time by log4j-core's own annotation processor (s
 <a href="#log4j2">Log4j2</a>); and <code>ntfy-quarkus-runtime</code> needs none, because the extension builds its
 <code>HttpClient</code>, threads and scheduler at <code>RUNTIME_INIT</code>, so Quarkus' own substitutions register the
 URL protocols and nothing is reachable at image build time to declare.</p>
+<p>One caveat on that list, because it is the kind of gap a per-module argument hides: for
+<code>ntfy-logback</code> the sentence above covers only the <em>network</em> path. Its <code>META-INF/services</code> entry for
+the <code>Configurator</code> SPI is a separate reachability question, one the <code>ntfy-core</code> rows say nothing
+about — and it is the zero-code leg described earlier, not this table, that answers it. It does
+survive: on GraalVM CE 25, with the shared metadata repository off and nothing but these jars'
+contents available, the service lookup finds the configurator and the appender publishes. Which is
+why <code>ntfy-logback</code> still ships no metadata of its own and should not be given any speculatively —
+the guard that keeps this table honest would then require documenting a registration nothing
+obliges the project to keep.</p>
 <h3 id="what-is-not-covered">What is not covered<a class="headerlink" href="#what-is-not-covered" title="Permanent link">&para;</a></h3>
-<p>The only native surface this project measures is the Quarkus one, in the <code>native-smoke</code> job. Two
-other native paths exist, and this page claims <strong>neither</strong>:</p>
+<p>The <code>native-smoke</code> job measures three native surfaces: the Quarkus extension, the hand-rolled build
+of plain <code>ntfy-core</code>, and the zero-code Logback auto-install — the three described above. Two other
+native paths exist, and this page claims <strong>neither</strong>:</p>
 <ul>
 <li><strong>Spring AOT</strong> — <code>spring-boot:process-aot</code> followed by a native image of an application using
   <code>ntfy-spring-boot-starter</code>.</li>
@@ -1688,9 +1718,11 @@ other native paths exist, and this page claims <strong>neither</strong>:</p>
 ordinary bean and auto-configuration mechanisms their AOT engines already handle generically, and
 both reach the wire through <code>ntfy-core</code>, whose metadata travels with its jar. But <em>no obstacle
 identified</em> is reasoning, and the rest of this page is measurement — so these two are recorded here
-as the gap they are, not folded into the Quarkus row's green tick. A hand-rolled native build of
-plain <code>ntfy-core</code> / <code>ntfy-logback</code> is unrun for the same reason, which is what makes the metadata
-table above worth reading rather than trusting.</p>
+as the gap they are, not folded into the Quarkus row's green tick.</p>
+<p>What remains unmeasured about Logback specifically is the <strong>XML</strong> path in a native image. Joran
+configuration needs reflection metadata that neither Logback nor this project ships, and nothing
+here suggests otherwise: <code>examples/logback</code> is a JVM example, and the native leg above deliberately
+avoids XML so that what it measures stays legible.</p>
 <h2 id="ntfy-server">ntfy server<a class="headerlink" href="#ntfy-server" title="Permanent link">&para;</a></h2>
 <p>Verified against <a href="https://ntfy.sh">ntfy.sh</a> (the public hosted instance) and a self-hosted ntfy
 instance. The engine targets ntfy's plain publish-with-headers HTTP API (<code>POST</code> to the topic URL,
@@ -1786,10 +1818,10 @@ stable API surface should work.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
