@@ -14,7 +14,7 @@ transitive path pulls in, which is where a mixed-version tree usually starts.
         <dependency>
           <groupId>io.github.pimak</groupId>
           <artifactId>ntfy-bom</artifactId>
-          <version>2.1.0</version>
+          <version>2.1.1</version>
           <type>pom</type>
           <scope>import</scope>
         </dependency>
@@ -33,7 +33,7 @@ transitive path pulls in, which is where a mixed-version tree usually starts.
 
     ```kotlin
     dependencies {
-        implementation(platform("io.github.pimak:ntfy-bom:2.1.0"))
+        implementation(platform("io.github.pimak:ntfy-bom:2.1.1"))
         implementation("io.github.pimak:ntfy-logback")
     }
     ```
