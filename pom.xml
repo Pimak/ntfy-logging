@@ -437,7 +437,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.11.0</version>
+                        <version>0.12.0</version>
                         <!-- extensions=true wires this plugin in as the deploy handler for the Central Portal.
                              Scoped to the release profile (NOT the main build) so the -P github-mirror leg's
                              `deploy` is handled by maven-deploy-plugin, keeping the two legs structurally
