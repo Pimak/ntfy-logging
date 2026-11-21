@@ -94,7 +94,7 @@
             failing anything; the same guard parses it here so that cannot pass unnoticed.
         -->
         <project.build.outputTimestamp>2026-11-13T00:00:00Z</project.build.outputTimestamp>
-        <logback.version>1.6.3</logback.version>
+        <logback.version>1.6.6</logback.version>
         <!--
             Latest stable of the maintained Log4j 2.x line (3.x is still 3.0.0-beta*). Consumed
             provided-scope by ntfy-log4j2, so this pin only fixes what the adapter COMPILES
